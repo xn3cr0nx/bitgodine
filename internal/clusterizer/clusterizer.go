@@ -3,15 +3,16 @@ package clusterizer
 import (
 	"io/ioutil"
 
+	"github.com/btcsuite/btcd/chaincfg"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/emirpasic/gods/sets/hashset"
-	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
-	"github.com/xn3cr0nx/bitgodine/internal/disjoint"
-	"github.com/xn3cr0nx/bitgodine/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine/internal/visitor"
-	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint"
+	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 type Clusterizer struct {
@@ -24,30 +25,35 @@ func NewClusterizer() Clusterizer {
 	}
 }
 
-func (c *Clusterizer) visitBlockBegin(block visitor.BlockItem, height uint64) {}
+func (c Clusterizer) VisitBlockBegin(block *btcutil.Block, height uint64) visitor.BlockItem {
+	return nil
+}
 
-func (c *Clusterizer) visitTransactionBegin(block visitor.BlockItem) visitor.TransactionItem {
+func (c Clusterizer) VisitBlockEnd(block *btcutil.Block, height uint64, blockItem visitor.BlockItem) {}
+
+func (c Clusterizer) VisitTransactionBegin(block *visitor.BlockItem) visitor.TransactionItem {
 	return hashset.New()
 }
 
-func (c *Clusterizer) visitTransactionInput(txIn tx.TxInput, block visitor.BlockItem, txItem visitor.TransactionItem, oItem visitor.OutputItem) {
+func (c Clusterizer) VisitTransactionInput(txIn wire.TxIn, block *visitor.BlockItem, txItem *visitor.TransactionItem, oItem visitor.OutputItem) {
 	// ignore coinbase
-	if zeroHash, _ := chainhash.NewHash(make([]byte, 32)); txIn.PrevHash.IsEqual(zeroHash) {
+	if zeroHash, _ := chainhash.NewHash(make([]byte, 32)); txIn.PreviousOutPoint.Hash.IsEqual(zeroHash) {
 		return
 	}
 	if oItem != nil {
-		txItem.Add(oItem)
+		(*txItem).Add(oItem)
 	}
 }
 
 // TODO: this fuction should be tested
-func (c *Clusterizer) visitTransactionOutput(txOut tx.TxOutput, blockItem visitor.BlockItem, txItem visitor.TransactionItem) (visitor.OutputItem, error) {
+func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor.BlockItem, txItem *visitor.TransactionItem) (visitor.OutputItem, error) {
 	// txscript.GetScriptClass(txOut.Script).String()
-	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.Script, &blockchain.Instance().Network)
+	// _, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.Script, &blockchain.Instance().Network)
+	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.MainNetParams)
 	return addresses[0], err
 }
 
-func (c *Clusterizer) visitTransactionEnd(tx tx.Tx, blockItem visitor.BlockItem, txItem visitor.TransactionItem) {
+func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.BlockItem, txItem visitor.TransactionItem) {
 	// skip transactions with just one input
 	if txItem.Size() > 1 {
 		txInputs := txItem.Values()
@@ -61,7 +67,7 @@ func (c *Clusterizer) visitTransactionEnd(tx tx.Tx, blockItem visitor.BlockItem,
 	}
 }
 
-func (c *Clusterizer) done() (uint, error) {
+func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": string(c.clusters.Size())})
 	for address, tag := range c.clusters.HashMap {
@@ -69,5 +75,5 @@ func (c *Clusterizer) done() (uint, error) {
 	}
 
 	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": string(c.clusters.Size())})
-	return c.clusters.Size(), nil
+	return visitor.DoneItem(c.clusters.Size()), nil
 }

@@ -1,4 +1,4 @@
-module github.com/xn3cr0nx/bitgodine
+module github.com/xn3cr0nx/bitgodine_code
 
 require (
 	github.com/btcsuite/btcd v0.0.0-20181130015935-7d2daa5bfef2

@@ -3,7 +3,7 @@ package disjoint
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcutil"
 )

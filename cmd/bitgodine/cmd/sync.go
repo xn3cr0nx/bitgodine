@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 )
 
 // syncCmd represents the sync command

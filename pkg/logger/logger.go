@@ -15,18 +15,18 @@ var Log *logrus.Logger
 func init() {
 	// This is mainly done to export the logger in test
 	Log = logrus.New()
-	logrus.SetFormatter(&logrus.TextFormatter{
+	Log.Formatter = &logrus.TextFormatter{
 		ForceColors:            true,
 		FullTimestamp:          true,
 		DisableLevelTruncation: true,
-	})
-
+	}
 }
 
 func withFields(fields Fields) *logrus.Entry {
 	return Log.WithFields(logrus.Fields(fields))
 }
 
+// Info level log message
 func Info(action, message string, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	fields := make(map[string]interface{})
@@ -43,6 +43,7 @@ func Info(action, message string, params Params) {
 	withFields(fields).Info(message)
 }
 
+// Warn level log message
 func Warn(action, message string, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	fields := make(map[string]interface{})
@@ -59,6 +60,7 @@ func Warn(action, message string, params Params) {
 	withFields(fields).Warn(message)
 }
 
+// Debug level log message
 func Debug(action, message string, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	fields := make(map[string]interface{})
@@ -75,6 +77,7 @@ func Debug(action, message string, params Params) {
 	withFields(fields).Debug(message)
 }
 
+// Error level log message
 func Error(action string, err error, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	if err == nil { // something's wrong. fix needed
@@ -94,6 +97,7 @@ func Error(action string, err error, params Params) {
 	withFields(fields).Error(err.Error())
 }
 
+// Panic level log message
 func Panic(action string, err error, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	if err == nil { // something's wrong. fix needed

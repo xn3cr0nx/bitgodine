@@ -14,7 +14,8 @@ import (
 
 // CheckBlock checks if block is correctly initialized just checking hash and height fields have some value
 func CheckBlock(b *btcutil.Block) bool {
-	return b.Hash() != nil && b.Height() != 0
+	// return b.Height() != 0 && b.Hash() != nil
+	return b.Height() == -1 && b.Hash() != nil
 }
 
 // Walk parses the block and iterates over block's transaction to parse them

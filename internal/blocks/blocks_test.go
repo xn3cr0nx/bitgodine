@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/btcsuite/btcutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -38,6 +39,9 @@ func TestCheckBlock(t *testing.T) {
 		logger.Panic("Test Block", err, logger.Params{"op": "Error reading block"})
 	}
 	assert.Equal(t, true, CheckBlock(block))
+
+	b := btcutil.Block{}
+	assert.Equal(t, false, CheckBlock(&b))
 }
 
 // func TestWalk(t *testing.T) {

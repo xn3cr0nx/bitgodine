@@ -2,7 +2,8 @@ package clusterizer
 
 import (
 	"errors"
-	"io/ioutil"
+	"fmt"
+	"reflect"
 
 	"github.com/btcsuite/btcd/chaincfg"
 
@@ -64,12 +65,13 @@ func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.Block
 	// skip transactions with just one input
 	if txItem.Size() > 1 {
 		txInputs := txItem.Values()
-		lastAddress := txInputs[txItem.Size()-1].(btcutil.Address)
+		fmt.Printf("tx inputs %v", txInputs)
+		lastAddress := txInputs[txItem.Size()-1].(visitor.OutputItem)
 		c.clusters.MakeSet(lastAddress)
 		for _, address := range txInputs {
-			c.clusters.MakeSet(address.(btcutil.Address))
-			c.clusters.Union(lastAddress, address.(btcutil.Address))
-			lastAddress = address.(btcutil.Address)
+			c.clusters.MakeSet(address.(visitor.OutputItem))
+			c.clusters.Union(lastAddress, address.(visitor.OutputItem))
+			lastAddress = address.(visitor.OutputItem)
 		}
 	}
 }

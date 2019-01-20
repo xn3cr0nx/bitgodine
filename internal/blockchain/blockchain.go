@@ -107,14 +107,14 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 			break
 		}
 
-		logger.Info("Blockchain", fmt.Sprintf("Block candidate for height %v - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock, block.Hash()), logger.Params{})
+		logger.Info("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 
-		if block.MsgBlock().Header.PrevBlock != *goalPrevHash {
+		if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 			(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 
 			// check if last_block.is_some() condition is correctly replaced with checkBlock()
 			if blocks.CheckBlock(lastBlock) && block.MsgBlock().Header.PrevBlock == lastBlock.MsgBlock().Header.PrevBlock {
-				logger.Info("Blockchain", fmt.Sprintf("Chain split detected: %v <-> %v. Detecting main chain and orphan.", lastBlock.Hash(), block.Hash()), logger.Params{})
+				logger.Info("Blockchain", fmt.Sprintf("Chain split detected: %v <-> %v. Detecting main chain and orphan.", lastBlock.Hash().String(), block.Hash().String()), logger.Params{})
 
 				firstOrphan := lastBlock
 				secondOrphan := block

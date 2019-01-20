@@ -91,7 +91,7 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 				if block, ok := (*skipped)[*goalPrevHash]; ok {
 					delete(*skipped, *goalPrevHash)
 					blocks.Walk(&block, v, height, outputItems)
-					logger.Info("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
+					logger.Info("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 					*height++
 					*goalPrevHash = *block.Hash()
 					// possible bug initialization to null (None in rust)

@@ -64,8 +64,8 @@ func (b *Blockchain) Read() error {
 }
 
 func (b *Blockchain) Walk(v visitor.BlockchainVisitor) (uint64, *chainhash.Hash, map[chainhash.Hash][]visitor.OutputItem) {
-	var skipped map[chainhash.Hash]btcutil.Block
-	var outputItems map[chainhash.Hash][]visitor.OutputItem
+	skipped := make(map[chainhash.Hash]btcutil.Block)
+	outputItems := make(map[chainhash.Hash][]visitor.OutputItem)
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock btcutil.Block
 	height := uint64(0)

@@ -1,6 +1,7 @@
 package clusterizer
 
 import (
+	"errors"
 	"io/ioutil"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -40,17 +41,22 @@ func (c Clusterizer) VisitTransactionInput(txIn wire.TxIn, block *visitor.BlockI
 	if zeroHash, _ := chainhash.NewHash(make([]byte, 32)); txIn.PreviousOutPoint.Hash.IsEqual(zeroHash) {
 		return
 	}
-	if oItem != nil {
+	if oItem != "" {
 		(*txItem).Add(oItem)
 	}
 }
 
-// TODO: this fuction should be tested
 func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor.BlockItem, txItem *visitor.TransactionItem) (visitor.OutputItem, error) {
 	// txscript.GetScriptClass(txOut.Script).String()
 	// _, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.Script, &blockchain.Instance().Network)
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.MainNetParams)
-	return addresses[0], err
+	if err != nil {
+		return "", err
+	}
+	if addresses[0] != nil {
+		return visitor.OutputItem(addresses[0].EncodeAddress()), nil
+	}
+	return "", errors.New("Not able to extract address from PkScript")
 }
 
 func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.BlockItem, txItem visitor.TransactionItem) {

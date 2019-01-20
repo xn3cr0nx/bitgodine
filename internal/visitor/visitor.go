@@ -12,7 +12,9 @@ type TransactionItem interface {
 	Size() int
 	Values() []interface{}
 }
-type OutputItem btcutil.Address
+
+// OutputItem is an address type, converted to a string
+type OutputItem string
 type DoneItem uint
 
 type BlockchainVisitor interface {

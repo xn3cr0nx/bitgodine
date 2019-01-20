@@ -1,8 +1,10 @@
 package clusterizer
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -79,8 +81,16 @@ func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.Block
 func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": string(c.clusters.Size())})
+	file, err := os.Create("clusters.csv")
+	if err != nil {
+		logger.Error("Clusterizer", err, logger.Params{})
+	}
+	defer file.Close()
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
 	for address, tag := range c.clusters.HashMap {
-		ioutil.WriteFile("clusters.csv", append(address.ScriptAddress(), byte(c.clusters.Parent[tag])), 0777)
+		// ioutil.WriteFile("clusters.csv", append([]byte(address), byte(c.clusters.Parent[tag])), 0777)
+		writer.Write([]string{string(address), string(c.clusters.Parent[tag])})
 	}
 
 	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": string(c.clusters.Size())})

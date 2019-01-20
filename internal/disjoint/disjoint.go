@@ -3,16 +3,16 @@ package disjoint
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 
-	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 type DisjointSet struct {
 	SetSize uint
 	Parent  []uint
 	rank    []uint
-	HashMap map[btcutil.Address]uint
+	HashMap map[visitor.OutputItem]uint
 }
 
 func NewDisjointSet() *DisjointSet {
@@ -21,7 +21,7 @@ func NewDisjointSet() *DisjointSet {
 		SetSize: 0,
 		Parent:  make([]uint, CAPACITY),
 		rank:    make([]uint, CAPACITY),
-		HashMap: make(map[btcutil.Address]uint, CAPACITY),
+		HashMap: make(map[visitor.OutputItem]uint, CAPACITY),
 	}
 }
 
@@ -29,7 +29,7 @@ func (d *DisjointSet) Size() uint {
 	return d.SetSize
 }
 
-func (d *DisjointSet) MakeSet(x btcutil.Address) {
+func (d *DisjointSet) MakeSet(x visitor.OutputItem) {
 	if _, ok := d.HashMap[x]; ok {
 		return
 	}
@@ -40,7 +40,7 @@ func (d *DisjointSet) MakeSet(x btcutil.Address) {
 	d.SetSize = d.SetSize + 1
 }
 
-func (d *DisjointSet) Find(x btcutil.Address) (uint, error) {
+func (d *DisjointSet) Find(x visitor.OutputItem) (uint, error) {
 	pos, ok := d.HashMap[x]
 	if !ok {
 		return 0, errors.New("Address not found")
@@ -57,7 +57,7 @@ func (d *DisjointSet) FindInternal(p []uint, n uint) uint {
 	return n
 }
 
-func (d *DisjointSet) Union(x, y btcutil.Address) (uint, error) {
+func (d *DisjointSet) Union(x, y visitor.OutputItem) (uint, error) {
 	var xRoot uint
 	var yRoot uint
 	var xRank uint

@@ -53,7 +53,8 @@ func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor
 	if err != nil {
 		return "", err
 	}
-	if addresses[0] != nil {
+	if len(addresses) > 0 {
+		fmt.Printf("\n%v - %v \n", reflect.TypeOf(addresses[0]), addresses[0].EncodeAddress())
 		return visitor.OutputItem(addresses[0].EncodeAddress()), nil
 	}
 	return "", errors.New("Not able to extract address from PkScript")

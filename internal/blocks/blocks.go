@@ -19,11 +19,11 @@ func CheckBlock(b *btcutil.Block) bool {
 }
 
 // Walk parses the block and iterates over block's transaction to parse them
-func Walk(b *btcutil.Block, v *visitor.BlockchainVisitor, height *uint64, outputItems *map[chainhash.Hash][]visitor.OutputItem) {
+func Walk(b *btcutil.Block, v *visitor.BlockchainVisitor, height *uint64, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
 	timestamp := b.MsgBlock().Header.Timestamp
 	blockItem := (*v).VisitBlockBegin(b, *height)
 	for _, tx := range b.Transactions() {
-		txs.Walk(tx, v, timestamp, *height, &blockItem, outputItems)
+		txs.Walk(tx, v, timestamp, *height, &blockItem, utxoSet)
 	}
 	(*v).VisitBlockEnd(b, *height, blockItem)
 }
@@ -35,7 +35,7 @@ func Read(slice *[]uint8) (*btcutil.Block, error) {
 	}
 	if len(*slice) == 0 {
 		err := errors.New("Cannot read block from slice")
-		logger.Error("Blockchain", err, logger.Params{})
+		logger.Info("Blockchain", err.Error(), logger.Params{})
 		return nil, err
 	}
 	blockMagic, err := buffer.ReadUint32(slice)

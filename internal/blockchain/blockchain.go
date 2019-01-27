@@ -63,9 +63,9 @@ func (b *Blockchain) Read() error {
 	return nil
 }
 
-func (b *Blockchain) Walk(v visitor.BlockchainVisitor) (uint64, *chainhash.Hash, map[chainhash.Hash][]visitor.OutputItem) {
+func (b *Blockchain) Walk(v visitor.BlockchainVisitor) (uint64, *chainhash.Hash, map[chainhash.Hash][]visitor.Utxo) {
 	skipped := make(map[chainhash.Hash]btcutil.Block)
-	outputItems := make(map[chainhash.Hash][]visitor.OutputItem)
+	utxoSet := make(map[chainhash.Hash][]visitor.Utxo)
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock btcutil.Block
 	height := uint64(0)
@@ -73,25 +73,25 @@ func (b *Blockchain) Walk(v visitor.BlockchainVisitor) (uint64, *chainhash.Hash,
 	for k, value := range b.Maps {
 		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": fmt.Sprintf("%v/%v", k, len(b.Maps)-1)})
 		val := []uint8(value) // I need to cast mmap.Map initializing a variable to be able to take its address (&)
-		b.WalkSlice(&val, goalPrevHash, &lastBlock, &height, &skipped, &outputItems, &v)
+		b.WalkSlice(&val, goalPrevHash, &lastBlock, &height, &skipped, &utxoSet, &v)
 	}
 
-	return height, goalPrevHash, outputItems
+	return height, goalPrevHash, utxoSet
 }
 
-func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *btcutil.Block, height *uint64, skipped *map[chainhash.Hash]btcutil.Block, outputItems *map[chainhash.Hash][]visitor.OutputItem, v *visitor.BlockchainVisitor) {
+func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *btcutil.Block, height *uint64, skipped *map[chainhash.Hash]btcutil.Block, utxoSet *map[chainhash.Hash][]visitor.Utxo, v *visitor.BlockchainVisitor) {
 	for len(*slice) > 0 {
 		if _, ok := (*skipped)[*goalPrevHash]; ok {
-			blocks.Walk(lastBlock, v, height, outputItems)
-			logger.Info("Blockchain", fmt.Sprintf("(rewind - pre-step) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
+			blocks.Walk(lastBlock, v, height, utxoSet)
+			logger.Debug("Blockchain", fmt.Sprintf("(rewind - pre-step) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
 			*height++
 			// Here I should do the for loop removing every goal_prev_hash and
 			// walking the block obtained at the index of goal_prev_hash
 			for {
 				if block, ok := (*skipped)[*goalPrevHash]; ok {
 					delete(*skipped, *goalPrevHash)
-					blocks.Walk(&block, v, height, outputItems)
-					logger.Info("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
+					blocks.Walk(&block, v, height, utxoSet)
+					logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 					*height++
 					*goalPrevHash = *block.Hash()
 					// possible bug initialization to null (None in rust)
@@ -104,21 +104,20 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 
 		block, err := blocks.Read(slice)
 		if err != nil {
-			logger.Error("Blockchain", err, logger.Params{})
 			if len(*slice) != 0 {
 				logger.Panic("Blockchain", errors.New("Block not found but the slice of blocks is not empty"), logger.Params{})
 			}
 			break
 		}
 
-		logger.Info("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
+		logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 
 		if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 			(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 
 			// check if last_block.is_some() condition is correctly replaced with checkBlock()
 			if blocks.CheckBlock(lastBlock) && block.MsgBlock().Header.PrevBlock == lastBlock.MsgBlock().Header.PrevBlock {
-				logger.Info("Blockchain", fmt.Sprintf("Chain split detected: %v <-> %v. Detecting main chain and orphan.", lastBlock.Hash().String(), block.Hash().String()), logger.Params{})
+				logger.Debug("Blockchain", fmt.Sprintf("Chain split detected: %v <-> %v. Detecting main chain and orphan.", lastBlock.Hash().String(), block.Hash().String()), logger.Params{})
 
 				firstOrphan := lastBlock
 				secondOrphan := block
@@ -126,7 +125,6 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 				for {
 					block, err := blocks.Read(slice)
 					if err != nil {
-						logger.Error("Blockchain", err, logger.Params{})
 						if len(*slice) != 0 {
 							logger.Panic("Blockchain", errors.New("Block not found but the slice of blocks is not empty"), logger.Params{})
 						}
@@ -136,12 +134,12 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 					(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 					if block.MsgBlock().Header.PrevBlock == *firstOrphan.Hash() {
 						// First wins
-						logger.Info("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", firstOrphan.Hash().String()), logger.Params{})
+						logger.Debug("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", firstOrphan.Hash().String()), logger.Params{})
 						break
 					}
 					if block.MsgBlock().Header.PrevBlock == *secondOrphan.Hash() {
 						// Second wins
-						logger.Info("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", secondOrphan.Hash().String()), logger.Params{})
+						logger.Debug("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", secondOrphan.Hash().String()), logger.Params{})
 						goalPrevHash = secondOrphan.Hash()
 						*lastBlock = *secondOrphan
 						break
@@ -153,8 +151,8 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 
 		// TODO: Here add too the check to be sure the block is correct
 		if blocks.CheckBlock(lastBlock) {
-			blocks.Walk(lastBlock, v, height, outputItems)
-			logger.Info("Blockchain", fmt.Sprintf("(last_block) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
+			blocks.Walk(lastBlock, v, height, utxoSet)
+			logger.Debug("Blockchain", fmt.Sprintf("(last_block) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
 			*height++
 		}
 

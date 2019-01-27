@@ -10,37 +10,45 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 )
 
+func emptySlice(arr *[]visitor.Utxo) bool {
+	for _, e := range *arr {
+		if e != "" {
+			return false
+		}
+	}
+	return true
+}
+
 // Walk parses the btcutil.Tx object
-func Walk(tx *btcutil.Tx, v *visitor.BlockchainVisitor, timestamp time.Time, height uint64, blockItem *visitor.BlockItem, outputItems *map[chainhash.Hash][]visitor.OutputItem) btcutil.Tx {
+func Walk(tx *btcutil.Tx, v *visitor.BlockchainVisitor, timestamp time.Time, height uint64, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) btcutil.Tx {
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
 
 	for _, i := range tx.MsgTx().TxIn {
-		var outputItem visitor.OutputItem
-		if occupied, ok := (*outputItems)[(*i).PreviousOutPoint.Hash]; ok {
-			outputItem = occupied[(*i).PreviousOutPoint.Index]
-			occupied = append(occupied[:(*i).PreviousOutPoint.Index], occupied[(*i).PreviousOutPoint.Index+1:]...)
-			// delete(*outputItems, (*i).PreviousOutPoint.Hash)
-			// 	if len(occupied) == 0 {
-			// 		// occupied.remove()
-			// 	}
+		var utxo visitor.Utxo
+		if occupied, ok := (*utxoSet)[(*i).PreviousOutPoint.Hash]; ok {
+			utxo = occupied[(*i).PreviousOutPoint.Index]
+			occupied[(*i).PreviousOutPoint.Index] = visitor.Utxo("")
+			if emptySlice(&occupied) {
+				delete(*utxoSet, (*i).PreviousOutPoint.Hash)
+			}
 		}
-		(*v).VisitTransactionInput(*i, blockItem, &transactionItem, outputItem)
+		(*v).VisitTransactionInput(*i, blockItem, &transactionItem, utxo)
 	}
 
-	curOutputItems := make([]visitor.OutputItem, len(tx.MsgTx().TxOut))
+	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	for n, o := range tx.MsgTx().TxOut {
-		outputItem, err := (*v).VisitTransactionOutput(*o, blockItem, &transactionItem)
+		utxo, err := (*v).VisitTransactionOutput(*o, blockItem, &transactionItem)
 		if err != nil {
-			logger.Error("Transactions", err, logger.Params{"output value": string((*o).Value), "output pkscript": string((*o).PkScript)})
+			logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String(), "output value": string((*o).Value)})
 			return btcutil.Tx{}
 		}
-		curOutputItems[n] = outputItem
+		curUtxoSet[n] = utxo
 	}
 
-	if len(curOutputItems) > 0 {
-		(*outputItems)[*tx.Hash()] = curOutputItems
+	if len(curUtxoSet) > 0 {
+		(*utxoSet)[*tx.Hash()] = curUtxoSet
 	}
 
-	(*v).VisitTransactionEnd(*tx, blockItem, transactionItem)
+	(*v).VisitTransactionEnd(*tx, blockItem, &transactionItem)
 	return *tx
 }

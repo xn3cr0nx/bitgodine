@@ -65,6 +65,8 @@ func (b *Blockchain) Read() error {
 
 func (b *Blockchain) Walk(v visitor.BlockchainVisitor) (uint64, *chainhash.Hash, map[chainhash.Hash][]visitor.Utxo) {
 	skipped := make(map[chainhash.Hash]btcutil.Block)
+	// Hashmap that represents the utxos set. For each transaction keeps track of utxo associated
+	// with each transaction mapping the tx hash to the array of related utxo
 	utxoSet := make(map[chainhash.Hash][]visitor.Utxo)
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock btcutil.Block

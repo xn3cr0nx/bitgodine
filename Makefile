@@ -34,8 +34,13 @@ deps-win:
 	$(GOGET) github.com/inconshreveable/mousetrap
 
 # Interacting with bitgodine cli
+install:
+	$(GOINSTALL) $(ENTRY)
 sync:
 	$(GOINSTALL) $(ENTRY) && $(BINARY_NAME) -n regtest sync
+cluster:
+	$(GOINSTALL) $(ENTRY) && $(BINARY_NAME) cluster
+
 
 # Cross compilation
 linux: $(LNX_BUILD)

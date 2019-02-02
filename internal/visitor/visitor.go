@@ -13,7 +13,7 @@ type TransactionItem interface {
 	Values() []interface{}
 }
 
-// Utxo is an address type, converted to a string
+// Utxo is an address type, converted to a string. Represents and unspent transaction output
 type Utxo string
 type DoneItem int
 

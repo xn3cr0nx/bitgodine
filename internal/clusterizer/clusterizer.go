@@ -80,7 +80,7 @@ func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.Block
 func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": strconv.Itoa(c.clusters.Size())})
-	file, err := os.Create("clusters.csv")
+	file, err := os.Create("../../clusters.csv")
 	if err != nil {
 		logger.Error("Clusterizer", err, logger.Params{})
 	}

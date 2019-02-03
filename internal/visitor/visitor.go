@@ -2,7 +2,8 @@ package visitor
 
 import (
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 )
 
 type BlockItem interface{}
@@ -19,14 +20,14 @@ type DoneItem int
 
 type BlockchainVisitor interface {
 	// New() BlockchainVisitor
-	VisitBlockBegin(*btcutil.Block, uint64) BlockItem
-	VisitBlockEnd(*btcutil.Block, uint64, BlockItem)
+	VisitBlockBegin(*blocks.Block, uint64) BlockItem
+	VisitBlockEnd(*blocks.Block, uint64, BlockItem)
 
 	VisitTransactionBegin(*BlockItem) TransactionItem
 	VisitTransactionInput(wire.TxIn, *BlockItem, *TransactionItem, Utxo)
 
 	VisitTransactionOutput(wire.TxOut, *BlockItem, *TransactionItem) (Utxo, error)
-	VisitTransactionEnd(btcutil.Tx, *BlockItem, *TransactionItem)
+	VisitTransactionEnd(txs.Tx, *BlockItem, *TransactionItem)
 
 	Done() (DoneItem, error)
 }

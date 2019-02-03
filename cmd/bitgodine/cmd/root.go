@@ -49,9 +49,9 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.bitgodine.yaml)")
-	// rootCmd.PersistentFlags().StringP("network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest")
-	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest")
-	viper.BindPFlag("network", rootCmd.Flags().Lookup("network"))
+
+	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest [default: mainnet]")
+	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
 }
 

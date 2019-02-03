@@ -151,7 +151,6 @@ func (b *Blockchain) WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, las
 			continue
 		}
 
-		// TODO: Here add too the check to be sure the block is correct
 		if blocks.CheckBlock(lastBlock) {
 			blocks.Walk(lastBlock, v, height, utxoSet)
 			logger.Debug("Blockchain", fmt.Sprintf("(last_block) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})

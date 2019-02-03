@@ -82,7 +82,7 @@ func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.Block
 
 func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	c.clusters.Finalize()
-	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": strconv.Itoa(c.clusters.Size())})
+	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.clusters.Size()})
 	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("outputDir")))
 	if err != nil {
 		logger.Error("Clusterizer", err, logger.Params{})
@@ -95,6 +95,6 @@ func (c Clusterizer) Done() (visitor.DoneItem, error) {
 		writer.Write([]string{string(address.(visitor.Utxo)), strconv.Itoa(c.clusters.Parent[tag])})
 	}
 
-	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": strconv.Itoa(c.clusters.Size())})
+	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": c.clusters.Size()})
 	return visitor.DoneItem(c.clusters.Size()), nil
 }

@@ -11,6 +11,7 @@ import (
 
 func TestLogger(t *testing.T) {
 
+	Setup()
 	hook := test.NewLocal(Log)
 
 	Info("test", "testing Info function", Params{"test": "Params"})

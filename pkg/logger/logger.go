@@ -5,20 +5,30 @@ import (
 	"runtime"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
+// Fields logrus Fields type
 type Fields logrus.Fields
-type Params map[string]string
 
+// Params mapping of string to interface to print params in logs
+type Params map[string]interface{}
+
+// Log custom logger initialized with Setup function
 var Log *logrus.Logger
 
-func init() {
+// Setup creates the new logger with custom configuration
+func Setup() {
 	// This is mainly done to export the logger in test
 	Log = logrus.New()
 	Log.Formatter = &logrus.TextFormatter{
 		ForceColors:            true,
 		FullTimestamp:          true,
 		DisableLevelTruncation: true,
+	}
+
+	if viper.GetBool("debug") {
+		Log.SetLevel(logrus.DebugLevel)
 	}
 }
 

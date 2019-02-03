@@ -14,6 +14,7 @@ import (
 
 var (
 	cfgFile, network, blocksDir, outputDir string
+	debug                                  bool
 	BitcoinNet                             chaincfg.Params
 )
 
@@ -22,6 +23,8 @@ var rootCmd = &cobra.Command{
 	Short: "Go implementation of Bitiodine",
 	Long: `Go implementation of Bitcoin forensic analysis tool to	investigate blockchain and Bitcoin malicious flows.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		logger.Setup()
+
 		net, _ := cmd.Flags().GetString("network")
 		switch net {
 		case "mainnet":
@@ -47,29 +50,38 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
+
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.bitgodine.yaml)")
 
 	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest [default: mainnet]")
-	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
-	viper.SetDefault("network", chaincfg.MainNetParams.Name)
 
 	hd, err := homedir.Dir()
+	if err != nil {
+		panic(fmt.Sprintf("Bitgodine %v", err))
+	}
 	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
-	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
 	viper.SetDefault("blocksDir", hd)
 
 	wd, err := os.Getwd()
 	if err != nil {
-		logger.Panic("Bitgodine", err, logger.Params{})
+		panic(fmt.Sprintf("Bitgodine %v", err))
 	}
 	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", wd, "Sets the path to the output clusters.csv file")
-	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
 	viper.SetDefault("outputDir", wd)
+
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	viper.SetDefault("debug", false)
+	viper.SetDefault("network", chaincfg.MainNetParams.Name)
+
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
+	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
+	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
 
 	if cfgFile != "" {
 		// Use config file from the flag.

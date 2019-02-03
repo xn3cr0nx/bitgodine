@@ -3,10 +3,12 @@ package clusterizer
 import (
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/spf13/viper"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
@@ -62,6 +64,7 @@ func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor
 	return "", errors.New("Not able to extract address from PkScript")
 }
 
+// VisitTransactionEnd implements first heuristic (all input are from the same user) and clusterize the input in the disjoint set
 func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.BlockItem, txItem *visitor.TransactionItem) {
 	// skip transactions with just one input
 
@@ -80,7 +83,7 @@ func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.Block
 func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": strconv.Itoa(c.clusters.Size())})
-	file, err := os.Create("../../clusters.csv")
+	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("outputDir")))
 	if err != nil {
 		logger.Error("Clusterizer", err, logger.Params{})
 	}

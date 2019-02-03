@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	cfgFile, network string
-	BitcoinNet       chaincfg.Params
+	cfgFile, network, blocksDir, outputDir string
+	BitcoinNet                             chaincfg.Params
 )
 
 var rootCmd = &cobra.Command{
@@ -53,6 +53,19 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest [default: mainnet]")
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
+
+	hd, err := homedir.Dir()
+	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
+	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
+	viper.SetDefault("blocksDir", hd)
+
+	wd, err := os.Getwd()
+	if err != nil {
+		logger.Panic("Bitgodine", err, logger.Params{})
+	}
+	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", wd, "Sets the path to the output clusters.csv file")
+	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
+	viper.SetDefault("outputDir", wd)
 }
 
 // initConfig reads in config file and ENV variables if set.

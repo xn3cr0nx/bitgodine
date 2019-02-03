@@ -9,12 +9,12 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
+	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	mmap "github.com/edsrzf/mmap-go"
-	dir "github.com/mitchellh/go-homedir"
 )
 
 type Blockchain struct {
@@ -36,7 +36,7 @@ func (b *Blockchain) Read() error {
 	var Maps []mmap.MMap
 	netPath := b.Network.Name
 	n := 0
-	blocksDir, _ := dir.Dir()
+	blocksDir := viper.GetString("blocksDir")
 	if b.Network.Name == "mainnet" {
 		netPath = ""
 	}

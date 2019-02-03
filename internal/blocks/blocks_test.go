@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/btcsuite/btcutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -22,7 +21,7 @@ func TestBlockRead(t *testing.T) {
 	// Tries to read genesis block
 	genesisBlockHash := "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 	genesisTxHash := "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
-	block, err := Read(&f)
+	block, err := Parse(&f)
 	if err != nil {
 		logger.Panic("Test Blockchain", err, logger.Params{"op": "Error reading block"})
 	}
@@ -34,16 +33,12 @@ func TestBlockRead(t *testing.T) {
 
 func TestCheckBlock(t *testing.T) {
 	f, _ := ioutil.ReadFile("/home/xn3cr0nx/.bitcoin/blocks/blk00000.dat")
-	block, err := Read(&f)
+	block, err := Parse(&f)
 	if err != nil {
 		logger.Panic("Test Block", err, logger.Params{"op": "Error reading block"})
 	}
-	assert.Equal(t, true, CheckBlock(block))
+	assert.Equal(t, true, block.CheckBlock())
 
-	b := btcutil.Block{}
-	assert.Equal(t, false, CheckBlock(&b))
+	b := Block{}
+	assert.Equal(t, false, (&b).CheckBlock())
 }
-
-// func TestWalk(t *testing.T) {
-
-// }

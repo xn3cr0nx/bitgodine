@@ -3,33 +3,23 @@ package blocks
 import (
 	"errors"
 
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
-
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
+type Block struct {
+	btcutil.Block
+}
+
 // CheckBlock checks if block is correctly initialized just checking hash and height fields have some value
-func CheckBlock(b *btcutil.Block) bool {
+func (b *Block) CheckBlock() bool {
 	// return b.Height() != 0 && b.Hash() != nil
 	return b.Height() == -1 && b.Hash() != nil
 }
 
-// Walk parses the block and iterates over block's transaction to parse them
-func Walk(b *btcutil.Block, v *visitor.BlockchainVisitor, height *uint64, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
-	timestamp := b.MsgBlock().Header.Timestamp
-	blockItem := (*v).VisitBlockBegin(b, *height)
-	for _, tx := range b.Transactions() {
-		txs.Walk(tx, v, timestamp, *height, &blockItem, utxoSet)
-	}
-	(*v).VisitBlockEnd(b, *height, blockItem)
-}
-
-// Read reads and remove magic bytes and size from slice and returns btcutil.Block through btcutil.NewBlockFromBytes
-func Read(slice *[]uint8) (*btcutil.Block, error) {
+// Parse reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
+func Parse(slice *[]uint8) (*Block, error) {
 	for len(*slice) > 0 && (*slice)[0] == 0 {
 		*slice = (*slice)[1:]
 	}
@@ -67,7 +57,7 @@ func Read(slice *[]uint8) (*btcutil.Block, error) {
 			logger.Error("Blockchain", err, logger.Params{})
 			return nil, err
 		}
-		return res, nil
+		return &Block{Block: *res}, nil
 	default:
 		err := errors.New("No magic bytes matching")
 		logger.Error("Blockchain", err, logger.Params{})

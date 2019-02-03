@@ -18,7 +18,8 @@ import (
 	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
-	"github.com/xn3cr0nx/bitgodine_code/internal/clusterizer"
+	"github.com/xn3cr0nx/bitgodine_code/internal/parser"
+	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/spf13/cobra"
@@ -42,8 +43,8 @@ to quickly create a Cobra application.`,
 		// 	fmt.Println("You need to sync the blockchain, call bitgodine sync")
 		// 	return
 		// }
-		cltz := clusterizer.NewClusterizer()
-		b.Walk(cltz)
+		cltz := visitor.NewClusterizer()
+		parser.Walk(b, cltz)
 		cltzCount, err := cltz.Done()
 		if err != nil {
 			logger.Error("Blockchain test", err, logger.Params{})

@@ -1,4 +1,4 @@
-package clusterizer
+package visitor
 
 import (
 	"encoding/csv"
@@ -13,10 +13,10 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint"
-	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
+	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -30,27 +30,27 @@ func NewClusterizer() Clusterizer {
 	}
 }
 
-func (c Clusterizer) VisitBlockBegin(block *btcutil.Block, height uint64) visitor.BlockItem {
+func (c Clusterizer) VisitBlockBegin(block *blocks.Block, height uint64) BlockItem {
 	return nil
 }
 
-func (c Clusterizer) VisitBlockEnd(block *btcutil.Block, height uint64, blockItem visitor.BlockItem) {}
+func (c Clusterizer) VisitBlockEnd(block *blocks.Block, height uint64, blockItem BlockItem) {}
 
-func (c Clusterizer) VisitTransactionBegin(block *visitor.BlockItem) visitor.TransactionItem {
+func (c Clusterizer) VisitTransactionBegin(block *BlockItem) TransactionItem {
 	return hashset.New()
 }
 
-func (c Clusterizer) VisitTransactionInput(txIn wire.TxIn, block *visitor.BlockItem, txItem *visitor.TransactionItem, oItem visitor.Utxo) {
+func (c Clusterizer) VisitTransactionInput(txIn wire.TxIn, block *BlockItem, txItem *TransactionItem, utxo Utxo) {
 	// ignore coinbase
 	if zeroHash, _ := chainhash.NewHash(make([]byte, 32)); txIn.PreviousOutPoint.Hash.IsEqual(zeroHash) {
 		return
 	}
-	if oItem != "" {
-		(*txItem).Add(oItem)
+	if utxo != "" {
+		(*txItem).Add(utxo)
 	}
 }
 
-func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor.BlockItem, txItem *visitor.TransactionItem) (visitor.Utxo, error) {
+func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *BlockItem, txItem *TransactionItem) (Utxo, error) {
 	// txscript.GetScriptClass(txOut.Script).String()
 	// _, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.Script, &blockchain.Instance().Network)
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.MainNetParams)
@@ -59,28 +59,28 @@ func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *visitor
 	}
 	if len(addresses) > 0 {
 		// EncodeAddress returns always the address' P2PKH version
-		return visitor.Utxo(addresses[0].EncodeAddress()), nil
+		return Utxo(addresses[0].EncodeAddress()), nil
 	}
 	return "", errors.New("Not able to extract address from PkScript")
 }
 
 // VisitTransactionEnd implements first heuristic (all input are from the same user) and clusterize the input in the disjoint set
-func (c Clusterizer) VisitTransactionEnd(tx btcutil.Tx, blockItem *visitor.BlockItem, txItem *visitor.TransactionItem) {
+func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem *TransactionItem) {
 	// skip transactions with just one input
 
 	if (*txItem).Size() > 1 {
 		txInputs := (*txItem).Values()
-		lastAddress := txInputs[0].(visitor.Utxo)
+		lastAddress := txInputs[0].(Utxo)
 		c.clusters.MakeSet(lastAddress)
 		for _, address := range txInputs {
-			c.clusters.MakeSet(address.(visitor.Utxo))
-			c.clusters.Union(lastAddress, address.(visitor.Utxo))
-			lastAddress = address.(visitor.Utxo)
+			c.clusters.MakeSet(address.(Utxo))
+			c.clusters.Union(lastAddress, address.(Utxo))
+			lastAddress = address.(Utxo)
 		}
 	}
 }
 
-func (c Clusterizer) Done() (visitor.DoneItem, error) {
+func (c Clusterizer) Done() (DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.clusters.Size()})
 	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("outputDir")))
@@ -92,9 +92,9 @@ func (c Clusterizer) Done() (visitor.DoneItem, error) {
 	defer writer.Flush()
 	for address, tag := range c.clusters.HashMap {
 		// fmt.Printf("	tag %v, element %v\n", tag, c.clusters.Parent[tag])
-		writer.Write([]string{string(address.(visitor.Utxo)), strconv.Itoa(c.clusters.Parent[tag])})
+		writer.Write([]string{string(address.(Utxo)), strconv.Itoa(c.clusters.Parent[tag])})
 	}
 
 	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": c.clusters.Size()})
-	return visitor.DoneItem(c.clusters.Size()), nil
+	return DoneItem(c.clusters.Size()), nil
 }

@@ -1,4 +1,4 @@
-package txs
+package parser
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
+	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 )
 
@@ -19,21 +19,21 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 	return true
 }
 
-// Walk parses the btcutil.Tx object
-func Walk(tx *btcutil.Tx, v *visitor.BlockchainVisitor, timestamp time.Time, height uint64, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) btcutil.Tx {
+// TxWalk parses the txs.Tx object
+func TxWalk(tx *txs.Tx, v *visitor.BlockchainVisitor, timestamp time.Time, height uint64, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
 	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem)
 	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)
 	if err != nil {
 		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
-		return btcutil.Tx{}
+		return txs.Tx{}
 	}
 	(*v).VisitTransactionEnd(*tx, blockItem, &transactionItem)
 	return *tx
 }
 
 // Read the tx inputs removing them from related utxo set. The tx is deleted from utxo set when all outputs are spent
-func parseTxIn(tx *btcutil.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) {
+func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) {
 	for _, i := range tx.MsgTx().TxIn {
 		var utxo visitor.Utxo
 		if occupied, ok := (*utxoSet)[(*i).PreviousOutPoint.Hash]; ok {
@@ -48,7 +48,7 @@ func parseTxIn(tx *btcutil.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.
 }
 
 // Creates a new set of utxo to append to the global utxo set (utxoSet)
-func parseTxOut(tx *btcutil.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) error {
+func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) error {
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	for n, o := range tx.MsgTx().TxOut {
 		utxo, err := (*v).VisitTransactionOutput(*o, blockItem, transactionItem)

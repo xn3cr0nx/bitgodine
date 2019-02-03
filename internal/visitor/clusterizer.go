@@ -68,7 +68,7 @@ func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *BlockIt
 func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem *TransactionItem) {
 	// skip transactions with just one input
 
-	if (*txItem).Size() > 1 {
+	if (*txItem).Size() > 1 && !tx.IsCoinjoin() {
 		txInputs := (*txItem).Values()
 		lastAddress := txInputs[0].(Utxo)
 		c.clusters.MakeSet(lastAddress)

@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Short: "Bitgodine version",
 	Long:  `Version of the last release on Bitgodine`,
 	Run: func(cmd *cobra.Command, args []string) {
-		c := color.New(color.FgWhite).Add(color.BgBlack).Add(color.Underline)
+		c := color.New(color.FgBlack).Add(color.BgYellow).Add(color.Underline)
 		c.Println("Bitgodine v0.1")
 	},
 }

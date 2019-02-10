@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/wire"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -13,10 +16,20 @@ import (
 )
 
 var (
-	cfgFile, network, blocksDir, outputDir string
-	debug                                  bool
-	BitcoinNet                             chaincfg.Params
+	cfgFile, network, blocksDir, outputDir, dbName, dbDir string
+	debug                                                 bool
+	BitcoinNet                                            chaincfg.Params
+	Net                                                   wire.BitcoinNet
 )
+
+// DBConf exports the DBConfig object to initialize indexing db
+func DBConf() *db.DBConfig {
+	return &db.DBConfig{
+		Dir:  viper.GetString("dbDir"),
+		Name: viper.GetString("dbName"),
+		Net:  Net,
+	}
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "bitgodine",
@@ -29,13 +42,18 @@ var rootCmd = &cobra.Command{
 		switch net {
 		case "mainnet":
 			BitcoinNet = chaincfg.MainNetParams
+			BitcoinNet = chaincfg.MainNetParams
+			Net = wire.MainNet
 		case "testnet3":
 			BitcoinNet = chaincfg.TestNet3Params
+			Net = wire.TestNet3
 		case "regtest":
 			BitcoinNet = chaincfg.RegressionNetParams
+			Net = wire.TestNet
 		default:
 			logger.Panic("Initializing network", errors.New("Network not found"), logger.Params{"provided": net})
 		}
+
 	},
 }
 
@@ -71,17 +89,23 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", wd, "Sets the path to the output clusters.csv file")
 	viper.SetDefault("outputDir", wd)
 
+	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "indexing", "Sets the of the indexing db")
+	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", os.TempDir(), "Sets the path to the indexing db files")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	viper.SetDefault("debug", false)
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
+	viper.SetDefault("dbName", "indexing")
+	viper.SetDefault("dbDir", os.TempDir())
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
 	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
 	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
+	viper.BindPFlag("dbName", rootCmd.PersistentFlags().Lookup("dbName"))
+	viper.BindPFlag("dbDir", rootCmd.PersistentFlags().Lookup("dbDir"))
 
 	if cfgFile != "" {
 		// Use config file from the flag.

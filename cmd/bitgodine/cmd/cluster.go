@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/parser"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -37,6 +38,14 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("cluster called")
+		database, err := db.DB(DBConf())
+		if err != nil {
+			logger.Error("cluster", err, logger.Params{})
+			return
+		}
+		// defer os.RemoveAll(filepath.Join(DBConf().Dir, DBConf().Name))
+		defer (*database).Close()
+
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
 		// if len(b.Maps) == 0 {

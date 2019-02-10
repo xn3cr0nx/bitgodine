@@ -22,9 +22,9 @@ var (
 	Net                                                   wire.BitcoinNet
 )
 
-// DBConf exports the DBConfig object to initialize indexing db
-func DBConf() *db.DBConfig {
-	return &db.DBConfig{
+// DBConf exports the Config object to initialize indexing db
+func DBConf() *db.Config {
+	return &db.Config{
 		Dir:  viper.GetString("dbDir"),
 		Name: viper.GetString("dbName"),
 		Net:  Net,

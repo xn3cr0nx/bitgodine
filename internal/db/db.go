@@ -9,7 +9,8 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
-type DBConfig struct {
+// Config strcut containing initialization fields
+type Config struct {
 	Dir  string
 	Name string
 	Net  wire.BitcoinNet
@@ -17,7 +18,7 @@ type DBConfig struct {
 
 var db *database.DB
 
-func DB(conf *DBConfig) (*database.DB, error) {
+func DB(conf *Config) (*database.DB, error) {
 	if conf == nil {
 		return nil, errors.New("No config provided")
 	}

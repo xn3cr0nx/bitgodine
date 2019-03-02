@@ -33,16 +33,18 @@ func (suite *TestDGraphSuite) SetupSuite() {
 
 func (suite *TestDGraphSuite) TearDownSuite() {
 	resp, err := suite.dgraph.NewTxn().Query(context.Background(), `{
-		q(func: allofterms(block, "0000000082b5015589a3fdf2d4baff403e6f0be035a5d9742c1cae6295464449")) {
+		q(func: allofterms(block, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
 			uid
+			block
+			hash
+			locktime
+			inputs {
+				hash
+			}
 		}
 	}`)
 	assert.Equal(suite.T(), err, nil)
-	var body struct {
-		Q []struct {
-			UID string `json:"uid,omitempty"`
-		}
-	}
+	var body Resp
 	if err := json.Unmarshal(resp.GetJson(), &body); err != nil {
 		fmt.Println(err)
 		return
@@ -61,43 +63,38 @@ func (suite *TestDGraphSuite) TestSetup() {
 
 func (suite *TestDGraphSuite) TestQuery() {
 	resp, err := suite.dgraph.NewTxn().Query(context.Background(), `{
-		q(func: has(input)) {
+		q(func: allofterms(block, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
 			block
 			hash
 			locktime
-			input
-			timestamp
+    	inputs {
+      	hash
+    	}
 		}
 	}`)
 	assert.Equal(suite.T(), err, nil)
-	var body struct {
-		Q []struct {
-			Block    string `json:"block,omitempty"`
-			Hash     string `json:"hash,omitempty"`
-			Locktime int    `json:"locktime,omitempty"`
-			Input    string `json:"input,omitempty"`
-		}
-	}
+	var body Resp
 	if err := json.Unmarshal(resp.GetJson(), &body); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	assert.Equal(suite.T(), len(body.Q), 3)
+	assert.Equal(suite.T(), len(body.Q), 1)
 	assert.Equal(suite.T(), body.Q[0].Block, chaincfg.MainNetParams.GenesisHash.String())
 }
 
 func (suite *TestDGraphSuite) TestMutation() {
-	type Node struct {
-		Block    string `json:"block,omitempty"`
-		Hash     string `json:"hash,omitempty"`
-		Locktime int    `json:"locktime,omitempty"`
-		Input    string `json:"input,omitempty"`
-	}
 	body := Node{
-		Block:    "0000000082b5015589a3fdf2d4baff403e6f0be035a5d9742c1cae6295464449",
+		UID:      "_:999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
 		Hash:     "999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
-		Locktime: 1234,
+		Block:    "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+		Locktime: uint32(1234),
+		Inputs: []Input{
+			Input{
+				UID:  "_:0000000000000000000000000000000000000000000000000000000000000000",
+				Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+			},
+		},
 	}
 	out, err := json.Marshal(body)
 	assert.Equal(suite.T(), err, nil)

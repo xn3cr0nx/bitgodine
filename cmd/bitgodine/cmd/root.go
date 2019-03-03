@@ -47,7 +47,7 @@ var rootCmd = &cobra.Command{
 	Long: `Go implementation of Bitcoin forensic analysis tool to	investigate blockchain and Bitcoin malicious flows.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
-		_, err := db.LevelDB(DBConf())
+		_, err := db.Instance(DBConf())
 		if err != nil {
 			logger.Error("Root", err, logger.Params{})
 			return

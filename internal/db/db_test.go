@@ -18,7 +18,7 @@ func (suite *TestDBSuite) SetupSuite() {
 		Name: "indexing",
 		Net:  wire.MainNet,
 	}
-	suite.level, _ = LevelDB(conf)
+	suite.level, _ = Instance(conf)
 }
 
 // func (suite *TestDBSuite) SetupTest() {
@@ -33,7 +33,7 @@ func (suite *TestDBSuite) SetupSuite() {
 // 	conf := &Config{
 // 		"/tmp", "test", wire.MainNet,
 // 	}
-// 	db, err := LevelDB(conf)
+// 	db, err := Instance(conf)
 // 	if err != nil {
 // 		logger.Error("sync", err, logger.Params{})
 // 		return

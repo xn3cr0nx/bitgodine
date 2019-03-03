@@ -63,6 +63,7 @@ func Instance(conf *Config) *dgo.Dgraph {
 	return instance
 }
 
+// Setup initializes the schema in dgraph
 func Setup(c *dgo.Dgraph) error {
 	err := c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -71,14 +72,13 @@ func Setup(c *dgo.Dgraph) error {
 		locktime: int .
 		`,
 	})
-	// input: uid .
 	return err
 }
 
 // StoreTx stores bitcoin transaction in the graph
-func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*wire.TxIn) error {
+func StoreTx(hash, block string, locktime uint32, inputs []*wire.TxIn) error {
 	// check if tx is already stored
-	if _, err := GetTxUID(dgraph, &hash); err == nil {
+	if _, err := GetTxUID(&hash); err == nil {
 		logger.Info("Dgraph", "already stored transaction", logger.Params{"hash": hash})
 		return nil
 	}
@@ -86,11 +86,11 @@ func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*
 	var txIns []Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		uid, err := GetTxUID(dgraph, &h)
+		uid, err := GetTxUID(&h)
 		if err != nil {
 			if err.Error() == "transaction not found" {
-				StoreTx(dgraph, h, "", 0, nil)
-				uid, err = GetTxUID(dgraph, &h)
+				StoreTx(h, "", 0, nil)
+				uid, err = GetTxUID(&h)
 				if err != nil {
 					return err
 				}
@@ -110,7 +110,7 @@ func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*
 	if err != nil {
 		return err
 	}
-	resp, err := dgraph.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+	resp, err := instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
 	if err != nil {
 		return err
 	}
@@ -119,14 +119,15 @@ func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*
 }
 
 // GetTx returnes the node from the query queried
-func GetTx(dgraph *dgo.Dgraph, field string, param *string) (Resp, error) {
-	resp, err := dgraph.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+func GetTx(field string, param *string) (Resp, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		q(func: allofterms(%s, %s)) {
 			block
 			hash
 			locktime
     	inputs {
-      	hash
+				hash
+				vout
     	}
 		}
 	}`, field, *param))
@@ -141,8 +142,8 @@ func GetTx(dgraph *dgo.Dgraph, field string, param *string) (Resp, error) {
 }
 
 // GetTxUID returnes the uid of the queried tx by hash
-func GetTxUID(dgraph *dgo.Dgraph, hash *string) (string, error) {
-	resp, err := dgraph.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+func GetTxUID(hash *string) (string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		q(func: allofterms(hash, %s)) {
 			uid
 		}

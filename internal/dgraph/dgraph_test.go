@@ -77,12 +77,13 @@ func (suite *TestDGraphSuite) TestQuery() {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println(body)
 
 	assert.Equal(suite.T(), len(body.Q), 1)
 	assert.Equal(suite.T(), body.Q[0].Block, chaincfg.MainNetParams.GenesisHash.String())
 }
 
-func (suite *TestDGraphSuite) TestStoreTx() {
+func (suite *TestDGraphSuite) TestMutation() {
 	body := Node{
 		Hash:     "999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
 		Block:    "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",

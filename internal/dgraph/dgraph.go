@@ -37,9 +37,7 @@ type Input struct {
 
 // Resp represent the resp from a query function called q to dgraph
 type Resp struct {
-	Q []struct {
-		Node
-	}
+	Q []struct{ Node }
 }
 
 var instance *dgo.Dgraph
@@ -73,9 +71,38 @@ func Setup(c *dgo.Dgraph) error {
 		hash: string @index(term) .
 		block: string @index(term) .
 		locktime: int .
+		vout: int .
 		`,
 	})
 	return err
+}
+
+// Empty empties the dgraph instance removing all contained transactions
+func Empty() error {
+	resp, err := instance.NewTxn().Query(context.Background(), `{
+		q(func: has(hash)) {
+			uid
+		}
+	}`)
+	if err != nil {
+		return err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return err
+	}
+	if len(r.Q) == 0 {
+		return errors.New("Dgraph is empty")
+	}
+	qx, err := json.Marshal(r.Q)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: qx, CommitNow: true})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // StoreTx stores bitcoin transaction in the graph
@@ -122,7 +149,7 @@ func StoreTx(hash, block string, locktime uint32, inputs []*wire.TxIn) error {
 }
 
 // GetTx returnes the node from the query queried
-func GetTx(field string, param *string) (Resp, error) {
+func GetTx(field string, param *string) (Node, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		q(func: allofterms(%s, %s)) {
 			block
@@ -133,15 +160,19 @@ func GetTx(field string, param *string) (Resp, error) {
 				vout
     	}
 		}
-	}`, field, *param))
+		}`, field, *param))
 	if err != nil {
-		return Resp{}, err
+		return Node{}, err
 	}
-	var q Resp
-	if err := json.Unmarshal(resp.GetJson(), &q); err != nil {
-		return Resp{}, err
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Node{}, err
 	}
-	return q, nil
+	if len(r.Q) == 0 {
+		return Node{}, errors.New("transaction not found")
+	}
+	node := r.Q[0].Node
+	return node, nil
 }
 
 // GetTxUID returnes the uid of the queried tx by hash
@@ -150,7 +181,7 @@ func GetTxUID(hash *string) (string, error) {
 		q(func: allofterms(hash, %s)) {
 			uid
 		}
-	}`, *hash))
+		}`, *hash))
 	if err != nil {
 		return "", err
 	}

@@ -24,9 +24,7 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 // TxWalk parses the txs.Tx object
 func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, timestamp time.Time, height uint64, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
-	// level, _ := db.LevelDB(nil)
-	dg := dgraph.Instance(&dgraph.Config{"localhost", 9080})
-	err := dgraph.StoreTx(dg, tx.Hash().String(), b.Hash().String(), tx.MsgTx().LockTime, tx.MsgTx().TxIn)
+	err := dgraph.StoreTx(tx.Hash().String(), b.Hash().String(), tx.MsgTx().LockTime, tx.MsgTx().TxIn)
 	if err != nil {
 		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
 		return txs.Tx{}

@@ -164,3 +164,31 @@ func GetTxUID(hash *string) (string, error) {
 	uid := r.Q[0].UID
 	return uid, nil
 }
+
+// Empty empties the dgraph instance removing all contained transactions
+func Empty() error {
+	resp, err := instance.NewTxn().Query(context.Background(), `{
+		q(func: has(hash)) {
+			uid
+		}
+	}`)
+	if err != nil {
+		return err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return err
+	}
+	if len(r.Q) == 0 {
+		return errors.New("Dgraph is empty")
+	}
+	qx, err := json.Marshal(r.Q)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: qx, CommitNow: true})
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -25,6 +25,8 @@ func (suite *TestDGraphSuite) SetupSuite() {
 		Port: 9080,
 	}
 	suite.dgraph = Instance(conf)
+	err := Setup(suite.dgraph)
+	assert.Equal(suite.T(), err, nil)
 }
 
 // func (suite *TestDGraphSuite) SetupTest() {
@@ -40,6 +42,7 @@ func (suite *TestDGraphSuite) TearDownSuite() {
 			locktime
 			inputs {
 				hash
+				vout
 			}
 		}
 	}`)
@@ -56,11 +59,6 @@ func (suite *TestDGraphSuite) TearDownSuite() {
 	assert.Equal(suite.T(), err2, nil)
 }
 
-func (suite *TestDGraphSuite) TestSetup() {
-	err := Setup(suite.dgraph)
-	assert.Equal(suite.T(), err, nil)
-}
-
 func (suite *TestDGraphSuite) TestQuery() {
 	resp, err := suite.dgraph.NewTxn().Query(context.Background(), `{
 		q(func: allofterms(block, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
@@ -68,7 +66,8 @@ func (suite *TestDGraphSuite) TestQuery() {
 			hash
 			locktime
     	inputs {
-      	hash
+				hash
+				vout
     	}
 		}
 	}`)
@@ -83,16 +82,15 @@ func (suite *TestDGraphSuite) TestQuery() {
 	assert.Equal(suite.T(), body.Q[0].Block, chaincfg.MainNetParams.GenesisHash.String())
 }
 
-func (suite *TestDGraphSuite) TestMutation() {
+func (suite *TestDGraphSuite) TestStoreTx() {
 	body := Node{
-		UID:      "_:999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
 		Hash:     "999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
 		Block:    "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
 		Locktime: uint32(1234),
 		Inputs: []Input{
 			Input{
-				UID:  "_:0000000000000000000000000000000000000000000000000000000000000000",
 				Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+				Vout: 4294967295,
 			},
 		},
 	}

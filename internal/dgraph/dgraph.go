@@ -28,11 +28,14 @@ type Node struct {
 	Inputs   []Input `json:"inputs,omitempty"`
 }
 
+// Input represent input transaction, e.g. the link to a previous spent tx hash
 type Input struct {
 	UID  string `json:"uid,omitempty"`
 	Hash string `json:"hash,omitempty"`
+	Vout uint32 `json:"vout,omitempty"`
 }
 
+// Resp represent the resp from a query function called q to dgraph
 type Resp struct {
 	Q []struct {
 		Node
@@ -98,7 +101,7 @@ func StoreTx(hash, block string, locktime uint32, inputs []*wire.TxIn) error {
 				return err
 			}
 		}
-		txIns = append(txIns, Input{UID: uid, Hash: h})
+		txIns = append(txIns, Input{UID: uid, Hash: h, Vout: in.PreviousOutPoint.Index})
 	}
 	node := Node{
 		Hash:     hash,

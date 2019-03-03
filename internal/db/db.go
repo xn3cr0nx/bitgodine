@@ -16,29 +16,30 @@ type Config struct {
 	Net  wire.BitcoinNet
 }
 
-var db *database.DB
+var instance *database.DB
 
-func DB(conf *Config) (*database.DB, error) {
-	if conf == nil {
-		return nil, errors.New("No config provided")
-	}
-
-	if db != nil {
-		return db, nil
-	}
-
-	dbPath := filepath.Join(conf.Dir, conf.Name)
-	db, err := database.Create("ffldb", dbPath, conf.Net)
-	if err != nil {
-		if err.Error() == "file already exists: file already exists" {
-			db, err := database.Open("ffldb", dbPath, conf.Net)
-			if err != nil {
-				return nil, err
-			}
-			return &db, nil
+// LevelDB creates a new instance of the db
+func LevelDB(conf *Config) (*database.DB, error) {
+	if instance == nil {
+		if conf == nil {
+			return nil, errors.New("No config provided")
 		}
-		return nil, err
+		dbPath := filepath.Join(conf.Dir, conf.Name)
+		inst, err := database.Create("ffldb", dbPath, conf.Net)
+		instance = &inst
+		if err != nil {
+			if err.Error() == "file already exists: file already exists" {
+				inst, err := database.Open("ffldb", dbPath, conf.Net)
+				instance = &inst
+				if err != nil {
+					return nil, err
+				}
+				return instance, nil
+			}
+			return nil, err
+		}
+		return instance, nil
 	}
 
-	return &db, nil
+	return instance, nil
 }

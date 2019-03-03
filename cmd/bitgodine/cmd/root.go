@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
@@ -16,10 +17,11 @@ import (
 )
 
 var (
-	cfgFile, network, blocksDir, outputDir, dbName, dbDir string
-	debug                                                 bool
-	BitcoinNet                                            chaincfg.Params
-	Net                                                   wire.BitcoinNet
+	cfgFile, network, blocksDir, outputDir, dbName, dbDir, dgHost string
+	dgPort                                                        int
+	debug                                                         bool
+	BitcoinNet                                                    chaincfg.Params
+	Net                                                           wire.BitcoinNet
 )
 
 // DBConf exports the Config object to initialize indexing db
@@ -31,12 +33,34 @@ func DBConf() *db.Config {
 	}
 }
 
+// DGraphConf exports the Config object to initialize indexing dgraph
+func DGraphConf() *dgraph.Config {
+	return &dgraph.Config{
+		Host: viper.GetString("dgHost"),
+		Port: viper.GetInt("dgPort"),
+	}
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "bitgodine",
 	Short: "Go implementation of Bitiodine",
 	Long: `Go implementation of Bitcoin forensic analysis tool to	investigate blockchain and Bitcoin malicious flows.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
+		_, err := db.LevelDB(DBConf())
+		if err != nil {
+			logger.Error("Root", err, logger.Params{})
+			return
+		}
+		// defer os.RemoveAll(filepath.Join(DBConf().Dir, DBConf().Name))
+		// defer (*database).Close()
+
+		dg := dgraph.Instance(DGraphConf())
+		dgraph.Setup(dg)
+		if err != nil {
+			logger.Error("Root", err, logger.Params{})
+			return
+		}
 
 		net, _ := cmd.Flags().GetString("network")
 		switch net {
@@ -53,7 +77,6 @@ var rootCmd = &cobra.Command{
 		default:
 			logger.Panic("Initializing network", errors.New("Network not found"), logger.Params{"provided": net})
 		}
-
 	},
 }
 
@@ -89,8 +112,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", wd, "Sets the path to the output clusters.csv file")
 	viper.SetDefault("outputDir", wd)
 
-	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "indexing", "Sets the of the indexing db")
+	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "indexing", "Sets the name of the indexing db")
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", os.TempDir(), "Sets the path to the indexing db files")
+
+	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
+	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -99,6 +125,8 @@ func initConfig() {
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
 	viper.SetDefault("dbName", "indexing")
 	viper.SetDefault("dbDir", os.TempDir())
+	viper.SetDefault("dgHost", "localhost")
+	viper.SetDefault("dgPort", 9080)
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
@@ -106,6 +134,8 @@ func initConfig() {
 	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
 	viper.BindPFlag("dbName", rootCmd.PersistentFlags().Lookup("dbName"))
 	viper.BindPFlag("dbDir", rootCmd.PersistentFlags().Lookup("dbDir"))
+	viper.BindPFlag("dgHost", rootCmd.PersistentFlags().Lookup("dgHost"))
+	viper.BindPFlag("dgPort", rootCmd.PersistentFlags().Lookup("dgPort"))
 
 	if cfgFile != "" {
 		// Use config file from the flag.

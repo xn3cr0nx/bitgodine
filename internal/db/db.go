@@ -4,9 +4,12 @@ import (
 	"errors"
 	"path/filepath"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/database"
 	_ "github.com/btcsuite/btcd/database/ffldb"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 )
 
 // Config strcut containing initialization fields
@@ -42,4 +45,41 @@ func LevelDB(conf *Config) (*database.DB, error) {
 	}
 
 	return instance, nil
+}
+
+// Get returnes a *Block looking for the block corresponding to the hash passed
+func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
+	var loadedBlockBytes []byte
+	err := (*instance).View(func(tx database.Tx) error {
+		blockBytes, err := tx.FetchBlock(hash)
+		if err != nil {
+			return err
+		}
+
+		loadedBlockBytes = make([]byte, len(blockBytes))
+		copy(loadedBlockBytes, blockBytes)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := btcutil.NewBlockFromBytes(loadedBlockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &blocks.Block{Block: *block}, nil
+}
+
+// StoreBlock inserts in the db the block as []byte passed
+func StoreBlock(b *blocks.Block) error {
+	err := (*instance).Update(func(tx database.Tx) error {
+		return tx.StoreBlock(btcutil.NewBlock(b.MsgBlock()))
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

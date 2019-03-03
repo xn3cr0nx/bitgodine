@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/btcsuite/btcutil"
+
 	"github.com/xn3cr0nx/bitgodine_code/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -57,7 +58,8 @@ func Parse(slice *[]uint8) (*Block, error) {
 			logger.Error("Blockchain", err, logger.Params{})
 			return nil, err
 		}
-		return &Block{Block: *res}, nil
+		blk := &Block{Block: *res}
+		return blk, nil
 	default:
 		err := errors.New("No magic bytes matching")
 		logger.Error("Blockchain", err, logger.Params{})

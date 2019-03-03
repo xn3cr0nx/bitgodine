@@ -7,7 +7,10 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 )
 
@@ -16,6 +19,15 @@ func init() {
 }
 
 func TestWalk(t *testing.T) {
+	db, _ := db.LevelDB(&db.Config{Dir: "/tmp", Name: "indexing", Net: wire.MainNet})
+	fmt.Println("leveldb", db)
+
+	dgo := dgraph.Instance(&dgraph.Config{Host: "localhost", Port: 9080})
+	fmt.Println("dgraph", dgo)
+	if err := dgraph.Setup(dgo); err != nil {
+		logger.Error("Blockchain test", err, logger.Params{})
+	}
+
 	b := blockchain.Instance(chaincfg.MainNetParams)
 	b.Read()
 

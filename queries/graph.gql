@@ -1,0 +1,9 @@
+{
+	q(func: has(inputs)) {
+		block
+    hash
+    inputs {
+      hash
+    }
+	}
+}

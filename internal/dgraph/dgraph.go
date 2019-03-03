@@ -77,13 +77,30 @@ func Setup(c *dgo.Dgraph) error {
 
 // StoreTx stores bitcoin transaction in the graph
 func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*wire.TxIn) error {
+	// check if tx is already stored
+	if _, err := GetTxUID(dgraph, &hash); err == nil {
+		logger.Info("Dgraph", "already stored transaction", logger.Params{"hash": hash})
+		return nil
+	}
+
 	var txIns []Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		txIns = append(txIns, Input{UID: fmt.Sprintf("_:%s", h), Hash: h})
+		uid, err := GetTxUID(dgraph, &h)
+		if err != nil {
+			if err.Error() == "transaction not found" {
+				StoreTx(dgraph, h, "", 0, nil)
+				uid, err = GetTxUID(dgraph, &h)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+		txIns = append(txIns, Input{UID: uid, Hash: h})
 	}
 	node := Node{
-		UID:      fmt.Sprintf("_:%s", hash),
 		Hash:     hash,
 		Block:    block,
 		Locktime: locktime,
@@ -97,14 +114,14 @@ func StoreTx(dgraph *dgo.Dgraph, hash, block string, locktime uint32, inputs []*
 	if err != nil {
 		return err
 	}
-	logger.Info("Dgraph", resp.String(), logger.Params{})
+	logger.Debug("Dgraph", resp.String(), logger.Params{})
 	return nil
 }
 
 // GetTx returnes the node from the query queried
-func GetTx(dgraph *dgo.Dgraph, param string) (Resp, error) {
+func GetTx(dgraph *dgo.Dgraph, field string, param *string) (Resp, error) {
 	resp, err := dgraph.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		q(func: has(%s)) {
+		q(func: allofterms(%s, %s)) {
 			block
 			hash
 			locktime
@@ -112,7 +129,7 @@ func GetTx(dgraph *dgo.Dgraph, param string) (Resp, error) {
       	hash
     	}
 		}
-	}`, param))
+	}`, field, *param))
 	if err != nil {
 		return Resp{}, err
 	}
@@ -121,4 +138,25 @@ func GetTx(dgraph *dgo.Dgraph, param string) (Resp, error) {
 		return Resp{}, err
 	}
 	return q, nil
+}
+
+// GetTxUID returnes the uid of the queried tx by hash
+func GetTxUID(dgraph *dgo.Dgraph, hash *string) (string, error) {
+	resp, err := dgraph.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		q(func: allofterms(hash, %s)) {
+			uid
+		}
+	}`, *hash))
+	if err != nil {
+		return "", err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return "", err
+	}
+	if len(r.Q) == 0 {
+		return "", errors.New("transaction not found")
+	}
+	uid := r.Q[0].UID
+	return uid, nil
 }

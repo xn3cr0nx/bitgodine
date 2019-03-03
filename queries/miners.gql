@@ -1,0 +1,11 @@
+{
+  miners(func: has(inputs)) {
+    uid
+    hash
+    block
+    locktime
+    inputs @filter(eq(hash, "0000000000000000000000000000000000000000000000000000000000000000")) {
+      hash
+    }
+  }
+}

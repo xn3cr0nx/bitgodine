@@ -16,7 +16,9 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -30,7 +32,14 @@ var emptyLevelCmd = &cobra.Command{
 	Long:  "Command to erase store info in Level instance of block database",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("emptyLevel called")
-		os.RemoveAll(filepath.Join(DBConf().Dir, DBConf().Name))
+		dir, err := ioutil.ReadDir(filepath.Join(DBConf().Dir, DBConf().Name))
+		if err != nil {
+			logger.Error("Emtpy Level DB", err, logger.Params{})
+			return
+		}
+		for _, d := range dir {
+			os.RemoveAll(path.Join([]string{filepath.Join(DBConf().Dir, DBConf().Name), d.Name()}...))
+		}
 		logger.Info("Empty Level", "all blocks are removed", logger.Params{})
 	},
 }

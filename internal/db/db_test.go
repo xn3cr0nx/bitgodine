@@ -1,8 +1,17 @@
 package db
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/database"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"gopkg.in/go-playground/assert.v1"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -13,32 +22,43 @@ type TestDBSuite struct {
 }
 
 func (suite *TestDBSuite) SetupSuite() {
+	wd, err := os.Getwd()
+	assert.Equal(suite.T(), err, nil)
 	conf := &Config{
-		Dir:  "/tmp",
-		Name: "indexing",
+		Dir:  filepath.Join(wd, "..", ".."),
+		Name: "leveldb",
 		Net:  wire.MainNet,
 	}
 	suite.level, _ = Instance(conf)
+	assert.NotEqual(suite.T(), suite.level, nil)
+
+	suite.Setup()
 }
 
-// func (suite *TestDBSuite) SetupTest() {
-// 	suite.clean.Acquire("compliances", "users", "files", "compliance_documents", "compliance_documents_files")
-// }
+func (suite *TestDBSuite) Setup() {
+	if !IsStored(chaincfg.MainNetParams.GenesisHash) {
+		block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+		err := StoreBlock(&blocks.Block{Block: *block})
+		assert.Equal(suite.T(), err, nil)
+	}
+}
 
-// func (suite *TestDBSuite) TearDownTest() {
-// 	suite.clean.Clean("compliances", "users", "files", "compliance_documents", "compliance_documents_files")
-// }
+func (suite *TestDBSuite) TearDownSuite() {
+	(*suite.level).Close()
+}
 
-// func TestDB(t *testing.T) {
-// 	conf := &Config{
-// 		"/tmp", "test", wire.MainNet,
-// 	}
-// 	db, err := Instance(conf)
-// 	if err != nil {
-// 		logger.Error("sync", err, logger.Params{})
-// 		return
-// 	}
-// 	// defer os.RemoveAll(filepath.Join(conf.Dir, conf.Name))
-// 	defer (*db).Close()
+func (suite *TestDBSuite) TestStoreBlock() {
+	block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+	err := StoreBlock(&blocks.Block{Block: *block})
+	assert.Equal(suite.T(), err.Error(), fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash))
+}
 
-// }
+func (suite *TestDBSuite) TestGetBlock() {
+	block, err := GetBlock(chaincfg.MainNetParams.GenesisHash)
+	assert.Equal(suite.T(), err, nil)
+	assert.NotEqual(suite.T(), block, nil)
+}
+
+func TestDB(t *testing.T) {
+	suite.Run(t, new(TestDBSuite))
+}

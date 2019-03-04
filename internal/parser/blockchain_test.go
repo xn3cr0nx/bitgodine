@@ -2,9 +2,12 @@ package parser
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"gopkg.in/go-playground/assert.v1"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
@@ -19,7 +22,9 @@ func init() {
 }
 
 func TestWalk(t *testing.T) {
-	db, _ := db.Instance(&db.Config{Dir: "/tmp", Name: "indexing", Net: wire.MainNet})
+	wd, err := os.Getwd()
+	assert.Equal(t, err, nil)
+	db, _ := db.Instance(&db.Config{Dir: filepath.Join(wd, "..", ".."), Name: "leveldb", Net: wire.MainNet})
 	fmt.Println("leveldb", db)
 
 	dgo := dgraph.Instance(&dgraph.Config{Host: "localhost", Port: 9080})

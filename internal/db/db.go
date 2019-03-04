@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -47,12 +48,25 @@ func Instance(conf *Config) (*database.DB, error) {
 	return instance, nil
 }
 
+// StoreBlock inserts in the db the block as []byte passed
+func StoreBlock(b *blocks.Block) error {
+	err := (*instance).Update(func(tx database.Tx) error {
+		return tx.StoreBlock(btcutil.NewBlock(b.MsgBlock()))
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetBlock returnes a *Block looking for the block corresponding to the hash passed
 func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 	var loadedBlockBytes []byte
 	err := (*instance).View(func(tx database.Tx) error {
 		blockBytes, err := tx.FetchBlock(hash)
 		if err != nil {
+			fmt.Println("error", err)
 			return err
 		}
 

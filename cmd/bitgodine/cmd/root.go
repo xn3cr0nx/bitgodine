@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -49,12 +48,11 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		level, err := db.Instance(DBConf())
+		_, err := db.Instance(DBConf())
 		if err != nil {
 			logger.Error("Root", err, logger.Params{})
 			return
 		}
-		defer (*level).Close()
 
 		dg := dgraph.Instance(DGraphConf())
 		dgraph.Setup(dg)
@@ -113,9 +111,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", wd, "Sets the path to the output clusters.csv file")
 	viper.SetDefault("outputDir", wd)
 
-	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "indexing", "Sets the name of the indexing db")
-	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(wd, "leveldb"), "Sets the path to the indexing db files")
-	viper.SetDefault("dbDir", filepath.Join(wd, "leveldb"))
+	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "leveldb", "Sets the name of the indexing db")
+	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", wd, "Sets the path to the indexing db files")
+	viper.SetDefault("dbDir", wd)
 
 	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
@@ -125,7 +123,7 @@ func init() {
 func initConfig() {
 	viper.SetDefault("debug", false)
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
-	viper.SetDefault("dbName", "indexing")
+	viper.SetDefault("dbName", "leveldb")
 	viper.SetDefault("dgHost", "localhost")
 	viper.SetDefault("dgPort", 9080)
 

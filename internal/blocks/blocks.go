@@ -70,9 +70,9 @@ func Parse(slice *[]uint8) (*Block, error) {
 	}
 }
 
-// Block182 defines block 182 of the block chain (was helpful with my dataset).  It is used to
+// Block181 defines block 182 of the block chain (was helpful with my dataset).  It is used to
 // test Block operations.
-var Block182 = wire.MsgBlock{
+var Block181 = wire.MsgBlock{
 	Header: wire.BlockHeader{
 		Version: 1,
 		PrevBlock: chainhash.Hash([32]byte{ // Make go vet happy.

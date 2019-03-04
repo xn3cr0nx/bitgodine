@@ -1,3 +1,4 @@
 clusters.csv
 .~lock.clusters.csv#
 dgraph/
+leveldb/

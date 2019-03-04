@@ -12,7 +12,7 @@ import (
 var emptyGraphCmd = &cobra.Command{
 	Use:   "emptyGraph",
 	Short: "Empty Graph database",
-	Long:  "Comand to erase store info in Dgraph instance of graph database",
+	Long:  "Command to erase store info in Dgraph instance of graph database",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("emptyGraph called")
 		err := dgraph.Empty()

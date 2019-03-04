@@ -16,35 +16,34 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
-// emptyLevelCmd represents the emptyLevel command
-var emptyLevelCmd = &cobra.Command{
-	Use:   "emptyLevel",
-	Short: "Empty Level database",
-	Long:  "Command to erase store info in Level instance of block database",
+// eraseCmd represents the erase command
+var eraseCmd = &cobra.Command{
+	Use:   "erase",
+	Short: "Removes all stored data",
+	Long:  "Erases blocks stored on leveldb and transaction graph stored in dgraph",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("emptyLevel called")
-		os.RemoveAll(filepath.Join(DBConf().Dir, DBConf().Name))
-		logger.Info("Empty Level", "all blocks are removed", logger.Params{})
+		fmt.Println("erase called")
+		emptyGraphCmd.Run(cmd, args)
+		emptyLevelCmd.Run(cmd, args)
+		logger.Info("Erase", "Bitgodine Erased", logger.Params{})
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(emptyLevelCmd)
+	rootCmd.AddCommand(eraseCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// emptyLevelCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// eraseCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// emptyLevelCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// eraseCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

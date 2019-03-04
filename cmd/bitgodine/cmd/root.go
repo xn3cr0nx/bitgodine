@@ -49,13 +49,12 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		_, err := db.Instance(DBConf())
+		level, err := db.Instance(DBConf())
 		if err != nil {
 			logger.Error("Root", err, logger.Params{})
 			return
 		}
-		// defer os.RemoveAll(filepath.Join(DBConf().Dir, DBConf().Name))
-		// defer (*database).Close()
+		defer (*level).Close()
 
 		dg := dgraph.Instance(DGraphConf())
 		dgraph.Setup(dg)

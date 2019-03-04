@@ -19,7 +19,7 @@ func init() {
 }
 
 func TestWalk(t *testing.T) {
-	db, _ := db.LevelDB(&db.Config{Dir: "/tmp", Name: "indexing", Net: wire.MainNet})
+	db, _ := db.Instance(&db.Config{Dir: "/tmp", Name: "indexing", Net: wire.MainNet})
 	fmt.Println("leveldb", db)
 
 	dgo := dgraph.Instance(&dgraph.Config{Host: "localhost", Port: 9080})

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -113,7 +114,8 @@ func init() {
 	viper.SetDefault("outputDir", wd)
 
 	rootCmd.PersistentFlags().StringVar(&dbName, "dbName", "indexing", "Sets the name of the indexing db")
-	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", os.TempDir(), "Sets the path to the indexing db files")
+	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(wd, "leveldb"), "Sets the path to the indexing db files")
+	viper.SetDefault("dbDir", filepath.Join(wd, "leveldb"))
 
 	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
@@ -124,7 +126,6 @@ func initConfig() {
 	viper.SetDefault("debug", false)
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
 	viper.SetDefault("dbName", "indexing")
-	viper.SetDefault("dbDir", os.TempDir())
 	viper.SetDefault("dgHost", "localhost")
 	viper.SetDefault("dgPort", 9080)
 

@@ -72,16 +72,22 @@ func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 	return &blocks.Block{Block: *block}, nil
 }
 
-// StoreBlock inserts in the db the block as []byte passed
-func StoreBlock(b *blocks.Block) error {
-	err := (*instance).Update(func(tx database.Tx) error {
-		return tx.StoreBlock(btcutil.NewBlock(b.MsgBlock()))
+// IsStored returns true if the block corresponding to passed hash is stored in db
+func IsStored(hash *chainhash.Hash) bool {
+	var isStored bool
+	err := (*instance).View(func(tx database.Tx) error {
+		stored, err := tx.HasBlock(hash)
+		if err != nil {
+			return err
+		}
+
+		isStored = stored
+		return nil
 	})
 	if err != nil {
-		return err
+		isStored = false
 	}
-
-	return nil
+	return isStored
 }
 
 // // Store creates a new bucket named with the transaction id and fills it with the corresponding block hash

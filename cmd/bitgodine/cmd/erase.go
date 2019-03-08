@@ -18,6 +18,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/block"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/transaction"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -28,8 +30,8 @@ var eraseCmd = &cobra.Command{
 	Long:  "Erases blocks stored on leveldb and transaction graph stored in dgraph",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("erase called")
-		emptyGraphCmd.Run(cmd, args)
-		emptyLevelCmd.Run(cmd, args)
+		transaction.TransactionCmd.Run(cmd, args)
+		block.BlockCmd.Run(cmd, args)
 		logger.Info("Erase", "Bitgodine Erased", logger.Params{})
 	},
 }

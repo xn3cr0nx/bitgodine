@@ -70,8 +70,8 @@ func Setup(c *dgo.Dgraph) error {
 		Schema: `
 		hash: string @index(term) .
 		block: string @index(term) .
-		locktime: int .
-		vout: int .
+		vout: int @index(int) .
+		locktime: datetime @index(int) .
 		`,
 	})
 	return err

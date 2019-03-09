@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/bdg"
+	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 

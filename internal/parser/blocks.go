@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/bdg"
+	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"

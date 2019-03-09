@@ -8,7 +8,7 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/transaction"
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/bdg"
+	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"

@@ -1,4 +1,6 @@
 clusters.csv
 .~lock.clusters.csv#
+build/
 dgraph/
 badger/
+.env

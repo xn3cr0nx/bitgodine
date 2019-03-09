@@ -109,7 +109,7 @@ func Empty() error {
 func StoreTx(hash, block string, locktime uint32, inputs []*wire.TxIn) error {
 	// check if tx is already stored
 	if _, err := GetTxUID(&hash); err == nil {
-		logger.Info("Dgraph", "already stored transaction", logger.Params{"hash": hash})
+		logger.Debug("Dgraph", "already stored transaction", logger.Params{"hash": hash})
 		return nil
 	}
 
@@ -196,30 +196,54 @@ func GetTxUID(hash *string) (string, error) {
 	return uid, nil
 }
 
-// Empty empties the dgraph instance removing all contained transactions
-func Empty() error {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
-		q(func: has(hash)) {
-			uid
-		}
-	}`)
+// GetFollowingTx returns the uid of the transaction spending the output (vout) of
+// the transaction passed as input to the function
+func GetFollowingTx(hash *string, vout *uint32) (Node, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+			q(func: has(inputs)) @cascade {
+				uid
+				block
+				hash
+				inputs @filter(eq(hash, %s) AND eq(vout, %d)){
+					hash
+					vout
+				}
+			}
+			}`, *hash, *vout))
 	if err != nil {
-		return err
+		return Node{}, err
 	}
 	var r Resp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return err
+		return Node{}, err
 	}
 	if len(r.Q) == 0 {
-		return errors.New("Dgraph is empty")
+		return Node{}, errors.New("transaction not found")
 	}
-	qx, err := json.Marshal(r.Q)
+	node := r.Q[0].Node
+	return node, nil
+}
+
+// GetStoredTxs returnes all the stored transactions hashes
+func GetStoredTxs() ([]string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), `{
+			q(func: has(inputs)) {
+				hash
+			}
+		}`)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: qx, CommitNow: true})
-	if err != nil {
-		return err
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
 	}
-	return nil
+	if len(r.Q) == 0 {
+		return nil, errors.New("No transaction stored")
+	}
+	var transactions []string
+	for _, tx := range r.Q {
+		transactions = append(transactions, tx.Hash)
+	}
+	return transactions, nil
 }

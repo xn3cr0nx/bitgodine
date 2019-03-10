@@ -30,11 +30,11 @@ func NewClusterizer() Clusterizer {
 	}
 }
 
-func (c Clusterizer) VisitBlockBegin(block *blocks.Block, height uint64) BlockItem {
+func (c Clusterizer) VisitBlockBegin(block *blocks.Block, height int32) BlockItem {
 	return nil
 }
 
-func (c Clusterizer) VisitBlockEnd(block *blocks.Block, height uint64, blockItem BlockItem) {}
+func (c Clusterizer) VisitBlockEnd(block *blocks.Block, height int32, blockItem BlockItem) {}
 
 func (c Clusterizer) VisitTransactionBegin(block *BlockItem) TransactionItem {
 	return hashset.New()

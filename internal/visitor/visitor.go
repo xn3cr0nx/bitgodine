@@ -20,8 +20,8 @@ type DoneItem int
 
 type BlockchainVisitor interface {
 	// New() BlockchainVisitor
-	VisitBlockBegin(*blocks.Block, uint64) BlockItem
-	VisitBlockEnd(*blocks.Block, uint64, BlockItem)
+	VisitBlockBegin(*blocks.Block, int32) BlockItem
+	VisitBlockEnd(*blocks.Block, int32, BlockItem)
 
 	VisitTransactionBegin(*BlockItem) TransactionItem
 	VisitTransactionInput(wire.TxIn, *BlockItem, *TransactionItem, Utxo)

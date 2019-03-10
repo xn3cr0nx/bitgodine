@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -14,21 +14,22 @@ import (
 )
 
 // BlockWalk parses the block and iterates over block's transaction to parse them
-func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *uint64, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
+func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
 	timestamp := b.MsgBlock().Header.Timestamp
+	b.SetHeight(*height)
 	blockItem := (*v).VisitBlockBegin(b, *height)
-	fmt.Println("block", b.Hash().String(), "already stored?", bdg.IsStored(b.Hash()))
-	if !bdg.IsStored(b.Hash()) {
-		logger.Info("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String()})
-		err := bdg.StoreBlock(b)
+	fmt.Println("Block", b.Hash().String(), db.IsStored(b.Hash()))
+	if !db.IsStored(b.Hash()) {
+		logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String()})
+		err := db.StoreBlock(b)
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
 			logger.Error("Block Parser", err, logger.Params{})
 		}
 	} else {
-		logger.Info("Block Parser", "skippin already stored block", logger.Params{"hash": b.Hash().String()})
+		logger.Debug("Block Parser", "skippin already stored block", logger.Params{"hash": b.Hash().String()})
 	}
 	for _, tx := range b.Transactions() {
-		TxWalk(&txs.Tx{Tx: *tx}, b, v, timestamp, *height, &blockItem, utxoSet)
+		TxWalk(&txs.Tx{Tx: *tx}, b, v, timestamp, &blockItem, utxoSet)
 	}
 	(*v).VisitBlockEnd(b, *height, blockItem)
 }

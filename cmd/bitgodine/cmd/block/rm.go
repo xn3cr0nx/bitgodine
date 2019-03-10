@@ -1,7 +1,13 @@
 package block
 
 import (
+	"io/ioutil"
+	"os"
+	"path"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // rmCmd represents the rm command
@@ -10,7 +16,13 @@ var rmCmd = &cobra.Command{
 	Short: "Remove stored blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		// bdg.Drop()
+		dir, err := ioutil.ReadDir(viper.GetString("dbDir"))
+		if err != nil {
+			logger.Error("transactions rm", err, logger.Params{})
+		}
+		for _, d := range dir {
+			os.RemoveAll(path.Join([]string{viper.GetString("dbDir"), d.Name()}...))
+		}
 	},
 }
 

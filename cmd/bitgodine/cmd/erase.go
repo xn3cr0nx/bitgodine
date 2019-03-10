@@ -19,7 +19,7 @@ var eraseCmd = &cobra.Command{
 			fmt.Println("error", err)
 			return
 		}
-		go transactionRmCommand.Run(cmd, args)
+		transactionRmCommand.Run(cmd, args)
 
 		blockRmCommand, _, err := block.BlockCmd.Find([]string{"rm"})
 		if err != nil {

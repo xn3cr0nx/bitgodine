@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -14,7 +14,7 @@ var lsCmd = &cobra.Command{
 	Short: "Show list of stored blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		blocks, err := bdg.StoredBlocks()
+		blocks, err := db.StoredBlocks()
 		if err != nil {
 			logger.Error("blocks ls", err, logger.Params{})
 			return

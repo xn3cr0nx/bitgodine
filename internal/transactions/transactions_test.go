@@ -55,7 +55,7 @@ func (suite *TestTransactionsSuite) Setup() {
 		assert.Equal(suite.T(), err, nil)
 
 		for _, tx := range block.Transactions() {
-			err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), tx.MsgTx().LockTime, tx.MsgTx().TxIn)
+			err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
 			assert.Equal(suite.T(), err, nil)
 		}
 	}

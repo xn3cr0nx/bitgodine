@@ -8,7 +8,7 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/transaction"
-	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -26,8 +26,8 @@ var (
 )
 
 // DBConf exports the Config object to initialize indexing db
-func DBConf() *bdg.Config {
-	return &bdg.Config{
+func DBConf() *db.Config {
+	return &db.Config{
 		Dir: viper.GetString("dbDir"),
 	}
 }
@@ -47,7 +47,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		_, err := bdg.Instance(DBConf())
+		_, err := db.Instance(DBConf())
 		if err != nil {
 			logger.Error("Root", err, logger.Params{})
 			return

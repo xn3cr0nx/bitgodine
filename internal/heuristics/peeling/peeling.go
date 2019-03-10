@@ -44,7 +44,7 @@ func IsPeelingChain(tx *txs.Tx) bool {
 	return true
 }
 
-// ChangeOutputPeelingChain returnes the change address output for the peeling chain
+// ChangeOutputPeelingChain returnes the vout of the change address output based on peeling chain heuristic
 func ChangeOutputPeelingChain(tx *txs.Tx) (uint32, error) {
 	if LikePeelingChain(tx) {
 		if (*tx).MsgTx().TxOut[0].Value > (*tx).MsgTx().TxOut[1].Value {

@@ -44,6 +44,10 @@ func (suite *TestDGraphSuite) TearDownSuite() {
 				hash
 				vout
 			}
+			outputs {
+				value
+				vout
+			}
 		}
 	}`)
 	assert.Equal(suite.T(), err, nil)
@@ -68,7 +72,11 @@ func (suite *TestDGraphSuite) TestQuery() {
     	inputs {
 				hash
 				vout
-    	}
+			}
+			outputs {
+				value
+				vout
+			}
 		}
 	}`)
 	assert.Equal(suite.T(), err, nil)
@@ -77,7 +85,6 @@ func (suite *TestDGraphSuite) TestQuery() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(body)
 
 	assert.Equal(suite.T(), len(body.Q), 1)
 	assert.Equal(suite.T(), body.Q[0].Block, chaincfg.MainNetParams.GenesisHash.String())
@@ -92,6 +99,12 @@ func (suite *TestDGraphSuite) TestMutation() {
 			Input{
 				Hash: "0000000000000000000000000000000000000000000000000000000000000000",
 				Vout: 4294967295,
+			},
+		},
+		Outputs: []Output{
+			Output{
+				Vout:  0,
+				Value: 50,
 			},
 		},
 	}

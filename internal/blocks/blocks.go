@@ -2,6 +2,7 @@ package blocks
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -20,6 +21,11 @@ type Block struct {
 func (b *Block) CheckBlock() bool {
 	// return b.Height() != 0 && b.Hash() != nil
 	return b.Height() == -1 && b.Hash() != nil
+}
+
+// CoinbaseValue returnes the value the block should receive from a coinbase transaction based on number of halving happened due to block height
+func CoinbaseValue(height int32) int64 {
+	return int64(5000000000 / math.Pow(2, float64(height/int32(210000))))
 }
 
 // Parse reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes

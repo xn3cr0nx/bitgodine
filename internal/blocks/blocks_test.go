@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -48,4 +49,13 @@ func TestPrintGenesisBlock(t *testing.T) {
 	genesisBlock := chaincfg.MainNetParams.GenesisBlock
 	coinbase := genesisBlock.Transactions[0].TxIn[0].PreviousOutPoint.Hash.String()
 	assert.Equal(t, "0000000000000000000000000000000000000000000000000000000000000000", coinbase)
+	fmt.Println(genesisBlock.Transactions[0].TxIn[0].PreviousOutPoint.Index)
+}
+
+func TestCoinbaseValue(t *testing.T) {
+	assert.Equal(t, CoinbaseValue(0), int64(5000000000))
+	assert.Equal(t, CoinbaseValue(200000), int64(5000000000))
+	assert.Equal(t, CoinbaseValue(210000), int64(2500000000))
+	assert.Equal(t, CoinbaseValue(420000), int64(1250000000))
+	assert.Equal(t, CoinbaseValue(1260000), int64(78125000))
 }

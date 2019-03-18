@@ -124,32 +124,25 @@ func prepareInputs(inputs []*wire.TxIn, height int32) ([]Input, error) {
 	var txIns []Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		fmt.Println("input", h)
 		txOutputs, err := GetTxOutputs(&h)
 		if err != nil {
-			fmt.Println("what is the error", err)
 			return nil, err
 		}
 		var spentOutput Output
 		for _, out := range txOutputs {
-			fmt.Println("Spending Output tx", out.Vout, out.Value, in.PreviousOutPoint.Index)
 			if in.PreviousOutPoint.Index == uint32(4294967295) {
 				spendingCoinbase := blocks.CoinbaseValue(height)
-				fmt.Println("spending coinbase value", spendingCoinbase, out.Value == spendingCoinbase)
 				if out.Value == spendingCoinbase {
-					fmt.Println("here")
 					spentOutput = out
 					break
 				}
 			}
 			if out.Vout == in.PreviousOutPoint.Index {
-				fmt.Println("or here")
 				spentOutput = out
 				break
 			}
 		}
 		if spentOutput.UID == "" {
-			fmt.Println("this fucking index")
 			return nil, errors.New("something not working")
 		}
 		txIns = append(txIns, Input{UID: spentOutput.UID, Hash: h, Vout: in.PreviousOutPoint.Index})
@@ -160,7 +153,6 @@ func prepareInputs(inputs []*wire.TxIn, height int32) ([]Input, error) {
 func prepareOutputs(outputs []*wire.TxOut) ([]Output, error) {
 	var txOuts []Output
 	for k, out := range outputs {
-		fmt.Println("Saving Output", out.Value, out.PkScript)
 		if out.PkScript == nil {
 			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
 			txOuts = append(txOuts, Output{Value: out.Value})
@@ -181,12 +173,6 @@ func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.T
 		return nil
 	}
 
-	fmt.Println()
-	fmt.Println()
-	fmt.Println("##################################")
-	fmt.Println("Block", block)
-	fmt.Println("Height", height)
-	fmt.Println("Transaction", hash)
 	txIns, err := prepareInputs(inputs, height)
 	if err != nil {
 		return err
@@ -195,11 +181,7 @@ func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.T
 	if err != nil {
 		return err
 	}
-	fmt.Println("##################################")
-	fmt.Println()
-	fmt.Println()
 
-	fmt.Println("outputs in main function", len(txOuts))
 	node := Node{
 		Hash:     hash,
 		Block:    block,

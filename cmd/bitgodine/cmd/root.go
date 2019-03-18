@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 
 		_, err := db.Instance(DBConf())
 		if err != nil {
-			logger.Error("Root", err, logger.Params{})
+			logger.Error("Bitgodine", err, logger.Params{})
 			return
 		}
 

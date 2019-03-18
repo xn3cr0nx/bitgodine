@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	assert "gopkg.in/go-playground/assert.v1"
@@ -35,7 +34,7 @@ func (suite *TestDGraphSuite) SetupSuite() {
 
 func (suite *TestDGraphSuite) TearDownSuite() {
 	resp, err := suite.dgraph.NewTxn().Query(context.Background(), `{
-		q(func: allofterms(block, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
+		q(func: allofterms(block, "00000000000000009c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
 			uid
 			block
 			hash
@@ -65,7 +64,7 @@ func (suite *TestDGraphSuite) TearDownSuite() {
 
 func (suite *TestDGraphSuite) TestQuery() {
 	resp, err := suite.dgraph.NewTxn().Query(context.Background(), `{
-		q(func: allofterms(block, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
+		q(func: allofterms(block, "00000000000000009c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")) {
 			block
 			hash
 			locktime
@@ -87,13 +86,13 @@ func (suite *TestDGraphSuite) TestQuery() {
 	}
 
 	assert.Equal(suite.T(), len(body.Q), 1)
-	assert.Equal(suite.T(), body.Q[0].Block, chaincfg.MainNetParams.GenesisHash.String())
+	assert.Equal(suite.T(), body.Q[0].Block, "00000000000000009c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")
 }
 
 func (suite *TestDGraphSuite) TestMutation() {
 	body := Node{
 		Hash:     "999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644",
-		Block:    "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+		Block:    "00000000000000009c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
 		Locktime: uint32(1234),
 		Inputs: []Input{
 			Input{

@@ -8,6 +8,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -15,6 +16,7 @@ import (
 type Blockchain struct {
 	Maps    []mmap.MMap
 	Network chaincfg.Params
+	height  int32
 }
 
 var blockchain *Blockchain
@@ -24,6 +26,8 @@ func Instance(network chaincfg.Params) *Blockchain {
 	if blockchain == nil {
 		blockchain = new(Blockchain)
 		blockchain.Network = network
+		height := blockchain.Height()
+		blockchain.height = height
 	}
 	return blockchain
 }
@@ -57,4 +61,27 @@ func (b *Blockchain) Read() error {
 
 	b.Maps = Maps
 	return nil
+}
+
+// Height returnes the height of the last block in the blockchain (currently synced)
+func (b *Blockchain) Height() int32 {
+	if b.height != 0 {
+		return b.height
+	}
+	last, err := db.LastBlock()
+	if err != nil {
+		if err.Error() == "Key not found" {
+			return 0
+		}
+		logger.Panic("Blockchain", err, logger.Params{})
+	}
+	fmt.Println("last hash", last.String())
+	if err != nil {
+		logger.Panic("Blockchain", err, logger.Params{})
+	}
+	block, err := db.GetBlock(last)
+	if err != nil {
+		logger.Panic("Blockchain", err, logger.Params{})
+	}
+	return block.Height()
 }

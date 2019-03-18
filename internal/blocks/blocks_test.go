@@ -3,6 +3,7 @@ package blocks
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -48,7 +49,7 @@ func TestCheckBlock(t *testing.T) {
 func TestPrintGenesisBlock(t *testing.T) {
 	genesisBlock := chaincfg.MainNetParams.GenesisBlock
 	coinbase := genesisBlock.Transactions[0].TxIn[0].PreviousOutPoint.Hash.String()
-	assert.Equal(t, "0000000000000000000000000000000000000000000000000000000000000000", coinbase)
+	assert.Equal(t, strings.Repeat("0", 64), coinbase)
 	fmt.Println(genesisBlock.Transactions[0].TxIn[0].PreviousOutPoint.Index)
 }
 

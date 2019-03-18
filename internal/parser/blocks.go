@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
@@ -18,11 +17,14 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 	timestamp := b.MsgBlock().Header.Timestamp
 	b.SetHeight(*height)
 	blockItem := (*v).VisitBlockBegin(b, *height)
-	fmt.Println("Block", b.Hash().String(), db.IsStored(b.Hash()))
 	if !db.IsStored(b.Hash()) {
-		logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String()})
+		logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 		err := db.StoreBlock(b)
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
+			logger.Error("Block Parser", err, logger.Params{})
+		}
+		err = db.StoreLast(b.Hash())
+		if err != nil {
 			logger.Error("Block Parser", err, logger.Params{})
 		}
 	} else {

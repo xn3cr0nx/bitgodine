@@ -10,7 +10,6 @@ import (
 	"gopkg.in/go-playground/assert.v1"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -24,8 +23,11 @@ func init() {
 func TestWalk(t *testing.T) {
 	wd, err := os.Getwd()
 	assert.Equal(t, err, nil)
-	db, _ := db.Instance(&db.Config{Dir: filepath.Join(wd, "..", ".."), Name: "leveldb", Net: wire.MainNet})
-	fmt.Println("leveldb", db)
+	DbConf := &db.Config{
+		Dir: filepath.Join(wd, "..", "..", "badger"),
+	}
+	db, err := db.Instance(DbConf)
+	fmt.Println("badger", db)
 
 	dgo := dgraph.Instance(&dgraph.Config{Host: "localhost", Port: 9080})
 	fmt.Println("dgraph", dgo)

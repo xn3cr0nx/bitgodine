@@ -1,11 +1,11 @@
-package cmd
+package bitgodine
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/block"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/transaction"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 )
 
 // eraseCmd represents the erase command

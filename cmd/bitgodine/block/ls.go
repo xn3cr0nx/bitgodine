@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
@@ -21,8 +22,14 @@ var lsCmd = &cobra.Command{
 		}
 		fmt.Println("Number of blocks:", len(blocks))
 		fmt.Println("Height - Hash")
-		for i, b := range blocks {
-			fmt.Println(i, "     - ", b)
+
+		si := make([]int, 0, len(blocks))
+		for i := range blocks {
+			si = append(si, int(i))
+		}
+		sort.Ints(si)
+		for _, i := range si {
+			fmt.Println(i, "     - ", blocks[int32(i)])
 		}
 	},
 }

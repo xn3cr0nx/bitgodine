@@ -1,4 +1,4 @@
-package cmd
+package bitgodine
 
 import (
 	"github.com/fatih/color"

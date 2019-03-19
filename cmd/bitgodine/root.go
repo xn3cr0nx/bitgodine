@@ -1,4 +1,4 @@
-package cmd
+package bitgodine
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/block"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cmd/transaction"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 

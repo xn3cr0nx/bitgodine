@@ -103,8 +103,8 @@ func IsStored(hash *chainhash.Hash) bool {
 }
 
 // StoredBlocks is an utility functions that returnes the list of stored blocks hash
-func StoredBlocks() ([]string, error) {
-	var blocks []string
+func StoredBlocks() (map[int32]string, error) {
+	blocks := make(map[int32]string)
 	err := instance.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
@@ -120,7 +120,15 @@ func StoredBlocks() ([]string, error) {
 			if err != nil {
 				return err
 			}
-			blocks = append(blocks, hash.String())
+
+			block, err := item.Value()
+			if err != nil {
+				return err
+			}
+			height := block[:4]
+			h := int32(binary.LittleEndian.Uint32(height))
+
+			blocks[h] = hash.String()
 		}
 		return nil
 	})

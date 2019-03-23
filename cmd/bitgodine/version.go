@@ -1,4 +1,4 @@
-package bitgodine
+package main
 
 import (
 	"github.com/fatih/color"

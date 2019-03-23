@@ -1,4 +1,4 @@
-package bitgodine
+package main
 
 import (
 	"fmt"

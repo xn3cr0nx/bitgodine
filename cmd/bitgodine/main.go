@@ -1,4 +1,4 @@
-package bitgodine
+package main
 
 func main() {
 	Execute()

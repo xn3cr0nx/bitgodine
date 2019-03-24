@@ -13,17 +13,17 @@ import (
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Check sync status of blockchain",
-	Long:  `Check sync status of blockchain and provides info`,
+	Short: "Parses the blockchain to sync it",
+	Long: `Parses the blockchain, from the last point,
+if the synced is being previously performed.
+The parsing stores blocks and transaction and creates clusters to provide
+data representation to analyze the blockchain.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Info("Sync", "sync called", logger.Params{})
 
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
-		// if len(b.Maps) == 0 {
-		// 	fmt.Println("You need to sync the blockchain, call bitgodine sync")
-		// 	return
-		// }
+
 		cltz := visitor.NewClusterizer()
 		parser.Walk(b, cltz)
 		cltzCount, err := cltz.Done()

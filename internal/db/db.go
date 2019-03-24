@@ -79,13 +79,11 @@ func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 		return nil, err
 	}
 	height, blockBytes := loadedBlockBytes[:4], loadedBlockBytes[4:]
-	fmt.Println("height", height)
 	block, err := btcutil.NewBlockFromBytes(blockBytes)
 	if err != nil {
 		return nil, err
 	}
 	h := int32(binary.LittleEndian.Uint32(height))
-	fmt.Println("converted height", h)
 	block.SetHeight(int32(h))
 	return &blocks.Block{Block: *block}, nil
 }

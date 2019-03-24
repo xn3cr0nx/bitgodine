@@ -20,7 +20,8 @@ type Block struct {
 // CheckBlock checks if block is correctly initialized just checking hash and height fields have some value
 func (b *Block) CheckBlock() bool {
 	// return b.Height() != 0 && b.Hash() != nil
-	return b.Height() == -1 && b.Hash() != nil
+	logger.Debug("Block", "Checking Block", logger.Params{"initialized": b != nil, "height": b.Height(), "hash": b.Hash().String()})
+	return b != nil && b.Height() == -1 && b.Hash() != nil
 }
 
 // CoinbaseValue returnes the value the block should receive from a coinbase transaction based on number of halving happened due to block height

@@ -8,6 +8,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -68,20 +69,25 @@ func (b *Blockchain) Height() int32 {
 	if b.height != 0 {
 		return b.height
 	}
-	last, err := db.LastBlock()
+	block, err := b.Head()
 	if err != nil {
 		if err.Error() == "Key not found" {
 			return 0
 		}
 		logger.Panic("Blockchain", err, logger.Params{})
 	}
-	fmt.Println("last hash", last.String())
+	return block.Height()
+}
+
+// Head returnes the last block in the blockchain
+func (b *Blockchain) Head() (*blocks.Block, error) {
+	last, err := db.LastBlock()
 	if err != nil {
-		logger.Panic("Blockchain", err, logger.Params{})
+		return nil, err
 	}
 	block, err := db.GetBlock(last)
 	if err != nil {
-		logger.Panic("Blockchain", err, logger.Params{})
+		return nil, err
 	}
-	return block.Height()
+	return block, nil
 }

@@ -22,7 +22,7 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor) (int32, *chain
 	utxoSet := make(map[chainhash.Hash][]visitor.Utxo)
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock blocks.Block
-	// height := int32(0)
+	prevHeight := int32(0)
 	height := bc.Height()
 
 	// check if "coinbase output" is stored in dgraph
@@ -32,36 +32,44 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor) (int32, *chain
 		dgraph.StoreTx(hash, "", 0, 0, nil, []*wire.TxOut{wire.NewTxOut(int64(5000000000), nil), wire.NewTxOut(int64(2500000000), nil), wire.NewTxOut(int64(1250000000), nil)})
 	}
 
-	if height > 0 {
-		fmt.Println("parsing from last time")
-		for _, value := range bc.Maps {
-			val := []uint8(value) // I need to cast mmap.Map initializing a variable to be able to take its address (&)
-			findCheckPoint(bc, &val, height)
-			fmt.Println("blocks remaining in this file", len(val))
-			if len(val) > 0 {
-				fmt.Println("I'll start here")
-				break
-			}
-		}
+	var rawChain [][]uint8
+	for _, ref := range bc.Maps {
+		rawChain = append(rawChain, []uint8(ref))
 	}
-	logger.Info("Blockchain", fmt.Sprintf("Starting syncing from block %d", bc.Height()), logger.Params{})
+	logger.Debug("Blockchain", fmt.Sprintf("Files converted to be parsed: %d", len(rawChain)), logger.Params{})
 
-	for k, value := range bc.Maps {
+	if height > 0 {
+		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to reach %d", height), logger.Params{})
+		if err := findCheckPoint(&rawChain, &prevHeight, &height); err != nil {
+		}
+		last, err := bc.Head()
+		if err != nil {
+			logger.Panic("Blockchain", err, logger.Params{})
+		}
+		goalPrevHash = (*last).Hash()
+		lastBlock = *last
+		logger.Debug("Blockchain", "Last Block", logger.Params{"hash": lastBlock.Hash().String()})
+	}
+	logger.Info("Blockchain", fmt.Sprintf("Starting syncing from block %d", height), logger.Params{})
+
+	for k, ref := range rawChain {
+		if len(ref) == 0 {
+			continue
+		}
 		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": fmt.Sprintf("%v/%v", k, len(bc.Maps)-1)})
-		val := []uint8(value) // I need to cast mmap.Map initializing a variable to be able to take its address (&)
-		WalkSlice(bc, &val, goalPrevHash, &lastBlock, &height, &skipped, &utxoSet, &v)
+		WalkSlice(&ref, goalPrevHash, &lastBlock, &height, &skipped, &utxoSet, &v)
 	}
 
 	return height, goalPrevHash, utxoSet
 }
 
 // WalkSlice goes through a slice (block) of the chain
-func WalkSlice(bc *blockchain.Blockchain, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.Block, height *int32, skipped *map[chainhash.Hash]blocks.Block, utxoSet *map[chainhash.Hash][]visitor.Utxo, v *visitor.BlockchainVisitor) {
+func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.Block, height *int32, skipped *map[chainhash.Hash]blocks.Block, utxoSet *map[chainhash.Hash][]visitor.Utxo, v *visitor.BlockchainVisitor) {
 	for len(*slice) > 0 {
 		if _, ok := (*skipped)[*goalPrevHash]; ok {
 			BlockWalk(lastBlock, v, height, utxoSet)
 			logger.Debug("Blockchain", fmt.Sprintf("(rewind - pre-step) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
-			*height++
+			(*height)++
 			// Here I should do the for loop removing every goal_prev_hash and
 			// walking the block obtained at the index of goal_prev_hash
 			for {
@@ -69,7 +77,7 @@ func WalkSlice(bc *blockchain.Blockchain, slice *[]uint8, goalPrevHash *chainhas
 					delete(*skipped, *goalPrevHash)
 					BlockWalk(&block, v, height, utxoSet)
 					logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
-					*height++
+					(*height)++
 					*goalPrevHash = *block.Hash()
 					// possible bug initialization to null (None in rust)
 					*lastBlock = blocks.Block{}
@@ -129,7 +137,7 @@ func WalkSlice(bc *blockchain.Blockchain, slice *[]uint8, goalPrevHash *chainhas
 		if lastBlock.CheckBlock() {
 			BlockWalk(lastBlock, v, height, utxoSet)
 			logger.Debug("Blockchain", fmt.Sprintf("(last_block) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
-			*height++
+			(*height)++
 		}
 
 		goalPrevHash = block.Hash()
@@ -137,14 +145,21 @@ func WalkSlice(bc *blockchain.Blockchain, slice *[]uint8, goalPrevHash *chainhas
 	}
 }
 
-func findCheckPoint(bc *blockchain.Blockchain, slice *[]uint8, height int32) error {
-	for {
-		block, err := blocks.Parse(slice)
-		if err != nil {
-			return err
+func findCheckPoint(chain *[][]uint8, prevHeight, height *int32) error {
+	for k, slice := range *chain {
+		for len(slice) > 0 {
+			_, err := blocks.Parse(&slice)
+			if err != nil {
+				return err
+			}
+			if *prevHeight == *height {
+				(*height)++
+				(*chain)[k] = slice
+				return nil
+			}
+			(*prevHeight)++
 		}
-		if block.Height() == height {
-			return nil
-		}
+		(*chain)[k] = slice
 	}
+	return nil
 }

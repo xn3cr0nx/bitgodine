@@ -8,11 +8,11 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 )
 
-// eraseCmd represents the erase command
-var eraseCmd = &cobra.Command{
-	Use:   "erase",
+// rmCmd represents the rm command
+var rmCmd = &cobra.Command{
+	Use:   "rm",
 	Short: "Removes all stored data",
-	Long:  "Erases blocks stored on badger and transaction graph stored in dgraph",
+	Long:  "Removess blocks stored on badger and transaction graph stored in dgraph",
 	Run: func(cmd *cobra.Command, args []string) {
 		transactionRmCommand, _, err := transaction.TransactionCmd.Find([]string{"rm"})
 		if err != nil {
@@ -31,15 +31,15 @@ var eraseCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(eraseCmd)
+	rootCmd.AddCommand(rmCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// eraseCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// rmCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// eraseCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// rmCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

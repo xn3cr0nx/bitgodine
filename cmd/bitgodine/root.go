@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
@@ -67,6 +69,17 @@ var rootCmd = &cobra.Command{
 		default:
 			logger.Panic("Initializing network", errors.New("Network not found"), logger.Params{"provided": net})
 		}
+
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func() {
+			for sig := range c {
+				// sig is a ^C, handle it
+				fmt.Println("Killing the application", sig)
+				time.Sleep(1 * time.Second)
+				os.Exit(1)
+			}
+		}()
 	},
 }
 

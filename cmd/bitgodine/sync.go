@@ -5,6 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/parser"
+	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // syncCmd represents the sync command
@@ -13,10 +16,21 @@ var syncCmd = &cobra.Command{
 	Short: "Check sync status of blockchain",
 	Long:  `Check sync status of blockchain and provides info`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("sync called " + BitcoinNet.Name)
+		logger.Info("Sync", "sync called", logger.Params{})
 
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
+		// if len(b.Maps) == 0 {
+		// 	fmt.Println("You need to sync the blockchain, call bitgodine sync")
+		// 	return
+		// }
+		cltz := visitor.NewClusterizer()
+		parser.Walk(b, cltz)
+		cltzCount, err := cltz.Done()
+		if err != nil {
+			logger.Error("Blockchain test", err, logger.Params{})
+		}
+		fmt.Printf("Exported Clusters: %v\n", cltzCount)
 	},
 }
 

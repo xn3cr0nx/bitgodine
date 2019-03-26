@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 )
 
@@ -27,6 +28,13 @@ var rmCmd = &cobra.Command{
 			return
 		}
 		blockRmCommand.Run(cmd, args)
+
+		clusterRmCommand, _, err := cluster.ClusterCmd.Find([]string{"rm"})
+		if err != nil {
+			fmt.Println("error", err)
+			return
+		}
+		clusterRmCommand.Run(cmd, args)
 	},
 }
 

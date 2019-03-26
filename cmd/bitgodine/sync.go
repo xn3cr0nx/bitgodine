@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
@@ -25,12 +27,20 @@ data representation to analyze the blockchain.`,
 		b.Read()
 
 		cltz := visitor.NewClusterizer()
-		parser.Walk(b, cltz)
+
+		c := make(chan os.Signal, 1)
+		interrupt := make(chan int)
+		done := make(chan int)
+		signal.Notify(c, os.Interrupt)
+		go handleInterrupt(cltz, c, interrupt, done)
+
+		parser.Walk(b, cltz, interrupt, done)
 		cltzCount, err := cltz.Done()
 		if err != nil {
 			logger.Error("Blockchain test", err, logger.Params{})
 		}
 		fmt.Printf("Exported Clusters: %v\n", cltzCount)
+
 	},
 }
 
@@ -46,4 +56,18 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// syncCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func handleInterrupt(cltz visitor.BlockchainVisitor, c chan os.Signal, interrupt, done chan int) {
+	for sig := range c {
+		logger.Info("Sync", "Killing the application", logger.Params{"signal": sig})
+		interrupt <- 1
+		cltzCount, err := cltz.Done()
+		if err != nil {
+			logger.Error("Sync", err, logger.Params{})
+		}
+		logger.Info("Sync", fmt.Sprintf("Exported Clusters: %v\n", cltzCount), logger.Params{})
+		done <- 1
+		os.Exit(1)
+	}
 }

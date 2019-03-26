@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"time"
 
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -69,17 +68,6 @@ var rootCmd = &cobra.Command{
 		default:
 			logger.Panic("Initializing network", errors.New("Network not found"), logger.Params{"provided": net})
 		}
-
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		go func() {
-			for sig := range c {
-				// sig is a ^C, handle it
-				fmt.Println("Killing the application", sig)
-				time.Sleep(1 * time.Second)
-				os.Exit(1)
-			}
-		}()
 	},
 }
 
@@ -98,6 +86,7 @@ func init() {
 	// Adds subdirectories command
 	rootCmd.AddCommand(block.BlockCmd)
 	rootCmd.AddCommand(transaction.TransactionCmd)
+	rootCmd.AddCommand(cluster.ClusterCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")

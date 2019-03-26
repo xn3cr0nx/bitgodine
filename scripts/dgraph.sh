@@ -2,7 +2,7 @@
 
 running="$(docker ps -a | grep diggy)"
 
-if [[ running != "" ]]; then
+if [[ "$running" ]]; then
     echo "Restarting diggy"
     docker start diggy
 else

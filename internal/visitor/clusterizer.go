@@ -20,10 +20,12 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
+// Clusterizer struct containing the disjoint set data structure
 type Clusterizer struct {
 	clusters *disjoint.DisjointSet
 }
 
+// NewClusterizer returns a new clusterizer
 func NewClusterizer() Clusterizer {
 	return Clusterizer{
 		clusters: disjoint.NewDisjointSet(),
@@ -67,10 +69,10 @@ func (c Clusterizer) VisitTransactionOutput(txOut wire.TxOut, blockItem *BlockIt
 // VisitTransactionEnd implements first heuristic (all input are from the same user) and clusterize the input in the disjoint set
 func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem *TransactionItem) {
 	// skip transactions with just one input
-
 	if (*txItem).Size() > 1 && !tx.IsCoinjoin() {
 		txInputs := (*txItem).Values()
 		lastAddress := txInputs[0].(Utxo)
+		logger.Debug("Clusterizer", "Enhancing disjoint set", logger.Params{"last_address": lastAddress})
 		c.clusters.MakeSet(lastAddress)
 		for _, address := range txInputs {
 			c.clusters.MakeSet(address.(Utxo))
@@ -80,6 +82,7 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 	}
 }
 
+// Done finalizes the operations of the clusterizer exporting its content to a csv file
 func (c Clusterizer) Done() (DoneItem, error) {
 	c.clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.clusters.Size()})

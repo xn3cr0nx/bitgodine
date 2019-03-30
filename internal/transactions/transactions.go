@@ -15,6 +15,30 @@ type Tx struct {
 	btcutil.Tx
 }
 
+// Get retrieves and returnes the tx object
+func Get(hash *chainhash.Hash) (Tx, error) {
+	hashString := hash.String()
+	node, err := dgraph.GetTx("hash", &hashString)
+	if err != nil {
+		return Tx{}, err
+	}
+	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	if err != nil {
+		return Tx{}, err
+	}
+	block, err := db.GetBlock(blockHash)
+	if err != nil {
+		return Tx{}, err
+	}
+	var transaction *btcutil.Tx
+	for _, t := range block.Transactions() {
+		if t.Hash().IsEqual(hash) {
+			transaction = t
+		}
+	}
+	return Tx{Tx: *transaction}, nil
+}
+
 // IsCoinbase returnes true if the transaction is a coinbase transaction
 func (tx *Tx) IsCoinbase() bool {
 	zeroHash, _ := chainhash.NewHash(make([]byte, 32))

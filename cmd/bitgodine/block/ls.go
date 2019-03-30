@@ -1,9 +1,11 @@
 package block
 
 import (
-	"fmt"
+	"os"
 	"sort"
+	"strconv"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -20,8 +22,9 @@ var lsCmd = &cobra.Command{
 			logger.Error("blocks ls", err, logger.Params{})
 			return
 		}
-		fmt.Println("Number of blocks:", len(blocks))
-		fmt.Println("Height - Hash")
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"Height", "Block Hash"})
 
 		si := make([]int, 0, len(blocks))
 		for i := range blocks {
@@ -29,8 +32,10 @@ var lsCmd = &cobra.Command{
 		}
 		sort.Ints(si)
 		for _, i := range si {
-			fmt.Println(i, "     - ", blocks[int32(i)])
+			table.Append([]string{strconv.Itoa(i), blocks[int32(i)]})
 		}
+
+		table.Render()
 	},
 }
 

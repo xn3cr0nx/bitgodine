@@ -62,7 +62,7 @@ func (suite *TestPeelingChainSuite) Setup() {
 }
 
 func (suite *TestPeelingChainSuite) TearDownSuite() {
-
+	(*suite.db).Close()
 }
 
 func (suite *TestPeelingChainSuite) TestLikePeelingChain() {
@@ -83,12 +83,12 @@ func (suite *TestPeelingChainSuite) TestIsPeelingChain() {
 	assert.Equal(suite.T(), res, true)
 }
 
-func (suite *TestPeelingChainSuite) TestChangeOutputPeelingChain() {
+func (suite *TestPeelingChainSuite) TestChangeOutput() {
 	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
 	assert.Equal(suite.T(), err, nil)
 	testTx := block.Transactions()[1]
 	t := &txs.Tx{Tx: *testTx}
-	vout, err := ChangeOutputPeelingChain(t)
+	vout, err := ChangeOutput(t)
 	assert.Equal(suite.T(), err, nil)
 	assert.Equal(suite.T(), vout, uint32(1))
 }

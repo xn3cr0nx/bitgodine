@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analyze"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
@@ -87,6 +88,7 @@ func init() {
 	rootCmd.AddCommand(block.BlockCmd)
 	rootCmd.AddCommand(transaction.TransactionCmd)
 	rootCmd.AddCommand(cluster.ClusterCmd)
+	rootCmd.AddCommand(analyze.AnalyzeCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")

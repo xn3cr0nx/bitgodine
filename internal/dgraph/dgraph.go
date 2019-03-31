@@ -237,7 +237,12 @@ func GetTx(field string, param *string) (Node, error) {
 	if len(r.Q) == 0 {
 		return Node{}, errors.New("transaction not found")
 	}
-	node := r.Q[1].Node
+	var node Node
+	if r.Q[0].Node.Block == "" {
+		node = r.Q[1].Node
+	} else {
+		node = r.Q[0].Node
+	}
 	return node, nil
 }
 

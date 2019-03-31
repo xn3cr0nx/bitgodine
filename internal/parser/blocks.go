@@ -27,11 +27,11 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 		if err != nil {
 			logger.Error("Block Parser", err, logger.Params{})
 		}
+		for _, tx := range b.Transactions() {
+			TxWalk(&txs.Tx{Tx: *tx}, b, v, timestamp, &blockItem, utxoSet)
+		}
 	} else {
 		logger.Debug("Block Parser", "skippin already stored block", logger.Params{"hash": b.Hash().String()})
-	}
-	for _, tx := range b.Transactions() {
-		TxWalk(&txs.Tx{Tx: *tx}, b, v, timestamp, &blockItem, utxoSet)
 	}
 	(*v).VisitBlockEnd(b, *height, blockItem)
 }

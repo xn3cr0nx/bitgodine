@@ -1,22 +1,15 @@
 package blockchain
 
-import (
-	"testing"
+// Should implement the suite
 
-	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+// func init() {
+// 	logger.Setup()
+// }
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/stretchr/testify/assert"
-)
+// func TestInstance(t *testing.T) {
+// 	blockchain1 := Instance(chaincfg.MainNetParams)
+// 	blockchain2 := Instance(chaincfg.MainNetParams)
 
-func init() {
-	logger.Setup()
-}
-
-func TestInstance(t *testing.T) {
-	blockchain1 := Instance(chaincfg.MainNetParams)
-	blockchain2 := Instance(chaincfg.MainNetParams)
-
-	// Comparing pointers -> returned the same instance (singleton pattern working)
-	assert.Equal(t, blockchain1, blockchain2)
-}
+// 	// Comparing pointers -> returned the same instance (singleton pattern working)
+// 	assert.Equal(t, blockchain1, blockchain2)
+// }

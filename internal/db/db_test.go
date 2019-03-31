@@ -48,7 +48,7 @@ func (suite *TestDBSuite) SetupSuite() {
 func (suite *TestDBSuite) Setup() {
 	if !IsStored(chaincfg.MainNetParams.GenesisHash) {
 		block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
-		block.SetHeight(int32(10000))
+		block.SetHeight(int32(0))
 		err := StoreBlock(&blocks.Block{Block: *block})
 		assert.Equal(suite.T(), err, nil)
 	}
@@ -60,7 +60,7 @@ func (suite *TestDBSuite) TearDownSuite() {
 
 func (suite *TestDBSuite) TestStoreBlock() {
 	block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
-	block.SetHeight(int32(10000))
+	block.SetHeight(int32(0))
 	err := StoreBlock(&blocks.Block{Block: *block})
 	// tests that the genesis blocks is already stored (conditions only verified thanks to Setup())
 	assert.Equal(suite.T(), err.Error(), fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash))
@@ -69,14 +69,16 @@ func (suite *TestDBSuite) TestStoreBlock() {
 func (suite *TestDBSuite) TestStoredBlocks() {
 	blocks, err := StoredBlocks()
 	assert.Equal(suite.T(), err, nil)
-	assert.Equal(suite.T(), contains(blocks, chaincfg.MainNetParams.GenesisHash.String()), true)
+	genesis, ok := blocks[0]
+	assert.Equal(suite.T(), ok, true)
+	assert.Equal(suite.T(), genesis, chaincfg.MainNetParams.GenesisHash.String())
 }
 
 func (suite *TestDBSuite) TestGetBlock() {
 	block, err := GetBlock(chaincfg.MainNetParams.GenesisHash)
 	assert.Equal(suite.T(), err, nil)
 	assert.Equal(suite.T(), block.Hash().IsEqual(chaincfg.MainNetParams.GenesisHash), true)
-	assert.Equal(suite.T(), block.Height(), int32(10000))
+	assert.Equal(suite.T(), block.Height(), int32(0))
 	assert.Equal(suite.T(), len(block.Transactions()), 1)
 }
 

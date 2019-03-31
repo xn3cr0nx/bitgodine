@@ -52,26 +52,18 @@ func (tx *Tx) GetSpentTx(index uint32) (Tx, error) {
 		return Tx{}, errors.New("Index out of range in transaction input")
 	}
 	hash := tx.MsgTx().TxIn[index].PreviousOutPoint.Hash
-	hashString := hash.String()
-	node, err := dgraph.GetTx("hash", &hashString)
+	coinbaseHash, err := chainhash.NewHash(make([]byte, 32))
 	if err != nil {
 		return Tx{}, err
 	}
-	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	if (&hash).IsEqual(coinbaseHash) {
+		return Tx{}, errors.New("Coinbase transaction")
+	}
+	transaction, err := Get(&hash)
 	if err != nil {
 		return Tx{}, err
 	}
-	block, err := db.GetBlock(blockHash)
-	if err != nil {
-		return Tx{}, err
-	}
-	var transaction *btcutil.Tx
-	for _, t := range block.Transactions() {
-		if t.Hash().IsEqual(&hash) {
-			transaction = t
-		}
-	}
-	return Tx{Tx: *transaction}, nil
+	return transaction, nil
 }
 
 // IsSpent returnes true if exists a transaction that takes as input to the new tx

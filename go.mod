@@ -22,7 +22,9 @@ require (
 	github.com/khaiql/dbcleaner v2.2.1+incompatible // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
+	github.com/olekukonko/tablewriter v0.0.1
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/afero v1.2.0 // indirect

@@ -7,6 +7,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/behaviour"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/locktime"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/optimal"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/peeling"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/power"
@@ -26,7 +28,7 @@ var AnalyzeCmd = &cobra.Command{
 			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})
 		}
 
-		logger.Info("Analyze peeling", "Analyzing...", logger.Params{"tx": args[0]})
+		logger.Info("Analyze", "Analyzing...", logger.Params{"tx": args[0]})
 
 		heuristics := []string{
 			"Peeling Chain",
@@ -34,6 +36,8 @@ var AnalyzeCmd = &cobra.Command{
 			"Optimal Change",
 			"Address Type",
 			"Address Reuse",
+			"Locktime",
+			"Client Behaviour",
 		}
 
 		txHash, err := chainhash.NewHashFromStr(args[0])
@@ -52,6 +56,8 @@ var AnalyzeCmd = &cobra.Command{
 		privacy = append(privacy, optimal.Vulnerable(&tx))
 		privacy = append(privacy, class.Vulnerable(&tx))
 		privacy = append(privacy, reuse.Vulnerable(&tx))
+		privacy = append(privacy, locktime.Vulnerable(&tx))
+		privacy = append(privacy, behaviour.Vulnerable(&tx))
 
 		for i, p := range privacy {
 			if p {
@@ -62,7 +68,7 @@ var AnalyzeCmd = &cobra.Command{
 			} else {
 				table.SetColumnColor(
 					tablewriter.Colors{},
-					tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor})
+					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
 				table.Append([]string{heuristics[i], "x"})
 			}
 		}

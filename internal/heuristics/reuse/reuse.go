@@ -2,7 +2,6 @@ package reuse
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -35,7 +34,6 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Println("input address", addr)
 		inputAddresses = append(inputAddresses, addr[0])
 	}
 
@@ -45,7 +43,6 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Println("output address", addr)
 		if contains(inputAddresses, addr[0]) {
 			return uint32(vout), nil
 		}

@@ -2,7 +2,6 @@ package txs
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
@@ -45,6 +44,24 @@ func (tx *Tx) IsCoinbase() bool {
 	return tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.IsEqual(zeroHash)
 }
 
+// BlockHeight returnes the height of the block that contains the transaction
+func (tx *Tx) BlockHeight() (int32, error) {
+	txHash := tx.Hash().String()
+	node, err := dgraph.GetTx("hash", &txHash)
+	if err != nil {
+		return 0, nil
+	}
+	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	if err != nil {
+		return 0, err
+	}
+	block, err := db.GetBlock(blockHash)
+	if err != nil {
+		return 0, err
+	}
+	return block.Height(), nil
+}
+
 // GetSpentTx returnes the spent transaction corresponding to the index
 // passed between input transactions
 func (tx *Tx) GetSpentTx(index uint32) (Tx, error) {
@@ -72,7 +89,6 @@ func (tx *Tx) IsSpent(index uint32) bool {
 	hashString := tx.Hash().String()
 	_, err := dgraph.GetFollowingTx(&hashString, &index)
 	if err != nil {
-		fmt.Println("error", err)
 		// just for sake of clarity, untill I'm going to refactor this piece to be more useful
 		if err.Error() == "transaction not found" {
 			return false

@@ -2,7 +2,6 @@ package class
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -29,7 +28,6 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 			}
 			return 0, err
 		}
-		fmt.Println("input class", class)
 		inputTypes = append(inputTypes, class)
 	}
 	// check all inputs are of the same type
@@ -43,7 +41,6 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Println("output class", class)
 		outputTypes = append(outputTypes, class)
 	}
 	// check there are not two or more outputs of the same type

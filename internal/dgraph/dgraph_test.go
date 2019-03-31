@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	assert "gopkg.in/go-playground/assert.v1"
@@ -111,6 +113,15 @@ func (suite *TestDGraphSuite) TestMutation() {
 	assert.Equal(suite.T(), err, nil)
 	_, err2 := suite.dgraph.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
 	assert.Equal(suite.T(), err2, nil)
+}
+
+func (suite *TestDGraphSuite) TestGetAddressOccurences() {
+	addr := "12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S"
+	address, err := btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	assert.Equal(suite.T(), err, nil)
+	occurences, err := GetAddressOccurences(&address)
+	assert.Equal(suite.T(), err, nil)
+	assert.Equal(suite.T(), len(occurences), 6)
 }
 
 func TestDgraph(t *testing.T) {

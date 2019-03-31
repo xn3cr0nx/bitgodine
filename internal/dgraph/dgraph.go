@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
@@ -39,9 +42,10 @@ type Input struct {
 
 // Output represent output transaction, e.g. the value that can be spent as input
 type Output struct {
-	UID   string `json:"uid,omitempty"`
-	Value int64  `json:"value,omitempty"`
-	Vout  uint32 `json:"vout"`
+	UID     string `json:"uid,omitempty"`
+	Value   int64  `json:"value,omitempty"`
+	Vout    uint32 `json:"vout"`
+	Address string `json:"address,omitempty"`
 }
 
 // Resp represent the resp from a query function called q to dgraph
@@ -82,6 +86,7 @@ func Setup(c *dgo.Dgraph) error {
 		vout: int @index(int) .
 		value: int @index(int) .
 		locktime: int @index(int) .
+		address: string @index(term) .
 		`,
 	})
 	return err
@@ -158,7 +163,11 @@ func prepareOutputs(outputs []*wire.TxOut) ([]Output, error) {
 			txOuts = append(txOuts, Output{Value: out.Value})
 		} else {
 			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value, Vout: uint32(k)})
-			txOuts = append(txOuts, Output{Value: out.Value, Vout: uint32(k)})
+			_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
+			if err != nil {
+				return nil, err
+			}
+			txOuts = append(txOuts, Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress()})
 		}
 	}
 
@@ -217,7 +226,7 @@ func GetTx(field string, param *string) (Node, error) {
 				vout
 			}
 		}
-		}`, field, *param))
+	}`, field, *param))
 	if err != nil {
 		return Node{}, err
 	}
@@ -228,7 +237,7 @@ func GetTx(field string, param *string) (Node, error) {
 	if len(r.Q) == 0 {
 		return Node{}, errors.New("transaction not found")
 	}
-	node := r.Q[0].Node
+	node := r.Q[1].Node
 	return node, nil
 }
 
@@ -332,4 +341,64 @@ func GetStoredTxs() ([]string, error) {
 		transactions = append(transactions, tx.Hash)
 	}
 	return transactions, nil
+}
+
+// GetAddressOccurences returnes an array containing the transactions where the address appears in the blockchain
+func GetAddressOccurences(address *btcutil.Address) ([]string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		q(func: has(outputs)) @cascade {
+			uid
+    	block
+    	hash
+			outputs @filter(allofterms(address, "%s")) {
+				address
+				value
+			}
+		}
+	}`, (*address).String()))
+	if err != nil {
+		return nil, err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Q) == 0 {
+		return nil, errors.New("No address occurences")
+	}
+	var occurences []string
+	for _, tx := range r.Q {
+		occurences = append(occurences, tx.Hash)
+	}
+	return occurences, nil
+}
+
+// GetAddressBlocksOccurences returnes an array containing the transactions where the address appears in the blockchain
+func GetAddressBlocksOccurences(address *string) ([]string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		q(func: has(outputs)) @cascade {
+			uid
+    	block
+    	hash
+			outputs @filter(allofterms(address, "%s")) {
+				address
+				value
+			}
+		}
+	}`, *address))
+	if err != nil {
+		return nil, err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Q) == 0 {
+		return nil, errors.New("No address occurences")
+	}
+	var occurences []string
+	for _, tx := range r.Q {
+		occurences = append(occurences, tx.Block)
+	}
+	return occurences, nil
 }

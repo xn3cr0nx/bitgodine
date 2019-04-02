@@ -7,7 +7,9 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/backward"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/behaviour"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/forward"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/locktime"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/optimal"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/peeling"
@@ -38,6 +40,8 @@ var AnalyzeCmd = &cobra.Command{
 			"Address Reuse",
 			"Locktime",
 			"Client Behaviour",
+			"Forward",
+			"Backward",
 		}
 
 		txHash, err := chainhash.NewHashFromStr(args[0])
@@ -58,6 +62,8 @@ var AnalyzeCmd = &cobra.Command{
 		privacy = append(privacy, reuse.Vulnerable(&tx))
 		privacy = append(privacy, locktime.Vulnerable(&tx))
 		privacy = append(privacy, behaviour.Vulnerable(&tx))
+		privacy = append(privacy, forward.Vulnerable(&tx))
+		privacy = append(privacy, backward.Vulnerable(&tx))
 
 		for i, p := range privacy {
 			if p {

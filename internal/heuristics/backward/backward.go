@@ -11,10 +11,10 @@ import (
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(tx *txs.Tx) (uint32, error) {
-	var outputAddresses []btcutil.Address
-	var inputAddresses []btcutil.Address
+	var outputAddresses,
+		inputAddresses,
+		inputTargets []btcutil.Address
 	var spentTxs []txs.Tx
-	var inputTargets []btcutil.Address
 	var outputTargets []uint32
 
 	for _, out := range tx.MsgTx().TxOut {

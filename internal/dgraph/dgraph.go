@@ -28,6 +28,7 @@ type Node struct {
 	UID      string   `json:"uid,omitempty"`
 	Hash     string   `json:"hash,omitempty"`
 	Block    string   `json:"block,omitempty"`
+	Height   int32    `json:"height,omitempty"`
 	Locktime uint32   `json:"locktime,omitempty"`
 	Inputs   []Input  `json:"inputs,omitempty"`
 	Outputs  []Output `json:"outputs,omitempty"`
@@ -83,6 +84,7 @@ func Setup(c *dgo.Dgraph) error {
 		Schema: `
 		hash: string @index(term) .
 		block: string @index(term) .
+		height: int @index(int) .
 		vout: int @index(int) .
 		value: int @index(int) .
 		locktime: int @index(int) .
@@ -194,6 +196,7 @@ func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.T
 	node := Node{
 		Hash:     hash,
 		Block:    block,
+		Height:   height,
 		Locktime: locktime,
 		Inputs:   txIns,
 		Outputs:  txOuts,

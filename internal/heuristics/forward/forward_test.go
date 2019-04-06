@@ -1,13 +1,13 @@
 package forward
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/dgo"
+	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/suite"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
@@ -33,10 +33,10 @@ func (suite *TestForwardSuite) SetupSuite() {
 	suite.dgraph = dgraph.Instance(DgConf)
 	dgraph.Setup(suite.dgraph)
 
-	wd, err := os.Getwd()
+	hd, err := homedir.Dir()
 	assert.Equal(suite.T(), err, nil)
 	DbConf := &db.Config{
-		Dir: filepath.Join(wd, "..", "..", "..", "badger"),
+		Dir: filepath.Join(hd, ".bitgodine", "badger"),
 	}
 	suite.db, err = db.Instance(DbConf)
 	assert.Equal(suite.T(), err, nil)

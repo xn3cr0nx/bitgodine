@@ -2,22 +2,22 @@ package analyze
 
 import (
 	"errors"
-	"os"
+	"fmt"
+	"strconv"
+	"strings"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/olekukonko/tablewriter"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/backward"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/behaviour"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/forward"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/locktime"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/optimal"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/peeling"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/power"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/reuse"
-	class "github.com/xn3cr0nx/bitgodine_code/internal/heuristics/type"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/analyze"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+)
+
+var (
+	blocksRange string
+	from, to    int32
+	plot        bool
 )
 
 // AnalyzeCmd represents the Analyze command
@@ -25,74 +25,82 @@ var AnalyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze transactions",
 	Long:  "",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		if args[0] == "" {
-			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})
-		}
+		// fmt.Println("fucking viper")
+		// fmt.Println("args", strings.Join(viper.AllKeys(), " "))
+		// fmt.Println("flags", strings.Join(cmd.LocalFlags().Args(), " "))
+		chain := blockchain.Instance(chaincfg.Params{})
+		chainHeight := chain.Height()
+		var analysis [][]bool
 
-		logger.Info("Analyze", "Analyzing...", logger.Params{"tx": args[0]})
-
-		heuristics := []string{
-			"Peeling Chain",
-			"Power of Ten",
-			"Optimal Change",
-			"Address Type",
-			"Address Reuse",
-			"Locktime",
-			"Client Behaviour",
-			"Forward",
-			"Backward",
-		}
-
-		txHash, err := chainhash.NewHashFromStr(args[0])
-		if err != nil {
-			logger.Panic("Analyze peeling", err, logger.Params{})
-		}
-		tx, err := txs.Get(txHash)
-
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Heuristic", "Privacy"})
-		// table.SetBorder(false)
-
-		var privacy []bool
-		privacy = append(privacy, peeling.IsPeelingChain(&tx))
-		privacy = append(privacy, power.Vulnerable(&tx))
-		privacy = append(privacy, optimal.Vulnerable(&tx))
-		privacy = append(privacy, class.Vulnerable(&tx))
-		privacy = append(privacy, reuse.Vulnerable(&tx))
-		privacy = append(privacy, locktime.Vulnerable(&tx))
-		privacy = append(privacy, behaviour.Vulnerable(&tx))
-		privacy = append(privacy, forward.Vulnerable(&tx))
-		privacy = append(privacy, backward.Vulnerable(&tx))
-
-		for i, p := range privacy {
-			if p {
-				table.SetColumnColor(
-					tablewriter.Colors{},
-					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiRedColor})
-				table.Append([]string{heuristics[i], "✓"})
-			} else {
-				table.SetColumnColor(
-					tablewriter.Colors{},
-					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
-				table.Append([]string{heuristics[i], "x"})
+		if viper.GetString("analyze.range") != "full" {
+			heights := strings.Split(viper.GetString("analyze.range"), "-")
+			start, err := strconv.Atoi(heights[0])
+			if err != nil {
+				logger.Error("Analyze", err, logger.Params{})
+				return
+			}
+			end, err := strconv.Atoi(heights[1])
+			if err != nil {
+				logger.Error("Analyze", err, logger.Params{})
+				return
+			}
+			if start > end {
+				logger.Error("Analyze", errors.New("Starting height in range can't be major than end height"), logger.Params{"start": heights[0], "end": heights[1]})
+				return
+			}
+			if end > int(chainHeight) {
+				if start > end {
+					logger.Error("Analyze", errors.New("The chain is not synced to that end point"), logger.Params{"start": heights[0], "end": heights[1], "chain_height": chainHeight})
+					return
+				}
+			}
+			analysis, err = analyze.Range(int32(start), int32(end))
+			if err != nil {
+				logger.Error("Analyze", err, logger.Params{})
+				return
+			}
+		} else {
+			var err error
+			if int(chainHeight) < viper.GetInt("analyze.to") {
+				logger.Error("Analyze", errors.New("The chain is not synced to that end point"), logger.Params{"chain_height": chainHeight})
+				return
+			}
+			analysis, err = analyze.Range(int32(viper.GetInt("analyze.from")), int32(viper.GetInt("analyze.to")))
+			if err != nil {
+				logger.Error("Analyze", err, logger.Params{})
+				return
 			}
 		}
 
-		table.Render()
+		if viper.GetBool("analyze.plot") {
+			fmt.Println("Implementeremo il plot")
+		} else {
+			analyze.Percentages(analysis)
+		}
 	},
 }
 
 func init() {
+	AnalyzeCmd.AddCommand(txCmd)
 	AnalyzeCmd.AddCommand(peelingCmd)
+	AnalyzeCmd.AddCommand(forwardCmd)
+	AnalyzeCmd.AddCommand(backwardCmd)
 
-	// Here you will define your flags and configuration settings.
+	AnalyzeCmd.PersistentFlags().StringVar(&blocksRange, "range", "full", "Specify the range the analysis should be applied on in the form \"start-end\"")
+	viper.SetDefault("analyze.range", "full")
+	viper.BindPFlag("analyze.range", AnalyzeCmd.PersistentFlags().Lookup("range"))
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// AnalyzeCmd.PersistentFlags().String("foo", "", "A help for foo")
+	AnalyzeCmd.PersistentFlags().Int32Var(&from, "from", 1, "Specify the block height the analysis should start from")
+	viper.SetDefault("analyze.from", 1)
+	viper.BindPFlag("analyze.from", AnalyzeCmd.PersistentFlags().Lookup("from"))
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// AnalyzeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	AnalyzeCmd.PersistentFlags().Int32Var(&to, "to", 1000, "Specify the block height the analysis should reach to")
+	viper.SetDefault("analyze.to", 1000)
+	viper.BindPFlag("analyze.to", AnalyzeCmd.PersistentFlags().Lookup("to"))
+
+	AnalyzeCmd.PersistentFlags().BoolVar(&plot, "plot", false, "Specify whether show the resulting plot of the analysis")
+	viper.SetDefault("analyze.plot", false)
+	viper.BindPFlag("analyze.plot", AnalyzeCmd.PersistentFlags().Lookup("plot"))
 }

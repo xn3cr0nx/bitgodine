@@ -2,16 +2,21 @@ package forward
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(tx *txs.Tx) (uint32, error) {
 	var inputAddresses []btcutil.Address
+
+	logger.Debug("Forward Heuristic", fmt.Sprintf("transaction %s", tx.Hash().String()), logger.Params{})
+
 	for vout, in := range tx.MsgTx().TxIn {
 		spentTx, err := tx.GetSpentTx(uint32(vout))
 		if err != nil {
@@ -33,11 +38,18 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 			}
 			return 0, err
 		}
+		logger.Debug("Forward Heuristic", fmt.Sprintf("tx spending output vout %d: %s", vout, spendingTx.Hash().String()), logger.Params{})
 		for in, spendingIn := range spendingTx.MsgTx().TxIn {
-			spentTx, err := tx.GetSpentTx(uint32(in))
+			logger.Debug("Forward Heuristic", fmt.Sprintf("input of spending tx %s", spendingIn.PreviousOutPoint.Hash.String()), logger.Params{})
+			// check if the input is the one the spending transaction is reached from
+			if spendingIn.PreviousOutPoint.Index == uint32(vout) {
+				continue
+			}
+			spentTx, err := spendingTx.GetSpentTx(uint32(in))
 			if err != nil {
 				return 0, err
 			}
+			logger.Debug("Forward Heuristic", fmt.Sprintf("spent tx %s", spentTx.Hash().String()), logger.Params{})
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[int(spendingIn.PreviousOutPoint.Index)].PkScript, &chaincfg.MainNetParams)
 			if err != nil {
 				return 0, err

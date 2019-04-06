@@ -2,10 +2,10 @@ package parser
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 	"gopkg.in/go-playground/assert.v1"
 
@@ -21,10 +21,10 @@ func init() {
 }
 
 func TestWalk(t *testing.T) {
-	wd, err := os.Getwd()
+	hd, err := homedir.Dir()
 	assert.Equal(t, err, nil)
 	DbConf := &db.Config{
-		Dir: filepath.Join(wd, "..", "..", "badger"),
+		Dir: filepath.Join(hd, ".bitgodine", "badger"),
 	}
 	db, err := db.Instance(DbConf)
 	fmt.Println("badger", db)
@@ -39,7 +39,7 @@ func TestWalk(t *testing.T) {
 	b.Read()
 
 	cltz := visitor.NewClusterizer()
-	Walk(b, cltz)
+	Walk(b, cltz, nil, nil)
 	cltzCount, err := cltz.Done()
 	if err != nil {
 		logger.Error("Blockchain test", err, logger.Params{})

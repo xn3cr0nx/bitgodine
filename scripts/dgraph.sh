@@ -8,7 +8,7 @@ if [[ "$running" ]]; then
 else
     # Run Dgraph Zero
     echo "Starting dgraph named diggy"
-    docker run -d -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -p 8000:8000 -v ~/go/src/github.com/xn3cr0nx/bitgodine_code/dgraph:/dgraph --name diggy dgraph/dgraph dgraph zero
+    docker run -d -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -p 8000:8000 -v ~/.bitgodine/dgraph:/dgraph --name diggy dgraph/dgraph dgraph zero
 fi
 
 # Run Dgraph Alpha

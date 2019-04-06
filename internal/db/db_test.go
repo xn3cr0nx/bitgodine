@@ -2,13 +2,13 @@ package db
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/badger"
+	"github.com/mitchellh/go-homedir"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 	"gopkg.in/go-playground/assert.v1"
@@ -33,10 +33,10 @@ func contains(recipient []string, element string) bool {
 func (suite *TestDBSuite) SetupSuite() {
 	logger.Setup()
 
-	wd, err := os.Getwd()
+	hd, err := homedir.Dir()
 	assert.Equal(suite.T(), err, nil)
 	conf := &Config{
-		Dir: filepath.Join(wd, "..", "..", "badger"),
+		Dir: filepath.Join(hd, ".bitgodine", "badger"),
 	}
 	suite.db, err = Instance(conf)
 	assert.Equal(suite.T(), err, nil)

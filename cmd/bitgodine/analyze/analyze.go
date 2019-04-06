@@ -51,10 +51,8 @@ var AnalyzeCmd = &cobra.Command{
 				return
 			}
 			if end > int(chainHeight) {
-				if start > end {
-					logger.Error("Analyze", errors.New("The chain is not synced to that end point"), logger.Params{"start": heights[0], "end": heights[1], "chain_height": chainHeight})
-					return
-				}
+				logger.Error("Analyze", errors.New("The chain is not synced to that end point"), logger.Params{"start": heights[0], "end": heights[1], "chain_height": chainHeight})
+				return
 			}
 			analysis, err = analyze.Range(int32(start), int32(end))
 			if err != nil {

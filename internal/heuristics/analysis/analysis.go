@@ -75,8 +75,6 @@ func Percentages(analysis [][]bool) {
 	// table.SetBorder(false)
 	table.SetCaption(true, "Heuristics success rate")
 
-	tot := len(analysis)
-
 	for heuristic := range analysis[0] {
 		counter := 0
 		for _, a := range analysis {
@@ -85,7 +83,7 @@ func Percentages(analysis [][]bool) {
 			}
 		}
 
-		perc := float64(counter) / float64(tot)
+		perc := float64(counter) / float64(len(analysis))
 
 		// table.SetColumnColor(
 		// 	tablewriter.Colors{},
@@ -97,19 +95,48 @@ func Percentages(analysis [][]bool) {
 }
 
 func Plot(analysis [][]bool, start, end int) {
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"})
+	logger.Info("Analysis", "Generating plots..", logger.Params{})
 
-	bar.AddXAxis([]int{start, end})
+	line := charts.NewLine()
+	line.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"})
 
-	for i := range analysis[0] {
-		bar.AddYAxis(heuristics.Heuristic(i).String(), 1)
+	// var heuristicsAxis []string
+	// for i := 0; i < 9; i++ {
+	// 	heuristicsAxis = append(heuristicsAxis, heuristics.Heuristic(i).String())
+	// }
+	// fmt.Println("axis", heuristicsAxis)
+	// line.AddXAxis(heuristicsAxis).AddYAxis("Peeling", []int{90, 70, 90, 70, 90, 70, 90, 70, 90})
+
+	line.AddXAxis(generateHeightSeries(start, end))
+
+	for heuristic := range analysis[0] {
+		var series []int
+		for _, a := range analysis {
+			if a[heuristic] {
+				series = append(series, 1)
+			} else {
+				series = append(series, 0)
+			}
+		}
+
+		line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.AreaStyleOpts{Opacity: 0.2}, charts.LineOpts{Step: true})
 	}
 
-	f, err := os.Create("bar.html")
+	f, err := os.Create("line.html")
 	if err != nil {
 		logger.Error("Analysis", err, logger.Params{})
 		return
 	}
-	bar.Render(f)
+	line.Render(f)
+}
+
+func generateHeightSeries(start, end int) (series []int) {
+	length := end - start
+	steps := length / 10.0
+
+	for i := 0; i <= 11; i++ {
+		series = append(series, start+(i*steps))
+	}
+
+	return
 }

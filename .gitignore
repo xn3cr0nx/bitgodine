@@ -4,3 +4,4 @@ build/
 dgraph/
 badger/
 .env
+*.html

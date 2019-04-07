@@ -1,10 +1,11 @@
-package analyze
+package analysis
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/chenjiandongx/go-echarts/charts"
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -24,27 +25,27 @@ import (
 
 // Range applies heuristics to transaction contained in blocks specified in the range
 func Range(from, to int32) ([][]bool, error) {
-	logger.Info("Analyze", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
+	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
 	var analysis [][]bool
 	for i := from; i <= to; i++ {
 		block, err := dgraph.GetBlockHashFromHeight(i)
 		if err != nil {
-			logger.Error("Analyze", err, logger.Params{})
+			logger.Error("Analysis", err, logger.Params{})
 			return nil, err
 		}
-		logger.Debug("Analyze", fmt.Sprintf("Analyzing block %s", block), logger.Params{})
+		logger.Debug("Analysis", fmt.Sprintf("Analyzing block %s", block), logger.Params{})
 		hash, err := chainhash.NewHashFromStr(block)
 		if err != nil {
-			logger.Error("Analyze", err, logger.Params{})
+			logger.Error("Analysis", err, logger.Params{})
 			return nil, err
 		}
 		b, err := db.GetBlock(hash)
 		if err != nil {
-			logger.Error("Analyze", err, logger.Params{})
+			logger.Error("Analysis", err, logger.Params{})
 			return nil, err
 		}
 		for _, tx := range b.Transactions() {
-			logger.Debug("Analyze", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
+			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
 			res := Tx(&txs.Tx{Tx: *tx})
 			analysis = append(analysis, res)
 		}
@@ -89,8 +90,26 @@ func Percentages(analysis [][]bool) {
 		// table.SetColumnColor(
 		// 	tablewriter.Colors{},
 		// 	tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
-		table.Append([]string{heuristics.Heuristic(heuristic).String(), fmt.Sprintf("%4.2f", perc)})
+		table.Append([]string{heuristics.Heuristic(heuristic).String(), fmt.Sprintf("%4.2f", perc*100)})
 	}
 
 	table.Render()
+}
+
+func Plot(analysis [][]bool, start, end int) {
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"})
+
+	bar.AddXAxis([]int{start, end})
+
+	for i := range analysis[0] {
+		bar.AddYAxis(heuristics.Heuristic(i).String(), 1)
+	}
+
+	f, err := os.Create("bar.html")
+	if err != nil {
+		logger.Error("Analysis", err, logger.Params{})
+		return
+	}
+	bar.Render(f)
 }

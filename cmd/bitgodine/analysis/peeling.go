@@ -1,4 +1,4 @@
-package analyze
+package analysis
 
 import (
 	"errors"
@@ -17,6 +17,7 @@ var peelingCmd = &cobra.Command{
 	Use:   "peeling",
 	Short: "Apply peeling chain heuristic to transaction",
 	Long:  "",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if args[0] == "" {
 			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})

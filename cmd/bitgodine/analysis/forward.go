@@ -1,4 +1,4 @@
-package analyze
+package analysis
 
 import (
 	"errors"
@@ -17,6 +17,7 @@ var forwardCmd = &cobra.Command{
 	Use:   "forward",
 	Short: "Apply forward heuristic to transaction",
 	Long:  "",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if args[0] == "" {
 			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})

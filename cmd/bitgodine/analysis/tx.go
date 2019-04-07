@@ -1,4 +1,4 @@
-package analyze
+package analysis
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/analyze"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/analysis"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -36,7 +36,7 @@ var txCmd = &cobra.Command{
 		table.SetHeader([]string{"Heuristic", "Privacy"})
 		// table.SetBorder(false)
 
-		privacy := analyze.Tx(&tx)
+		privacy := analysis.Tx(&tx)
 
 		for i, p := range privacy {
 			if p {

@@ -227,6 +227,7 @@ func GetTx(field string, param *string) (Node, error) {
 			outputs {
 				value
 				vout
+				address
 			}
 		}
 	}`, field, *param))
@@ -240,11 +241,15 @@ func GetTx(field string, param *string) (Node, error) {
 	if len(r.Q) == 0 {
 		return Node{}, errors.New("transaction not found")
 	}
+
 	var node Node
-	if r.Q[0].Node.Block == "" {
-		node = r.Q[1].Node
-	} else {
-		node = r.Q[0].Node
+	for _, e := range r.Q {
+		if block := e.Node.Block; block != "" {
+			node = e.Node
+		}
+	}
+	if node.Block == "" {
+		return Node{}, errors.New("Almost an object returned, but no one of them contains the block field")
 	}
 	return node, nil
 }

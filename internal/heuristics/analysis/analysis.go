@@ -69,6 +69,29 @@ func Tx(tx *txs.Tx) (privacy []bool) {
 	return privacy
 }
 
+// TxChange applies all the heuristics to the passed transaction returning the vout of the change output for each of them
+func TxChange(tx *txs.Tx) (privacy []uint32) {
+	output, _ := peeling.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = power.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = optimal.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = class.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = reuse.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = locktime.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = behaviour.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = forward.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	output, _ = backward.ChangeOutput(tx)
+	privacy = append(privacy, output)
+	return privacy
+}
+
 func Percentages(analysis [][]bool) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})

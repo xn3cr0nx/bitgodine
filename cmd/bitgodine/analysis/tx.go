@@ -3,15 +3,19 @@ package analysis
 import (
 	"errors"
 	"os"
+	"strconv"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/analysis"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
+
+var changeOutput bool
 
 // txCmd represents the tx command
 var txCmd = &cobra.Command{
@@ -33,38 +37,41 @@ var txCmd = &cobra.Command{
 		tx, err := txs.Get(txHash)
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Heuristic", "Privacy"})
-		// table.SetBorder(false)
 
-		privacy := analysis.Tx(&tx)
-
-		for i, p := range privacy {
-			if p {
-				table.SetColumnColor(
-					tablewriter.Colors{},
-					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiRedColor})
-				table.Append([]string{heuristics.Heuristic(i).String(), "✓"})
-			} else {
+		if viper.GetBool("analysis.tx.change") {
+			table.SetHeader([]string{"Heuristic", "Vout"})
+			// table.SetBorder(false)
+			privacy := analysis.TxChange(&tx)
+			for i, p := range privacy {
 				table.SetColumnColor(
 					tablewriter.Colors{},
 					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
-				table.Append([]string{heuristics.Heuristic(i).String(), "x"})
+				table.Append([]string{heuristics.Heuristic(i).String(), strconv.Itoa(int(p))})
+			}
+		} else {
+			table.SetHeader([]string{"Heuristic", "Privacy"})
+			// table.SetBorder(false)
+			privacy := analysis.Tx(&tx)
+			for i, p := range privacy {
+				if p {
+					table.SetColumnColor(
+						tablewriter.Colors{},
+						tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiRedColor})
+					table.Append([]string{heuristics.Heuristic(i).String(), "✓"})
+				} else {
+					table.SetColumnColor(
+						tablewriter.Colors{},
+						tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
+					table.Append([]string{heuristics.Heuristic(i).String(), "x"})
+				}
 			}
 		}
-
 		table.Render()
 	},
 }
 
-// func init() {
-
-// 	// Here you will define your flags and configuration settings.
-
-// 	// Cobra supports Persistent Flags which will work for this command
-// 	// and all subcommands, e.g.:
-// 	// txCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-// 	// Cobra supports local flags which will only run when this command
-// 	// is called directly, e.g.:
-// 	// txCmd.Flags().BoolP("toggle", "t", fatxe, "Help message for toggle")
-// }
+func init() {
+	txCmd.PersistentFlags().BoolVar(&changeOutput, "change", false, "Specify to print vout of foreseen change output instead of heuristic vulnerability")
+	viper.SetDefault("analysis.tx.change", false)
+	viper.BindPFlag("analysis.tx.change", txCmd.PersistentFlags().Lookup("change"))
+}

@@ -98,7 +98,7 @@ func Plot(analysis [][]bool, start, end int) {
 	logger.Info("Analysis", "Generating plots..", logger.Params{})
 
 	line := charts.NewLine()
-	line.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"})
+	line.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"}, charts.YAxisOpts{SplitLine: charts.SplitLineOpts{Show: true}})
 
 	// var heuristicsAxis []string
 	// for i := 0; i < 9; i++ {
@@ -113,13 +113,14 @@ func Plot(analysis [][]bool, start, end int) {
 		var series []int
 		for _, a := range analysis {
 			if a[heuristic] {
-				series = append(series, 1)
+				series = append(series, (heuristic*20)+10)
 			} else {
-				series = append(series, 0)
+				series = append(series, (heuristic*20)+0)
 			}
 		}
 
-		line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.AreaStyleOpts{Opacity: 0.2}, charts.LineOpts{Step: true})
+		// line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.AreaStyleOpts{Opacity: 0.2}, charts.LineOpts{Step: true})
+		line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.LineOpts{Step: true})
 	}
 
 	f, err := os.Create("line.html")
@@ -132,10 +133,10 @@ func Plot(analysis [][]bool, start, end int) {
 
 func generateHeightSeries(start, end int) (series []int) {
 	length := end - start
-	steps := length / 10.0
+	// steps := length / 10.0
 
-	for i := 0; i <= 11; i++ {
-		series = append(series, start+(i*steps))
+	for i := 0; i <= length; i++ {
+		series = append(series, start+i)
 	}
 
 	return

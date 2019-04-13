@@ -3,7 +3,6 @@ package analysis
 import (
 	"errors"
 	"os"
-	"strconv"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
@@ -46,7 +45,7 @@ var txCmd = &cobra.Command{
 				table.SetColumnColor(
 					tablewriter.Colors{},
 					tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiGreenColor})
-				table.Append([]string{heuristics.Heuristic(i).String(), strconv.Itoa(int(p))})
+				table.Append([]string{heuristics.Heuristic(i).String(), p})
 			}
 		} else {
 			table.SetHeader([]string{"Heuristic", "Privacy"})

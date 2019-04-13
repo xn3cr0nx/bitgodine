@@ -47,6 +47,9 @@ func Range(from, to int32) ([][]bool, error) {
 		}
 		for _, tx := range b.Transactions() {
 			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
+			if len(tx.MsgTx().TxOut) <= 1 {
+				continue
+			}
 			res := Tx(&txs.Tx{Tx: *tx})
 			analysis = append(analysis, res)
 		}

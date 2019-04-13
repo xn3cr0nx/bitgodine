@@ -34,6 +34,10 @@ var txCmd = &cobra.Command{
 			logger.Panic("Analyze peeling", err, logger.Params{})
 		}
 		tx, err := txs.Get(txHash)
+		if len(tx.MsgTx().TxOut) <= 1 {
+			logger.Error("Analysis Transaction", errors.New("The transaction cannot be analyzed, less than 2 tx output"), logger.Params{})
+			return
+		}
 
 		table := tablewriter.NewWriter(os.Stdout)
 

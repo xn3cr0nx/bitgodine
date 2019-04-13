@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -74,9 +75,15 @@ var AnalysisCmd = &cobra.Command{
 			}
 		}
 
+		if len(a) == 0 {
+			logger.Error("Analysis", errors.New("No output to produce. No transaction in the range analyzed. It means none on them has at least two outputs"), logger.Params{})
+			return
+		}
+
 		if viper.GetBool("analysis.plot") {
 			analysis.Plot(a, start, end)
 		} else {
+			fmt.Printf("%d transactions analyzed\n", len(a))
 			analysis.Percentages(a)
 		}
 	},

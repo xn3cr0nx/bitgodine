@@ -78,7 +78,6 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 						return
 					}
 				}
-				fmt.Println("Non caco il select")
 			}
 			logger.Error("Blockchain", errors.New("interrupt received but something wrong"), logger.Params{"signal": x})
 			return

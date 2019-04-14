@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/badger"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Config strcut containing initialization fields
@@ -64,7 +65,7 @@ func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 	err := instance.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(hash.CloneBytes())
 		if err != nil {
-			fmt.Println("error", err)
+			logger.Debug("DB", fmt.Sprintf("GetBlock %s", err.Error()), logger.Params{})
 			return err
 		}
 		val, err := item.ValueCopy(nil)

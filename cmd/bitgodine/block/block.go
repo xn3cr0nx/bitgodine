@@ -16,6 +16,7 @@ var BlockCmd = &cobra.Command{
 func init() {
 	BlockCmd.AddCommand(lsCmd)
 	BlockCmd.AddCommand(rmCmd)
+	BlockCmd.AddCommand(heightCmd)
 
 	// Here you will define your flags and configuration settings.
 

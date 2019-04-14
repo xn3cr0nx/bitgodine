@@ -28,6 +28,7 @@ type Node struct {
 	UID      string   `json:"uid,omitempty"`
 	Hash     string   `json:"hash,omitempty"`
 	Block    string   `json:"block,omitempty"`
+	Height   int32    `json:"height,omitempty"`
 	Locktime uint32   `json:"locktime,omitempty"`
 	Inputs   []Input  `json:"inputs,omitempty"`
 	Outputs  []Output `json:"outputs,omitempty"`
@@ -83,6 +84,7 @@ func Setup(c *dgo.Dgraph) error {
 		Schema: `
 		hash: string @index(term) .
 		block: string @index(term) .
+		height: int @index(int) .
 		vout: int @index(int) .
 		value: int @index(int) .
 		locktime: int @index(int) .
@@ -194,6 +196,7 @@ func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.T
 	node := Node{
 		Hash:     hash,
 		Block:    block,
+		Height:   height,
 		Locktime: locktime,
 		Inputs:   txIns,
 		Outputs:  txOuts,
@@ -224,6 +227,7 @@ func GetTx(field string, param *string) (Node, error) {
 			outputs {
 				value
 				vout
+				address
 			}
 		}
 	}`, field, *param))
@@ -237,11 +241,15 @@ func GetTx(field string, param *string) (Node, error) {
 	if len(r.Q) == 0 {
 		return Node{}, errors.New("transaction not found")
 	}
+
 	var node Node
-	if r.Q[0].Node.Block == "" {
-		node = r.Q[1].Node
-	} else {
-		node = r.Q[0].Node
+	for _, e := range r.Q {
+		if block := e.Node.Block; block != "" {
+			node = e.Node
+		}
+	}
+	if node.Block == "" {
+		return Node{}, errors.New("Almost an object returned, but no one of them contains the block field")
 	}
 	return node, nil
 }
@@ -406,4 +414,24 @@ func GetAddressBlocksOccurences(address *string) ([]string, error) {
 		occurences = append(occurences, tx.Block)
 	}
 	return occurences, nil
+}
+
+// GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
+func GetBlockHashFromHeight(height int32) (string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		q(func: eq(height, %d), first: 1) {
+			block
+		}
+	}`, height))
+	if err != nil {
+		return "", err
+	}
+	var r Resp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return "", err
+	}
+	if len(r.Q) == 0 {
+		return "", errors.New("No address occurences")
+	}
+	return r.Q[0].Block, nil
 }

@@ -2,11 +2,13 @@ package backward
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
@@ -16,6 +18,8 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 		inputTargets []btcutil.Address
 	var spentTxs []txs.Tx
 	var outputTargets []uint32
+
+	logger.Debug("Backward Heuristic", fmt.Sprintf("transaction %s", tx.Hash().String()), logger.Params{})
 
 	for _, out := range tx.MsgTx().TxOut {
 		_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
@@ -39,8 +43,9 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 	}
 
 	for _, spent := range spentTxs {
+		logger.Debug("Backward Heuristic", fmt.Sprintf("spent transaction %s", spent.Hash().String()), logger.Params{})
 		for vout, in := range spent.MsgTx().TxIn {
-			spentTx, err := tx.GetSpentTx(uint32(vout))
+			spentTx, err := spent.GetSpentTx(uint32(vout))
 			if err != nil {
 				return 0, err
 			}

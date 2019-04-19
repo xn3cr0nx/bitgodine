@@ -1,10 +1,11 @@
 package dgraph
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
@@ -48,7 +49,6 @@ func Setup(c *dgo.Dgraph) error {
 		Schema: `
 		hash: string @index(term) .
 		prev_block: string @index(term) .
-		block: string @index(term) .
 		height: int @index(int) .
 		vout: int @index(int) .
 		value: int @index(int) .
@@ -61,35 +61,17 @@ func Setup(c *dgo.Dgraph) error {
 	return err
 }
 
-// Empty empties the dgraph instance removing all contained transactions
+// Empty removes all data from dgraph with a drop all command
 func Empty() error {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
-		q(func: has(hash)) {
-			uid
-		}
-	}`)
+	var cmd = []byte(`{ "drop_all": true }`)
+	req, err := http.NewRequest("POST", "localhost:8080/alter", bytes.NewBuffer(cmd))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-	var r Resp
-	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return err
-	}
-	if len(r.Q) > 0 {
-		for _, e := range r.Q {
-			e.Hash = ""
-			e.Block = ""
-			e.Locktime = 0
-		}
-		qx, err := json.Marshal(r.Q)
-		if err != nil {
-			return err
-		}
-		_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: qx, CommitNow: true})
-		if err != nil {
-			return err
-		}
-	}
+	defer resp.Body.Close()
 
 	return nil
 }

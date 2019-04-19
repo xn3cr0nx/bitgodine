@@ -47,14 +47,17 @@ func Setup(c *dgo.Dgraph) error {
 	err := c.Alter(context.Background(), &api.Operation{
 		Schema: `
 		hash: string @index(term) .
+		prev_block: string @index(term) .
 		block: string @index(term) .
 		height: int @index(int) .
 		vout: int @index(int) .
 		value: int @index(int) .
 		locktime: int @index(int) .
 		address: string @index(term) .
+		time: datetime .
 		`,
 	})
+	// prev_block: string @index(term) @reverse .
 	return err
 }
 

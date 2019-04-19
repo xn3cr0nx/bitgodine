@@ -10,6 +10,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
+// Block composition to enhance btcutil.Block with other receivers
 type Block struct {
 	btcutil.Block
 }

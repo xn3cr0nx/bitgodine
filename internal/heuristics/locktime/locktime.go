@@ -8,7 +8,7 @@ import (
 
 // ChangeOutput returnes the index of the change output address based on locktime heuristic:
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
-// If all outpus have been spent, and there is only one output that has been spent
+// If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
 func ChangeOutput(tx *txs.Tx) (uint32, error) {
 	locktimeGreaterZero := tx.MsgTx().LockTime > 0

@@ -9,6 +9,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo/protos/api"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -20,6 +21,15 @@ type Node struct {
 	Hash     string   `json:"hash,omitempty"`
 	Block    string   `json:"block,omitempty"`
 	Height   int32    `json:"height,omitempty"`
+	Locktime uint32   `json:"locktime,omitempty"`
+	Inputs   []Input  `json:"inputs,omitempty"`
+	Outputs  []Output `json:"outputs,omitempty"`
+}
+
+// Transaction represents the tx node structure in dgraph
+type Transaction struct {
+	UID      string   `json:"uid,omitempty"`
+	Hash     string   `json:"hash,omitempty"`
 	Locktime uint32   `json:"locktime,omitempty"`
 	Inputs   []Input  `json:"inputs,omitempty"`
 	Outputs  []Output `json:"outputs,omitempty"`
@@ -43,6 +53,30 @@ type Output struct {
 // Resp represent the resp from a query function called q to dgraph
 type Resp struct {
 	Q []struct{ Node }
+}
+
+func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]Transaction, error) {
+	var transactions []Transaction
+
+	for _, tx := range txs {
+		inputs, err := prepareInputs(tx.MsgTx().TxIn, height)
+		if err != nil {
+			return nil, err
+		}
+		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
+		if err != nil {
+			return nil, err
+		}
+
+		transactions = append(transactions, Transaction{
+			Hash:     tx.Hash().String(),
+			Locktime: tx.MsgTx().LockTime,
+			Inputs:   inputs,
+			Outputs:  outputs,
+		})
+	}
+
+	return transactions, nil
 }
 
 func prepareInputs(inputs []*wire.TxIn, height int32) ([]Input, error) {

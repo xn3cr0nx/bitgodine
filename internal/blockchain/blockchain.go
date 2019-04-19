@@ -9,7 +9,7 @@ import (
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -69,25 +69,22 @@ func (b *Blockchain) Height() int32 {
 	if b.height != 0 {
 		return b.height
 	}
-	block, err := b.Head()
+	height, err := dgraph.LastBlockHeight()
 	if err != nil {
-		if err.Error() == "Key not found" {
-			return 0
-		}
 		logger.Panic("Blockchain", err, logger.Params{})
 	}
-	return block.Height()
+	return height
 }
 
 // Head returnes the last block in the blockchain
-func (b *Blockchain) Head() (*blocks.Block, error) {
-	last, err := db.LastBlock()
+func (b *Blockchain) Head() (blocks.Block, error) {
+	last, err := dgraph.LastBlock()
 	if err != nil {
-		return nil, err
+		return blocks.Block{}, err
 	}
-	block, err := db.GetBlock(last)
+	block, err := last.GenerateBlock()
 	if err != nil {
-		return nil, err
+		return blocks.Block{}, err
 	}
 	return block, nil
 }

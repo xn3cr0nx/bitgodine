@@ -39,15 +39,15 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	logger.Debug("Blockchain", fmt.Sprintf("Files converted to be parsed: %d", len(rawChain)), logger.Params{})
 
 	if height > 0 {
-		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to reach %d", height), logger.Params{})
+		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to start from %d", height), logger.Params{})
 		if err := findCheckPoint(&rawChain, &prevHeight, &height); err != nil {
 		}
 		last, err := bc.Head()
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
-		goalPrevHash = (*last).Hash()
-		lastBlock = *last
+		goalPrevHash = last.Hash()
+		lastBlock = last
 		logger.Debug("Blockchain", "Last Block", logger.Params{"hash": lastBlock.Hash().String()})
 	}
 	logger.Info("Blockchain", fmt.Sprintf("Starting syncing from block %d", height), logger.Params{})

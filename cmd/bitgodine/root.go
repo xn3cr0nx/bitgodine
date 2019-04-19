@@ -56,7 +56,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		dg := dgraph.Instance(DGraphConf())
-		dgraph.Setup(dg)
+		if err := dgraph.Setup(dg); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+		}
 
 		net, _ := cmd.Flags().GetString("network")
 		switch net {

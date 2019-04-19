@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -24,15 +23,15 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 // TxWalk parses the txs.Tx object
 func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, timestamp time.Time, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
-	logger.Debug("Transactions", "Storing transaction", logger.Params{"hash": tx.Hash().String, "block": b.Hash().String(), "height": b.Height()})
-	err := dgraph.StoreTx(tx.Hash().String(), b.Hash().String(), b.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
-	if err != nil {
-		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
-		return txs.Tx{}
-	}
+	// logger.Debug("Transactions", "Storing transaction", logger.Params{"hash": tx.Hash().String, "block": b.Hash().String(), "height": b.Height()})
+	// err := dgraph.StoreTx(tx.Hash().String(), b.Hash().String(), b.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
+	// if err != nil {
+	// 	logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
+	// 	return txs.Tx{}
+	// }
 
 	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem)
-	err = parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)
+	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)
 	if err != nil {
 		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
 		return txs.Tx{}

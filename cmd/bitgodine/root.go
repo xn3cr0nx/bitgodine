@@ -49,11 +49,11 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		_, err := db.Instance(DBConf())
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			return
-		}
+		// _, err := db.Instance(DBConf())
+		// if err != nil {
+		// 	logger.Error("Bitgodine", err, logger.Params{})
+		// 	return
+		// }
 
 		dg := dgraph.Instance(DGraphConf())
 		if err := dgraph.Setup(dg); err != nil {

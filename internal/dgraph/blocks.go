@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo/protos/api"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Block represent the dgraph node containing essential block info
@@ -45,27 +45,28 @@ func (block *Block) GenerateBlock() (blocks.Block, error) {
 	return blocks.Block{Block: *b}, nil
 }
 
+// TODO: Fix struct to unmarshal hash in, already fixed the query
 // GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
 func GetBlockHashFromHeight(height int32) (string, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		q(func: eq(height, %d), first: 1) {
-			block
-		}
-	}`, height))
-	if err != nil {
-		return "", err
-	}
-	var r Resp
-	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return "", err
-	}
-	if len(r.Q) == 0 {
-		return "", errors.New("No address occurences")
-	}
-	return r.Q[0].Block, nil
+	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	// 	block_hash(func: eq(height, %d), first: 1) {
+	// 		hash
+	// 	}
+	// }`, height))
+	// if err != nil {
+	// 	return "", err
+	// }
+	// // var r struct{ BlockHash []struct{ Hash } }
+	// if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+	// 	return "", err
+	// }
+	// if len(r.Q) == 0 {
+	return "", errors.New("No address occurences")
+	// }
+	// return r.Q[0].Block, nil
 }
 
-// func StoreBlock(hash, prev string, height int32, timestamp time.Time, txs []*btcutil.Tx) error {
+// StoreBlock stored a Block node in dgraph
 func StoreBlock(b *blocks.Block) error {
 	transactions, err := PrepareTransactions(b.Transactions(), b.Height())
 	if err != nil {
@@ -117,6 +118,7 @@ func LastBlockHeight() (int32, error) {
 	var r HeightResponse
 	// var r interface{}
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		logger.Error("Dgraph Blocks", err, logger.Params{})
 		if strings.Contains(err.Error(), "0.000000") {
 			return 0, nil
 		}
@@ -137,7 +139,7 @@ func LastBlock() (Block, error) {
 		var() {
 			h as max(val(blocks_height))
 		}
-    r(func: eq(height, val(h))) {
+    b(func: eq(height, val(h))) {
       hash
       height
       version
@@ -152,13 +154,37 @@ func LastBlock() (Block, error) {
 		return Block{}, err
 	}
 
-	var r struct{ H []struct{ Block } }
+	var r struct{ B []struct{ Block } }
 	// var r interface{}
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return Block{}, err
 	}
-	if len(r.H) != 1 {
-		return Block{}, errors.New("Something went wrong retrieving max height")
+	if len(r.B) != 1 {
+		return Block{}, errors.New("Something went wrong retrieving last block")
 	}
-	return r.H[0].Block, nil
+	return r.B[0].Block, nil
+}
+
+// StoredBlocks returns an array containing all blocks stored on dgraph
+func StoredBlocks() ([]Block, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), `{
+		blocks(func: has(prev_block)) {
+			height
+			hash
+		}
+	}`)
+	if err != nil {
+		return nil, err
+	}
+
+	var r struct{ Blocks []struct{ Block } }
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	var blocks []Block
+	for _, b := range r.Blocks {
+		blocks = append(blocks, b.Block)
+	}
+
+	return blocks, nil
 }

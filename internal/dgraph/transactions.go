@@ -15,22 +15,12 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
-// Node represents the node structure in the dgraph
-type Node struct {
-	UID      string   `json:"uid,omitempty"`
-	Hash     string   `json:"hash,omitempty"`
-	Block    string   `json:"block,omitempty"`
-	Height   int32    `json:"height,omitempty"`
-	Locktime uint32   `json:"locktime,omitempty"`
-	Inputs   []Input  `json:"inputs,omitempty"`
-	Outputs  []Output `json:"outputs,omitempty"`
-}
-
 // Transaction represents the tx node structure in dgraph
 type Transaction struct {
 	UID      string   `json:"uid,omitempty"`
 	Hash     string   `json:"hash,omitempty"`
 	Locktime uint32   `json:"locktime,omitempty"`
+	Version  uint32   `json:"version,omitempty"`
 	Inputs   []Input  `json:"inputs,omitempty"`
 	Outputs  []Output `json:"outputs,omitempty"`
 }
@@ -50,11 +40,17 @@ type Output struct {
 	Address string `json:"address,omitempty"`
 }
 
-// Resp represent the resp from a query function called q to dgraph
-type Resp struct {
-	Q []struct{ Node }
+// TxResp represent the resp from a dgraph query returning a transaction node
+type TxResp struct {
+	Tx []struct{ Transaction }
 }
 
+// OutputsResp represent the resp from a dgraph query returning an array of output nodes
+type OutputsResp struct {
+	Outputs []struct{ Output }
+}
+
+// PrepareTransactions parses the btcutil.TX array of structs and convert them in Transaction object compatible with dgraph schema
 func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]Transaction, error) {
 	var transactions []Transaction
 
@@ -129,31 +125,30 @@ func prepareOutputs(outputs []*wire.TxOut) ([]Output, error) {
 }
 
 // StoreTx stores bitcoin transaction in the graph
-func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.TxIn, outputs []*wire.TxOut) error {
+func StoreTx(tx *btcutil.Tx, height int32) error {
 	// check if tx is already stored
+	hash := tx.Hash().String()
 	if _, err := GetTxUID(&hash); err == nil {
 		logger.Debug("Dgraph", "already stored transaction", logger.Params{"hash": hash})
 		return nil
 	}
 
-	txIns, err := prepareInputs(inputs, height)
+	txIns, err := prepareInputs(tx.MsgTx().TxIn, height)
 	if err != nil {
 		return err
 	}
-	txOuts, err := prepareOutputs(outputs)
+	txOuts, err := prepareOutputs(tx.MsgTx().TxOut)
 	if err != nil {
 		return err
 	}
 
-	node := Node{
+	t := Transaction{
 		Hash:     hash,
-		Block:    block,
-		Height:   height,
-		Locktime: locktime,
+		Locktime: tx.MsgTx().LockTime,
 		Inputs:   txIns,
 		Outputs:  txOuts,
 	}
-	out, err := json.Marshal(node)
+	out, err := json.Marshal(t)
 	if err != nil {
 		return err
 	}
@@ -166,143 +161,127 @@ func StoreTx(hash, block string, height int32, locktime uint32, inputs []*wire.T
 }
 
 // GetTx returnes the node from the query queried
-func GetTx(field string, param *string) (Node, error) {
+func GetTx(field string, param *string) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		q(func: allofterms(%s, %s)) {
-			block
-			hash
-			locktime
-    	inputs {
-				hash
-				vout
-			}
-			outputs {
-				value
-				vout
-				address
+		transaction(func: allofterms(%s, %s)) {
+			expand(_all_) {
+				expand(_all_)
 			}
 		}
 	}`, field, *param))
 	if err != nil {
-		return Node{}, err
+		return Transaction{}, err
 	}
-	var r Resp
+	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return Node{}, err
+		return Transaction{}, err
 	}
-	if len(r.Q) == 0 {
-		return Node{}, errors.New("transaction not found")
+	if len(r.Tx) == 0 {
+		return Transaction{}, errors.New("transaction not found")
 	}
 
-	var node Node
-	for _, e := range r.Q {
-		if block := e.Node.Block; block != "" {
-			node = e.Node
-		}
-	}
-	if node.Block == "" {
-		return Node{}, errors.New("Almost an object returned, but no one of them contains the block field")
-	}
-	return node, nil
+	return r.Tx[0].Transaction, nil
 }
 
 // GetTxUID returnes the uid of the queried tx by hash
 func GetTxUID(hash *string) (string, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		q(func: allofterms(hash, %s)) {
+		tx(func: allofterms(hash, %s)) {
 			uid
 		}
-		}`, *hash))
+	}`, *hash))
 	if err != nil {
 		return "", err
 	}
-	var r Resp
+	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return "", err
 	}
-	if len(r.Q) == 0 {
+	if len(r.Tx) == 0 {
 		return "", errors.New("transaction not found")
 	}
-	uid := r.Q[0].UID
-	return uid, nil
+
+	return r.Tx[0].UID, nil
 }
 
 // GetTxOutputs returnes the outputs of the queried tx by hash
 func GetTxOutputs(hash *string) ([]Output, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		q(func: allofterms(hash, %s)) {
+		outputs(func: allofterms(hash, %s)) {
 			outputs {
-				uid
+        expand(_all_)
+      }
+		}
+	}`, *hash))
+	if err != nil {
+		return []Output{}, err
+	}
+	var r OutputsResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return []Output{}, err
+	}
+	if len(r.Outputs) == 0 {
+		return []Output{}, errors.New("outputs not found")
+	}
+	var outputs []Output
+	for _, o := range r.Outputs {
+		outputs = append(outputs, o.Output)
+	}
+
+	return outputs, nil
+}
+
+// GetFollowingTx returns the transaction spending the output (vout) of
+// the transaction passed as input to the function
+func GetFollowingTx(hash *string, vout *uint32) (Transaction, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		tx(func: has(inputs)) @cascade {
+			uid
+			block
+			hash
+			inputs @filter(eq(hash, %s) AND eq(vout, %d)){
+				hash
+				vout
+			}
+			outputs {
 				value
 				vout
 			}
 		}
-		}`, *hash))
+	}`, *hash, *vout))
 	if err != nil {
-		return []Output{}, err
+		return Transaction{}, err
 	}
-	var r Resp
+	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return []Output{}, err
+		return Transaction{}, err
 	}
-	if len(r.Q) == 0 {
-		return []Output{}, errors.New("outputs not found")
+	if len(r.Tx) == 0 {
+		return Transaction{}, errors.New("transaction not found")
 	}
-	outputs := r.Q[0].Outputs
-	return outputs, nil
-}
-
-// GetFollowingTx returns the uid of the transaction spending the output (vout) of
-// the transaction passed as input to the function
-func GetFollowingTx(hash *string, vout *uint32) (Node, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-			q(func: has(inputs)) @cascade {
-				uid
-				block
-				hash
-				inputs @filter(eq(hash, %s) AND eq(vout, %d)){
-					hash
-					vout
-				}
-				outputs {
-					value
-					vout
-				}
-			}
-			}`, *hash, *vout))
-	if err != nil {
-		return Node{}, err
-	}
-	var r Resp
-	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return Node{}, err
-	}
-	if len(r.Q) == 0 {
-		return Node{}, errors.New("transaction not found")
-	}
-	node := r.Q[0].Node
+	node := r.Tx[0].Transaction
 	return node, nil
 }
 
 // GetStoredTxs returnes all the stored transactions hashes
 func GetStoredTxs() ([]string, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), `{
-			q(func: has(inputs)) {
+			tx(func: has(inputs)) {
 				hash
 			}
 		}`)
 	if err != nil {
 		return nil, err
 	}
-	var r Resp
+	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, err
 	}
-	if len(r.Q) == 0 {
+	if len(r.Tx) == 0 {
 		return nil, errors.New("No transaction stored")
 	}
 	var transactions []string
-	for _, tx := range r.Q {
+	for _, tx := range r.Tx {
 		transactions = append(transactions, tx.Hash)
 	}
 	return transactions, nil

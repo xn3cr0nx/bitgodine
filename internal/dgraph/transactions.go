@@ -161,14 +161,14 @@ func StoreTx(tx *btcutil.Tx, height int32) error {
 }
 
 // GetTx returnes the node from the query queried
-func GetTx(field string, param *string) (Transaction, error) {
+func GetTx(param *string) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		transaction(func: allofterms(%s, %s)) {
+		transaction(func: allofterms(hash, %s)) {
 			expand(_all_) {
 				expand(_all_)
 			}
 		}
-	}`, field, *param))
+	}`, *param))
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -285,4 +285,24 @@ func GetStoredTxs() ([]string, error) {
 		transactions = append(transactions, tx.Hash)
 	}
 	return transactions, nil
+}
+
+func GetTxBlockHeight(hash string) (int32, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		block(func: has(prev_block)) @cascade {
+			height
+			transactions @filter(eq(hash, "%s")) {}
+		}
+	}`, hash))
+	if err != nil {
+		return 0, err
+	}
+	var r struct{ Block []struct{ Height int32 } }
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return 0, err
+	}
+	if len(r.Block) == 0 {
+		return 0, errors.New("Block height not found")
+	}
+	return r.Block[0].Height, nil
 }

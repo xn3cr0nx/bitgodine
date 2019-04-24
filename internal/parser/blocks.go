@@ -18,7 +18,7 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 	b.SetHeight(*height)
 	blockItem := (*v).VisitBlockBegin(b, *height)
 	if *height%100 == 0 {
-		logger.Info("Parser Blocks", fmt.Sprintf("Block %d", *height), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
+		logger.Info("Parser Blocks", fmt.Sprintf("Block %d", b.Height()), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
 	logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	if err := dgraph.StoreBlock(b); err != nil {

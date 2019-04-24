@@ -64,7 +64,7 @@ func Setup(c *dgo.Dgraph) error {
 // Empty removes all data from dgraph with a drop all command
 func Empty() error {
 	var cmd = []byte(`{ "drop_all": true }`)
-	req, err := http.NewRequest("POST", "localhost:8080/alter", bytes.NewBuffer(cmd))
+	req, err := http.NewRequest("POST", "http://localhost:8080/alter", bytes.NewBuffer(cmd))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

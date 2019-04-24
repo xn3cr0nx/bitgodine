@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 )
 
@@ -14,28 +14,54 @@ type Tx struct {
 	btcutil.Tx
 }
 
+// GenerateTransaction converts the Transaction node struct to a btcsuite Transaction struct
+func GenerateTransaction(tx *dgraph.Transaction) (Tx, error) {
+	msgTx := wire.NewMsgTx(tx.Version)
+	for _, input := range tx.Inputs {
+		hash, err := chainhash.NewHashFromStr(input.Hash)
+		if err != nil {
+			return Tx{}, err
+		}
+		prev := wire.NewOutPoint(hash, input.Vout)
+		ti := wire.NewTxIn(prev, input.SignatureScript, wire.TxWitness(input.Witness))
+		msgTx.AddTxIn(ti)
+	}
+	for _, output := range tx.Outputs {
+		to := wire.NewTxOut(output.Value, output.PkScript)
+		msgTx.AddTxOut(to)
+	}
+	transaction := btcutil.NewTx(msgTx)
+
+	return Tx{Tx: *transaction}, nil
+}
+
 // Get retrieves and returnes the tx object
 func Get(hash *chainhash.Hash) (Tx, error) {
 	hashString := hash.String()
-	node, err := dgraph.GetTx("hash", &hashString)
+	tx, err := dgraph.GetTx(&hashString)
 	if err != nil {
 		return Tx{}, err
 	}
-	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	transaction, err := GenerateTransaction(&tx)
 	if err != nil {
 		return Tx{}, err
 	}
-	block, err := db.GetBlock(blockHash)
-	if err != nil {
-		return Tx{}, err
-	}
-	var transaction *btcutil.Tx
-	for _, t := range block.Transactions() {
-		if t.Hash().IsEqual(hash) {
-			transaction = t
-		}
-	}
-	return Tx{Tx: *transaction}, nil
+	// blockHash, err := chainhash.NewHashFromStr(node.Block)
+	// if err != nil {
+	// 	return Tx{}, err
+	// }
+	// block, err := db.GetBlock(blockHash)
+	// if err != nil {
+	// 	return Tx{}, err
+	// }
+	// var transaction *btcutil.Tx
+	// for _, t := range block.Transactions() {
+	// 	if t.Hash().IsEqual(hash) {
+	// 		transaction = t
+	// 	}
+	// }
+	// return Tx{Tx: *transaction}, nil
+	return transaction, nil
 }
 
 // IsCoinbase returnes true if the transaction is a coinbase transaction
@@ -46,20 +72,25 @@ func (tx *Tx) IsCoinbase() bool {
 
 // BlockHeight returnes the height of the block that contains the transaction
 func (tx *Tx) BlockHeight() (int32, error) {
-	txHash := tx.Hash().String()
-	node, err := dgraph.GetTx("hash", &txHash)
-	if err != nil {
-		return 0, nil
-	}
-	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	height, err := dgraph.GetTxBlockHeight(tx.Hash().String())
 	if err != nil {
 		return 0, err
 	}
-	block, err := db.GetBlock(blockHash)
-	if err != nil {
-		return 0, err
-	}
-	return block.Height(), nil
+	// txHash := tx.Hash().String()
+	// node, err := dgraph.GetTx(&txHash)
+	// if err != nil {
+	// 	return 0, nil
+	// }
+	// blockHash, err := chainhash.NewHashFromStr(node.Block)
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// block, err := db.GetBlock(blockHash)
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// return block.Height(), nil
+	return height, nil
 }
 
 // GetSpentTx returnes the spent transaction corresponding to the index
@@ -104,30 +135,36 @@ func (tx *Tx) GetSpendingTx(index uint32) (Tx, error) {
 	if len(tx.MsgTx().TxOut)-1 < int(index) {
 		return Tx{}, errors.New("Index out of range in transaction input")
 	}
-	hash := tx.Hash()
-	hashString := hash.String()
-	node, err := dgraph.GetFollowingTx(&hashString, &index)
+	// hash := tx.Hash()
+	// hashString := hash.String()
+	// transaction, err := dgraph.GetFollowingTx(&hashString, &index)
+	hash := tx.Hash().String()
+	transaction, err := dgraph.GetFollowingTx(&hash, &index)
 	if err != nil {
 		return Tx{}, err
 	}
-	blockHash, err := chainhash.NewHashFromStr(node.Block)
+	// blockHash, err := chainhash.NewHashFromStr(node.Block)
+	// if err != nil {
+	// 	return Tx{}, err
+	// }
+	// block, err := db.GetBlock(blockHash)
+	// if err != nil {
+	// 	return Tx{}, err
+	// }
+	// var transaction *btcutil.Tx
+	// for _, t := range block.Transactions() {
+	// 	for _, i := range t.MsgTx().TxIn {
+	// 		if i.PreviousOutPoint.Hash.IsEqual(hash) {
+	// 			transaction = t
+	// 		}
+	// 	}
+	// }
+	// if transaction == nil {
+	// 	return Tx{}, errors.New("something went wrong extracting the transaction")
+	// }
+	genTx, err := GenerateTransaction(&transaction)
 	if err != nil {
 		return Tx{}, err
 	}
-	block, err := db.GetBlock(blockHash)
-	if err != nil {
-		return Tx{}, err
-	}
-	var transaction *btcutil.Tx
-	for _, t := range block.Transactions() {
-		for _, i := range t.MsgTx().TxIn {
-			if i.PreviousOutPoint.Hash.IsEqual(hash) {
-				transaction = t
-			}
-		}
-	}
-	if transaction == nil {
-		return Tx{}, errors.New("something went wrong extracting the transaction")
-	}
-	return Tx{Tx: *transaction}, nil
+	return genTx, nil
 }

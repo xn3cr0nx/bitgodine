@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -20,24 +21,27 @@ type Transaction struct {
 	UID      string   `json:"uid,omitempty"`
 	Hash     string   `json:"hash,omitempty"`
 	Locktime uint32   `json:"locktime,omitempty"`
-	Version  uint32   `json:"version,omitempty"`
+	Version  int32    `json:"version,omitempty"`
 	Inputs   []Input  `json:"inputs,omitempty"`
 	Outputs  []Output `json:"outputs,omitempty"`
 }
 
 // Input represent input transaction, e.g. the link to a previous spent tx hash
 type Input struct {
-	UID  string `json:"uid,omitempty"`
-	Hash string `json:"hash,omitempty"`
-	Vout uint32 `json:"vout,omitempty"`
+	UID             string   `json:"uid,omitempty"`
+	Hash            string   `json:"hash,omitempty"`
+	Vout            uint32   `json:"vout,omitempty"`
+	SignatureScript []byte   `json:"signature_script,omitempty"`
+	Witness         [][]byte `json:"witness,omitempty"`
 }
 
 // Output represent output transaction, e.g. the value that can be spent as input
 type Output struct {
-	UID     string `json:"uid,omitempty"`
-	Value   int64  `json:"value,omitempty"`
-	Vout    uint32 `json:"vout"`
-	Address string `json:"address,omitempty"`
+	UID      string `json:"uid,omitempty"`
+	Value    int64  `json:"value,omitempty"`
+	Vout     uint32 `json:"vout"`
+	Address  string `json:"address,omitempty"`
+	PkScript []byte `json:"pk_script,omitempty"`
 }
 
 // TxResp represent the resp from a dgraph query returning a transaction node
@@ -47,7 +51,9 @@ type TxResp struct {
 
 // OutputsResp represent the resp from a dgraph query returning an array of output nodes
 type OutputsResp struct {
-	Outputs []struct{ Output }
+	Transactions []struct {
+		Outputs []struct{ Output }
+	}
 }
 
 // PrepareTransactions parses the btcutil.TX array of structs and convert them in Transaction object compatible with dgraph schema
@@ -75,6 +81,7 @@ func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]Transaction, error)
 	return transactions, nil
 }
 
+// TODO: simplify this function with the new completely dgraph based storage
 func prepareInputs(inputs []*wire.TxIn, height int32) ([]Input, error) {
 	var txIns []Input
 	for _, in := range inputs {
@@ -98,7 +105,7 @@ func prepareInputs(inputs []*wire.TxIn, height int32) ([]Input, error) {
 			}
 		}
 		if spentOutput.UID == "" {
-			return nil, errors.New("something not working")
+			return nil, errors.New("something went wrong preparing inputs")
 		}
 		txIns = append(txIns, Input{UID: spentOutput.UID, Hash: h, Vout: in.PreviousOutPoint.Index})
 	}
@@ -160,6 +167,40 @@ func StoreTx(tx *btcutil.Tx, height int32) error {
 	return nil
 }
 
+// StoreCoinbase prepare coinbase output to be used as input for coinbase transactions
+func StoreCoinbase() error {
+	t := Transaction{
+		Hash: strings.Repeat("0", 64),
+		Outputs: []Output{
+			Output{
+				Value:   int64(5000000000),
+				Address: strings.Repeat("0", 64),
+				Vout:    0,
+			},
+			Output{
+				Value:   int64(2500000000),
+				Address: strings.Repeat("0", 64),
+				Vout:    0,
+			},
+			Output{
+				Value:   int64(1250000000),
+				Address: strings.Repeat("0", 64),
+				Vout:    0,
+			},
+		},
+	}
+	out, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	resp, err := instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+	if err != nil {
+		return err
+	}
+	logger.Debug("Dgraph", resp.String(), logger.Params{})
+	return nil
+}
+
 // GetTx returnes the node from the query queried
 func GetTx(param *string) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
@@ -207,8 +248,9 @@ func GetTxUID(hash *string) (string, error) {
 // GetTxOutputs returnes the outputs of the queried tx by hash
 func GetTxOutputs(hash *string) ([]Output, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		outputs(func: allofterms(hash, %s)) {
+		transactions(func: allofterms(hash, %s)) {
 			outputs {
+				uid
         expand(_all_)
       }
 		}
@@ -220,11 +262,11 @@ func GetTxOutputs(hash *string) ([]Output, error) {
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return []Output{}, err
 	}
-	if len(r.Outputs) == 0 {
+	if len(r.Transactions[0].Outputs) == 0 {
 		return []Output{}, errors.New("outputs not found")
 	}
 	var outputs []Output
-	for _, o := range r.Outputs {
+	for _, o := range r.Transactions[0].Outputs {
 		outputs = append(outputs, o.Output)
 	}
 

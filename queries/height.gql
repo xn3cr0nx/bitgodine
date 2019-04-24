@@ -1,9 +1,9 @@
 {
-	block(func: has(prev_block)) {
+  block(func: eq(height, 545)) {
     expand(_all_) {
       expand(_all_) {
         expand(_all_)
       }
     }
-	}
+  }
 }

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -29,7 +28,9 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	hash := strings.Repeat("0", 64)
 	if _, err := dgraph.GetTxUID(&hash); err != nil {
 		logger.Debug("Blockchain", "missing coinbase outputs", logger.Params{"hash": hash})
-		dgraph.StoreTx(hash, "", 0, 0, nil, []*wire.TxOut{wire.NewTxOut(int64(5000000000), nil), wire.NewTxOut(int64(2500000000), nil), wire.NewTxOut(int64(1250000000), nil)})
+		if err := dgraph.StoreCoinbase(); err != nil {
+			logger.Panic("Blockchain", err, logger.Params{})
+		}
 	}
 
 	var rawChain [][]uint8
@@ -41,12 +42,14 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	if height > 0 {
 		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to start from %d", height), logger.Params{})
 		if err := findCheckPoint(&rawChain, &prevHeight, &height); err != nil {
+			logger.Panic("Blockchain", err, logger.Params{})
 		}
 		last, err := bc.Head()
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
 		goalPrevHash = last.Hash()
+		logger.Debug("Blockchain", "Goal Prev Hash", logger.Params{"hash": goalPrevHash.String()})
 		lastBlock = last
 		logger.Debug("Blockchain", "Last Block", logger.Params{"hash": lastBlock.Hash().String()})
 	}

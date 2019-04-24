@@ -19,7 +19,7 @@ import (
 type Block struct {
 	UID          string        `json:"uid,omitempty"`
 	Hash         string        `json:"hash,omitempty"`
-	Height       int32         `json:"height,omitempty"`
+	Height       int32         `json:"height"`
 	PrevBlock    string        `json:"prev_block,omitempty"`
 	Time         time.Time     `json:"time,omitempty"`
 	Transactions []Transaction `json:"transactions,omitempty"`

@@ -3,10 +3,14 @@ package txs
 import (
 	"errors"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Tx transaction type
@@ -17,17 +21,24 @@ type Tx struct {
 // GenerateTransaction converts the Transaction node struct to a btcsuite Transaction struct
 func GenerateTransaction(tx *dgraph.Transaction) (Tx, error) {
 	msgTx := wire.NewMsgTx(tx.Version)
+	msgTx.LockTime = tx.Locktime
 	for _, input := range tx.Inputs {
 		hash, err := chainhash.NewHashFromStr(input.Hash)
 		if err != nil {
 			return Tx{}, err
 		}
 		prev := wire.NewOutPoint(hash, input.Vout)
-		ti := wire.NewTxIn(prev, input.SignatureScript, wire.TxWitness(input.Witness))
+
+		var witness [][]byte
+		for _, w := range input.Witness {
+			witness = append(witness, []byte(w))
+		}
+
+		ti := wire.NewTxIn(prev, []byte(input.SignatureScript), wire.TxWitness(witness))
 		msgTx.AddTxIn(ti)
 	}
 	for _, output := range tx.Outputs {
-		to := wire.NewTxOut(output.Value, output.PkScript)
+		to := wire.NewTxOut(output.Value, []byte(output.PkScript))
 		msgTx.AddTxOut(to)
 	}
 	transaction := btcutil.NewTx(msgTx)
@@ -37,8 +48,7 @@ func GenerateTransaction(tx *dgraph.Transaction) (Tx, error) {
 
 // Get retrieves and returnes the tx object
 func Get(hash *chainhash.Hash) (Tx, error) {
-	hashString := hash.String()
-	tx, err := dgraph.GetTx(&hashString)
+	tx, err := dgraph.GetTx(hash.String())
 	if err != nil {
 		return Tx{}, err
 	}
@@ -62,6 +72,124 @@ func Get(hash *chainhash.Hash) (Tx, error) {
 	// }
 	// return Tx{Tx: *transaction}, nil
 	return transaction, nil
+}
+
+// Store prepares the dgraph transaction struct and and call StoreTx to store it in dgraph
+func (tx *Tx) Store(height int32) error {
+	// check if tx is already stored
+	hash := tx.Hash().String()
+	if _, err := dgraph.GetTxUID(&hash); err == nil {
+		logger.Debug("Dgraph", "already stored transaction", logger.Params{"hash": hash})
+		return nil
+	}
+
+	txIns, err := prepareInputs(tx.MsgTx().TxIn, height)
+	if err != nil {
+		return err
+	}
+	txOuts, err := prepareOutputs(tx.MsgTx().TxOut)
+	if err != nil {
+		return err
+	}
+
+	transaction := dgraph.Transaction{
+		Hash:     hash,
+		Locktime: tx.MsgTx().LockTime,
+		Version:  tx.MsgTx().Version,
+		Inputs:   txIns,
+		Outputs:  txOuts,
+	}
+	// if err := dgraph.StoreTx(&transaction); err != nil {
+	if err := dgraph.Store(&transaction); err != nil {
+		return err
+	}
+	return nil
+}
+
+// PrepareTransactions parses the btcutil.TX array of structs and convert them in Transaction object compatible with dgraph schema
+func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]dgraph.Transaction, error) {
+	var transactions []dgraph.Transaction
+	for _, tx := range txs {
+		// fmt.Println("Parsing tx", tx.Hash().String())
+		// fmt.Println("parsing inputs")
+		inputs, err := prepareInputs(tx.MsgTx().TxIn, height)
+		if err != nil {
+			return nil, err
+		}
+		// fmt.Println("parsing outputs")
+		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, dgraph.Transaction{
+			Hash:     tx.Hash().String(),
+			Locktime: tx.MsgTx().LockTime,
+			Version:  tx.MsgTx().Version,
+			Inputs:   inputs,
+			Outputs:  outputs,
+		})
+	}
+	return transactions, nil
+}
+
+// TODO: simplify this function with the new completely dgraph based storage
+func prepareInputs(inputs []*wire.TxIn, height int32) ([]dgraph.Input, error) {
+	var txIns []dgraph.Input
+	for _, in := range inputs {
+		h := in.PreviousOutPoint.Hash.String()
+		// fmt.Println("input", h)
+		txOutputs, err := dgraph.GetTxOutputs(&h)
+		// fmt.Println("he spent", txOutputs, err)
+		if err != nil {
+			return nil, err
+		}
+		var spentOutput dgraph.Output
+		for _, out := range txOutputs {
+			// fmt.Println("outputs of spent tx", out.Vout, "prev index", in.PreviousOutPoint.Index)
+			if in.PreviousOutPoint.Index == uint32(4294967295) {
+				// TODO: move coinbase value calc to somewhere else
+				// spendingCoinbase := blocks.CoinbaseValue(height)
+				spendingCoinbase := int64(5000000000)
+				if out.Value == spendingCoinbase {
+					spentOutput = out
+					break
+				}
+			}
+			if out.Vout == in.PreviousOutPoint.Index {
+				spentOutput = out
+				break
+			}
+		}
+		// fmt.Println("found spent output?", spentOutput)
+		if spentOutput.UID == "" {
+			return nil, errors.New("something went wrong preparing inputs")
+		}
+		var wtn []dgraph.TxWitness
+		for _, w := range [][]byte(in.Witness) {
+			wtn = append(wtn, dgraph.TxWitness(w))
+		}
+		txIns = append(txIns, dgraph.Input{UID: spentOutput.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: string(in.SignatureScript), Witness: wtn})
+	}
+	return txIns, nil
+}
+
+func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
+	var txOuts []dgraph.Output
+	for k, out := range outputs {
+		if out.PkScript == nil {
+			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
+			txOuts = append(txOuts, dgraph.Output{Value: out.Value})
+		} else {
+			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value, Vout: uint32(k)})
+			_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
+			if err != nil {
+				return nil, err
+			}
+			txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: string(out.PkScript)})
+		}
+	}
+
+	return txOuts, nil
 }
 
 // IsCoinbase returnes true if the transaction is a coinbase transaction

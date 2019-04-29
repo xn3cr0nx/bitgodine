@@ -3,6 +3,7 @@ package dgraph
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -74,4 +75,14 @@ func Empty() error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+// Store encodes received object as json object and stores it in dgraph
+func Store(v interface{}) error {
+	out, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+	return err
 }

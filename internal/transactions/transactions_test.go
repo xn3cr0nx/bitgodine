@@ -30,15 +30,6 @@ func (suite *TestTransactionsSuite) SetupSuite() {
 	suite.dgraph = dgraph.Instance(DgConf)
 	dgraph.Setup(suite.dgraph)
 
-	// hd, err := homedir.Dir()
-	// assert.Equal(suite.T(), err, nil)
-	// DbConf := &db.Config{
-	// 	Dir: filepath.Join(hd, ".bitgodine", "badger"),
-	// }
-	// suite.db, err = db.Instance(DbConf)
-	// assert.Equal(suite.T(), err, nil)
-	// assert.NotEqual(suite.T(), suite.db, nil)
-
 	// suite.Setup()
 }
 
@@ -52,9 +43,7 @@ func (suite *TestTransactionsSuite) Setup() {
 	// }
 }
 
-func (suite *TestTransactionsSuite) TearDownSuite() {
-	// (*suite.db).Close()
-}
+func (suite *TestTransactionsSuite) TearDownSuite() {}
 
 func (suite *TestTransactionsSuite) TestIsCoinbase() {
 	genesis := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)

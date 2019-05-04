@@ -28,8 +28,8 @@ type Block struct {
 	Nonce        uint32        `json:"nonce,omitempty"`
 }
 
-// TODO: Fix struct to unmarshal hash in, already fixed the query
 // GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
+// TODO: Fix struct to unmarshal hash in, already fixed the query
 func GetBlockHashFromHeight(height int32) (string, error) {
 	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 	// 	block_hash(func: eq(height, %d), first: 1) {

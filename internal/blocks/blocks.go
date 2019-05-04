@@ -10,7 +10,7 @@ import (
 	"github.com/btcsuite/btcutil"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
-	"github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -49,7 +49,7 @@ func GenerateBlock(block *dgraph.Block) (Block, error) {
 
 // Store prepares the dgraph block struct and and call StoreBlock to store it in dgraph
 func (b *Block) Store() error {
-	transactions, err := txs.PrepareTransactions(b.Transactions(), b.Height())
+	transactions, err := txs.PrepareTransactions(b.Transactions())
 	if err != nil {
 		return err
 	}
@@ -87,6 +87,7 @@ func Parse(slice *[]uint8) (*Block, error) {
 	for len(*slice) > 0 && (*slice)[0] == 0 {
 		*slice = (*slice)[1:]
 	}
+	// fmt.Println("what the slice?", len(*slice))
 	if len(*slice) == 0 {
 		err := errors.New("Cannot read block from slice")
 		logger.Info("Blockchain", err.Error(), logger.Params{})

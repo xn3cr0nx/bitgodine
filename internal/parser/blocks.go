@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+	// "github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -21,7 +21,7 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 		logger.Info("Parser Blocks", fmt.Sprintf("Block %d", b.Height()), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
 	logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
-	if err := dgraph.StoreBlock(b); err != nil {
+	if err := b.Store(); err != nil {
 		logger.Panic("Block Parser", err, logger.Params{})
 	}
 	for _, tx := range b.Transactions() {

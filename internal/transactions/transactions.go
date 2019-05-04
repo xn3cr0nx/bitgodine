@@ -2,6 +2,7 @@ package txs
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -75,7 +76,7 @@ func Get(hash *chainhash.Hash) (Tx, error) {
 }
 
 // Store prepares the dgraph transaction struct and and call StoreTx to store it in dgraph
-func (tx *Tx) Store(height int32) error {
+func (tx *Tx) Store() error {
 	// check if tx is already stored
 	hash := tx.Hash().String()
 	if _, err := dgraph.GetTxUID(&hash); err == nil {
@@ -83,7 +84,7 @@ func (tx *Tx) Store(height int32) error {
 		return nil
 	}
 
-	txIns, err := prepareInputs(tx.MsgTx().TxIn, height)
+	txIns, err := prepareInputs(tx.MsgTx().TxIn, nil)
 	if err != nil {
 		return err
 	}
@@ -107,16 +108,19 @@ func (tx *Tx) Store(height int32) error {
 }
 
 // PrepareTransactions parses the btcutil.TX array of structs and convert them in Transaction object compatible with dgraph schema
-func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]dgraph.Transaction, error) {
+// TODO: here I have to provide a solution in case the parsed block contains transactions which spend each other, e.g a transaction
+// has inputs spending output from a tx in the same block. In this case utxo are not found and txin is not prepared. To fix this
+// I have to define the id of the transaction with interested output and link the culprit inputs through that it. The approach are two:
+// 1) my current solution starts from the assumption that this situation is uncommon, so is better to handle it just in those uncommon cases
+// 2) if this situation is more common than I though, well is better to check this condition before to start parsing the tx, so I'll refactor
+func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
 	for _, tx := range txs {
-		// fmt.Println("Parsing tx", tx.Hash().String())
-		// fmt.Println("parsing inputs")
-		inputs, err := prepareInputs(tx.MsgTx().TxIn, height)
+		fmt.Println("Parsing tx", tx.Hash().String())
+		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
 		if err != nil {
 			return nil, err
 		}
-		// fmt.Println("parsing outputs")
 		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
 		if err != nil {
 			return nil, err
@@ -132,43 +136,33 @@ func PrepareTransactions(txs []*btcutil.Tx, height int32) ([]dgraph.Transaction,
 	return transactions, nil
 }
 
-// TODO: simplify this function with the new completely dgraph based storage
-func prepareInputs(inputs []*wire.TxIn, height int32) ([]dgraph.Input, error) {
+func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]dgraph.Input, error) {
 	var txIns []dgraph.Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		// fmt.Println("input", h)
-		txOutputs, err := dgraph.GetTxOutputs(&h)
-		// fmt.Println("he spent", txOutputs, err)
+		fmt.Println("input", h)
+		stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 		if err != nil {
-			return nil, err
-		}
-		var spentOutput dgraph.Output
-		for _, out := range txOutputs {
-			// fmt.Println("outputs of spent tx", out.Vout, "prev index", in.PreviousOutPoint.Index)
-			if in.PreviousOutPoint.Index == uint32(4294967295) {
-				// TODO: move coinbase value calc to somewhere else
-				// spendingCoinbase := blocks.CoinbaseValue(height)
-				spendingCoinbase := int64(5000000000)
-				if out.Value == spendingCoinbase {
-					spentOutput = out
-					break
-				}
+			if err.Error() != "output not found" {
+				return nil, err
 			}
-			if out.Vout == in.PreviousOutPoint.Index {
-				spentOutput = out
-				break
-			}
-		}
-		// fmt.Println("found spent output?", spentOutput)
-		if spentOutput.UID == "" {
-			return nil, errors.New("something went wrong preparing inputs")
 		}
 		var wtn []dgraph.TxWitness
 		for _, w := range [][]byte(in.Witness) {
 			wtn = append(wtn, dgraph.TxWitness(w))
 		}
-		txIns = append(txIns, dgraph.Input{UID: spentOutput.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: string(in.SignatureScript), Witness: wtn})
+		input := dgraph.Input{UID: stxo.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: fmt.Sprintf("%X", in.SignatureScript), Witness: wtn}
+		// This is for managing the TODO specified above
+		if input.UID == "" && in.PreviousOutPoint.Index != uint32(4294967295) {
+			for i, tx := range *transactions {
+				if tx.Hash == in.PreviousOutPoint.Hash.String() {
+					UID := fmt.Sprintf("_:utxo%dvout%d", i, in.PreviousOutPoint.Index)
+					input.UID = UID
+					tx.Outputs[in.PreviousOutPoint.Index].UID = UID
+				}
+			}
+		}
+		txIns = append(txIns, input)
 	}
 	return txIns, nil
 }
@@ -185,7 +179,7 @@ func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 			if err != nil {
 				return nil, err
 			}
-			txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: string(out.PkScript)})
+			txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)})
 		}
 	}
 

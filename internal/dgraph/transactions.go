@@ -26,12 +26,11 @@ type Transaction struct {
 
 // Input represent input transaction, e.g. the link to a previous spent tx hash
 type Input struct {
-	UID             string `json:"uid,omitempty"`
-	Hash            string `json:"hash,omitempty"`
-	Vout            uint32 `json:"vout,omitempty"`
-	SignatureScript string `json:"signature_script,omitempty"`
-	// Witness         [][]byte `json:"witness,omitempty"`
-	Witness []TxWitness `json:"witness,omitempty"`
+	UID             string      `json:"uid,omitempty"`
+	Hash            string      `json:"hash,omitempty"`
+	Vout            uint32      `json:"vout,omitempty"`
+	SignatureScript string      `json:"signature_script,omitempty"`
+	Witness         []TxWitness `json:"witness,omitempty"`
 }
 
 // TxWitness encodes witness slice into a string
@@ -78,19 +77,22 @@ func StoreCoinbase() error {
 		Hash: strings.Repeat("0", 64),
 		Outputs: []Output{
 			Output{
-				Value:   int64(5000000000),
-				Address: strings.Repeat("0", 64),
-				Vout:    0,
+				Value:    int64(5000000000),
+				Address:  strings.Repeat("0", 64),
+				Vout:     0,
+				PkScript: "",
 			},
 			Output{
-				Value:   int64(2500000000),
-				Address: strings.Repeat("0", 64),
-				Vout:    0,
+				Value:    int64(2500000000),
+				Address:  strings.Repeat("0", 64),
+				Vout:     0,
+				PkScript: "",
 			},
 			Output{
-				Value:   int64(1250000000),
-				Address: strings.Repeat("0", 64),
-				Vout:    0,
+				Value:    int64(1250000000),
+				Address:  strings.Repeat("0", 64),
+				Vout:     0,
+				PkScript: "",
 			},
 		},
 	}
@@ -111,8 +113,23 @@ func StoreCoinbase() error {
 func GetTx(hash string) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		txs(func: eq(hash, %s)) {
-			expand(_all_) {
-				expand(_all_)
+			uid
+			hash
+			locktime
+			version
+			inputs {
+				uid
+				hash
+				vout
+				signature_script
+				witness
+			}
+			outputs {
+				uid
+				value
+				vout
+				address
+				pk_script
 			}
 		}
 	}`, hash))
@@ -159,7 +176,10 @@ func GetTxOutputs(hash *string) ([]Output, error) {
 		transactions(func: allofterms(hash, %s)) {
 			outputs {
 				uid
-        expand(_all_)
+        value
+        vout
+        address
+        pk_script
       }
 		}
 	}`, *hash))
@@ -179,6 +199,32 @@ func GetTxOutputs(hash *string) ([]Output, error) {
 	}
 
 	return outputs, nil
+}
+
+// GetSpentTxOutput returnes the output spent (the vout) of the corresponding tx
+func GetSpentTxOutput(hash *string, vout *uint32) (Output, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		transactions(func: allofterms(hash, %s)) {
+			outputs @filter(eq(vout, %d)) {
+				uid
+        value
+        vout
+        address
+        pk_script
+      }
+		}
+	}`, *hash, *vout))
+	if err != nil {
+		return Output{}, err
+	}
+	var r OutputsResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Output{}, err
+	}
+	if len(r.Transactions) == 0 {
+		return Output{}, errors.New("output not found")
+	}
+	return r.Transactions[0].Outputs[0].Output, nil
 }
 
 // GetFollowingTx returns the transaction spending the output (vout) of
@@ -237,6 +283,7 @@ func GetStoredTxs() ([]string, error) {
 	return transactions, nil
 }
 
+// GetTxBlockHeight returnes the height of the block based on its hash
 func GetTxBlockHeight(hash string) (int32, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		block(func: has(prev_block)) @cascade {

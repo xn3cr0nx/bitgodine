@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/address"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analysis"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
@@ -89,6 +90,7 @@ func init() {
 	// Adds subdirectories command
 	rootCmd.AddCommand(block.BlockCmd)
 	rootCmd.AddCommand(transaction.TransactionCmd)
+	rootCmd.AddCommand(address.AddressCmd)
 	rootCmd.AddCommand(cluster.ClusterCmd)
 	rootCmd.AddCommand(analysis.AnalysisCmd)
 

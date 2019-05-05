@@ -184,20 +184,6 @@ func (tx *Tx) BlockHeight() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	// txHash := tx.Hash().String()
-	// node, err := dgraph.GetTx(&txHash)
-	// if err != nil {
-	// 	return 0, nil
-	// }
-	// blockHash, err := chainhash.NewHashFromStr(node.Block)
-	// if err != nil {
-	// 	return 0, err
-	// }
-	// block, err := db.GetBlock(blockHash)
-	// if err != nil {
-	// 	return 0, err
-	// }
-	// return block.Height(), nil
 	return height, nil
 }
 
@@ -243,33 +229,11 @@ func (tx *Tx) GetSpendingTx(index uint32) (Tx, error) {
 	if len(tx.MsgTx().TxOut)-1 < int(index) {
 		return Tx{}, errors.New("Index out of range in transaction input")
 	}
-	// hash := tx.Hash()
-	// hashString := hash.String()
-	// transaction, err := dgraph.GetFollowingTx(&hashString, &index)
 	hash := tx.Hash().String()
 	transaction, err := dgraph.GetFollowingTx(&hash, &index)
 	if err != nil {
 		return Tx{}, err
 	}
-	// blockHash, err := chainhash.NewHashFromStr(node.Block)
-	// if err != nil {
-	// 	return Tx{}, err
-	// }
-	// block, err := db.GetBlock(blockHash)
-	// if err != nil {
-	// 	return Tx{}, err
-	// }
-	// var transaction *btcutil.Tx
-	// for _, t := range block.Transactions() {
-	// 	for _, i := range t.MsgTx().TxIn {
-	// 		if i.PreviousOutPoint.Hash.IsEqual(hash) {
-	// 			transaction = t
-	// 		}
-	// 	}
-	// }
-	// if transaction == nil {
-	// 	return Tx{}, errors.New("something went wrong extracting the transaction")
-	// }
 	genTx, err := GenerateTransaction(&transaction)
 	if err != nil {
 		return Tx{}, err

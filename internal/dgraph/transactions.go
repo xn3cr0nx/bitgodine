@@ -57,20 +57,6 @@ type OutputsResp struct {
 	}
 }
 
-// // StoreTx stores bitcoin transaction in the graph
-// func StoreTx(tx *Transaction) error {
-// 	out, err := json.Marshal(tx)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	resp, err := instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	logger.Debug("Dgraph", resp.String(), logger.Params{})
-// 	return nil
-// }
-
 // StoreCoinbase prepare coinbase output to be used as input for coinbase transactions
 func StoreCoinbase() error {
 	t := Transaction{
@@ -96,16 +82,6 @@ func StoreCoinbase() error {
 			},
 		},
 	}
-	// out, err := json.Marshal(t)
-	// if err != nil {
-	// 	return err
-	// }
-	// resp, err := instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
-	// if err != nil {
-	// 	return err
-	// }
-	// logger.Debug("Dgraph", resp.String(), logger.Params{})
-	// return nil
 	return Store(&t)
 }
 
@@ -143,7 +119,6 @@ func GetTx(hash string) (Transaction, error) {
 	if len(r.Txs) == 0 {
 		return Transaction{}, errors.New("transaction not found")
 	}
-	// return r.Txs[0].Transaction, nil
 	for _, tx := range r.Txs {
 		if len(tx.Transaction.Outputs) > 0 {
 			return tx.Transaction, nil

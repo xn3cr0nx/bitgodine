@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/dgo/protos/api"
-	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	// "github.com/btcsuite/btcd/chaincfg/chainhash"
+	// "github.com/btcsuite/btcd/wire"
+	// "github.com/btcsuite/btcutil"
+	// "github.com/dgraph-io/dgo/protos/api"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -19,7 +18,7 @@ import (
 type Block struct {
 	UID          string        `json:"uid,omitempty"`
 	Hash         string        `json:"hash,omitempty"`
-	Height       int32         `json:"height,omitempty"`
+	Height       int32         `json:"height"`
 	PrevBlock    string        `json:"prev_block,omitempty"`
 	Time         time.Time     `json:"time,omitempty"`
 	Transactions []Transaction `json:"transactions,omitempty"`
@@ -29,24 +28,8 @@ type Block struct {
 	Nonce        uint32        `json:"nonce,omitempty"`
 }
 
-// GenerateBlock converts the Block node struct to a btcsuite Block struct
-func (block *Block) GenerateBlock() (blocks.Block, error) {
-	prevHash, err := chainhash.NewHashFromStr(block.PrevBlock)
-	if err != nil {
-		return blocks.Block{}, err
-	}
-	merkleHash, err := chainhash.NewHashFromStr(block.MerkleRoot)
-	if err != nil {
-		return blocks.Block{}, err
-	}
-	header := wire.NewBlockHeader(block.Version, prevHash, merkleHash, block.Bits, block.Nonce)
-	msgBlock := wire.NewMsgBlock(header)
-	b := btcutil.NewBlock(msgBlock)
-	return blocks.Block{Block: *b}, nil
-}
-
-// TODO: Fix struct to unmarshal hash in, already fixed the query
 // GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
+// TODO: Fix struct to unmarshal hash in, already fixed the query
 func GetBlockHashFromHeight(height int32) (string, error) {
 	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 	// 	block_hash(func: eq(height, %d), first: 1) {
@@ -66,34 +49,19 @@ func GetBlockHashFromHeight(height int32) (string, error) {
 	// return r.Q[0].Block, nil
 }
 
-// StoreBlock stored a Block node in dgraph
-func StoreBlock(b *blocks.Block) error {
-	transactions, err := PrepareTransactions(b.Transactions(), b.Height())
-	if err != nil {
-		return err
-	}
-	node := Block{
-		Hash:         b.Hash().String(),
-		PrevBlock:    b.MsgBlock().Header.PrevBlock.String(),
-		Height:       b.Height(),
-		Time:         b.MsgBlock().Header.Timestamp,
-		Transactions: transactions,
-		Version:      b.MsgBlock().Header.Version,
-		MerkleRoot:   b.MsgBlock().Header.MerkleRoot.String(),
-		Bits:         b.MsgBlock().Header.Bits,
-		Nonce:        b.MsgBlock().Header.Nonce,
-	}
-	out, err := json.Marshal(node)
-	if err != nil {
-		return err
-	}
-	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
-	if err != nil {
-		return err
-	}
+// // StoreBlock stored a Block node in dgraph
+// func StoreBlock(b *Block) error {
+// 	out, err := json.Marshal(b)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // LastBlockHeight returnes the height of the last block synced by Bitgodine
 func LastBlockHeight() (int32, error) {

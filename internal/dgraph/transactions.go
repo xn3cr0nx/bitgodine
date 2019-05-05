@@ -136,17 +136,20 @@ func GetTx(hash string) (Transaction, error) {
 	if err != nil {
 		return Transaction{}, err
 	}
-	// var r TxResp
-	var r interface{}
+	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return Transaction{}, err
 	}
-	// if len(r.Txs) == 0 {
-	// 	return Transaction{}, errors.New("transaction not found")
-	// }
-	fmt.Println("response", r)
-	return Transaction{}, err
+	if len(r.Txs) == 0 {
+		return Transaction{}, errors.New("transaction not found")
+	}
 	// return r.Txs[0].Transaction, nil
+	for _, tx := range r.Txs {
+		if len(tx.Transaction.Outputs) > 0 {
+			return tx.Transaction, nil
+		}
+	}
+	return Transaction{}, errors.New("transaction not found")
 }
 
 // GetTxUID returnes the uid of the queried tx by hash

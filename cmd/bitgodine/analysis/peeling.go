@@ -30,6 +30,9 @@ var peelingCmd = &cobra.Command{
 			logger.Panic("Analyze peeling", err, logger.Params{})
 		}
 		tx, err := txs.Get(txHash)
+		if err != nil {
+			logger.Panic("Analyze peeling", err, logger.Params{})
+		}
 
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"Heuristic", "Transaction", "Privacy"})

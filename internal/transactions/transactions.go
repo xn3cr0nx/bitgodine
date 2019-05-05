@@ -57,21 +57,7 @@ func Get(hash *chainhash.Hash) (Tx, error) {
 	if err != nil {
 		return Tx{}, err
 	}
-	// blockHash, err := chainhash.NewHashFromStr(node.Block)
-	// if err != nil {
-	// 	return Tx{}, err
-	// }
-	// block, err := db.GetBlock(blockHash)
-	// if err != nil {
-	// 	return Tx{}, err
-	// }
-	// var transaction *btcutil.Tx
-	// for _, t := range block.Transactions() {
-	// 	if t.Hash().IsEqual(hash) {
-	// 		transaction = t
-	// 	}
-	// }
-	// return Tx{Tx: *transaction}, nil
+	fmt.Println("transaction", transaction.Hash().String(), len(transaction.MsgTx().TxOut), transaction.MsgTx().TxIn[0].PreviousOutPoint.Hash.String())
 	return transaction, nil
 }
 
@@ -116,7 +102,7 @@ func (tx *Tx) Store() error {
 func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
 	for _, tx := range txs {
-		fmt.Println("Parsing tx", tx.Hash().String())
+		// fmt.Println("Parsing tx", tx.Hash().String())
 		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
 		if err != nil {
 			return nil, err
@@ -140,7 +126,7 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 	var txIns []dgraph.Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		fmt.Println("input", h)
+		// fmt.Println("input", h)
 		stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 		if err != nil {
 			if err.Error() != "output not found" {

@@ -93,7 +93,7 @@ func (suite *TestBlocksSuite) TestGenerateBlock() {
 	blockExample, err := btcutil.NewBlockFromBytes(Block181Bytes)
 	blockExample.SetHeight(181)
 	assert.Equal(suite.T(), err, nil)
-	transactions, err := txs.PrepareTransactions(blockExample.Transactions(), blockExample.Height())
+	transactions, err := txs.PrepareTransactions(blockExample.Transactions())
 	assert.Equal(suite.T(), err, nil)
 
 	block := dgraph.Block{

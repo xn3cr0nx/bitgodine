@@ -115,7 +115,7 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 				break
 			}
 
-			logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
+			// logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 
 			logger.Debug("Blockchain", "Checking Prev block equal prev goal hash", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String(), "prev_goal": goalPrevHash.String(), "cond": block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash)})
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
@@ -170,13 +170,16 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 func findCheckPoint(chain *[][]uint8, prevHeight, height *int32) error {
 	for k, slice := range *chain {
 		for len(slice) > 0 {
-			_, err := blocks.Parse(&slice)
+			block, err := blocks.Parse(&slice)
 			if err != nil {
 				return err
 			}
+			// added -1 to height because without it, it starts syncing two block after the checkpoint (TODO: validate this stuff)
 			if *prevHeight == *height {
+				// if *prevHeight == (*height)-1 {
 				(*height)++
 				(*chain)[k] = slice
+				logger.Debug("Blockchain", "Reached endpoint", logger.Params{"last_block": block.Hash().String(), "height": *height, "prev_height": *prevHeight})
 				return nil
 			}
 			(*prevHeight)++

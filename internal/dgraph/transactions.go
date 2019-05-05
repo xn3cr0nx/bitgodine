@@ -281,3 +281,40 @@ func GetTxBlockHeight(hash string) (int32, error) {
 	}
 	return r.Block[0].Height, nil
 }
+
+// GetTransactionsHeightRange returnes the list of transaction contained between height boundaries passed as arguments
+func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		txs(func: ge(height, %d), first: %d)  {
+			transactions {
+        expand(_all_) {
+          expand(_all_)
+        }
+      }
+		}
+	}`, *from, (*to)-(*from)))
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Txs []struct {
+			Transactions []struct {
+				Transaction
+			}
+		}
+	}
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Txs[0].Transactions) == 0 {
+		return nil, errors.New("No transaction found in the block height range")
+	}
+
+	var txs []Transaction
+	for _, block := range r.Txs {
+		for _, tx := range block.Transactions {
+			txs = append(txs, tx.Transaction)
+		}
+	}
+	return txs, nil
+}

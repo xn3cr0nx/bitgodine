@@ -57,7 +57,6 @@ func Get(hash *chainhash.Hash) (Tx, error) {
 	if err != nil {
 		return Tx{}, err
 	}
-	fmt.Println("transaction", transaction.Hash().String(), len(transaction.MsgTx().TxOut), transaction.MsgTx().TxIn[0].PreviousOutPoint.Hash.String())
 	return transaction, nil
 }
 
@@ -239,4 +238,21 @@ func (tx *Tx) GetSpendingTx(index uint32) (Tx, error) {
 		return Tx{}, err
 	}
 	return genTx, nil
+}
+
+// GetHeightRange returnes an array of pointer to transactions in the height boundaries range passed as argument
+func GetHeightRange(from, to *int32) ([]Tx, error) {
+	txs, err := dgraph.GetTransactionsHeightRange(from, to)
+	if err != nil {
+		return nil, err
+	}
+	var transactions []Tx
+	for _, tx := range txs {
+		transaction, err := GenerateTransaction(&tx)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, transaction)
+	}
+	return transactions, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,40 +29,58 @@ type Block struct {
 	Nonce        uint32        `json:"nonce,omitempty"`
 }
 
-// GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
-// TODO: Fix struct to unmarshal hash in, already fixed the query
-func GetBlockHashFromHeight(height int32) (string, error) {
-	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-	// 	block_hash(func: eq(height, %d), first: 1) {
-	// 		hash
-	// 	}
-	// }`, height))
-	// if err != nil {
-	// 	return "", err
-	// }
-	// // var r struct{ BlockHash []struct{ Hash } }
-	// if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-	// 	return "", err
-	// }
-	// if len(r.Q) == 0 {
-	return "", errors.New("No address occurences")
-	// }
-	// return r.Q[0].Block, nil
+// BlockResp represent the resp from a dgraph query returning a transaction node
+type BlockResp struct {
+	Blk []struct{ Block }
 }
 
-// // StoreBlock stored a Block node in dgraph
-// func StoreBlock(b *Block) error {
-// 	out, err := json.Marshal(b)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
+// GetBlockFromHeight returnes the hash of the block retrieving it based on its height
+func GetBlockFromHeight(height int32) (Block, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		blk(func: eq(height, %d), first: 1) {
+			uid
+			hash
+			height
+			prev_block
+			time
+			version
+			merkle_root
+			bits
+			nonce
+			transactions {
+				uid
+				hash
+				locktime
+				version
+				inputs {
+					uid
+					hash
+					vout
+					signature_script
+					witness
+				}
+				outputs {
+					uid
+					value
+					vout
+					address
+					pk_script
+				}
+			}
+		}
+	}`, height))
+	if err != nil {
+		return Block{}, err
+	}
+	var r BlockResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Block{}, err
+	}
+	if len(r.Blk) == 0 {
+		return Block{}, errors.New("Block not found")
+	}
+	return r.Blk[0].Block, nil
+}
 
 // LastBlockHeight returnes the height of the last block synced by Bitgodine
 func LastBlockHeight() (int32, error) {

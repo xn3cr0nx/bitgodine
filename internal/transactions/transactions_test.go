@@ -2,6 +2,7 @@ package txs
 
 import (
 	// "fmt"
+	"fmt"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -78,6 +79,15 @@ func (suite *TestTransactionsSuite) TestGenerateTransaction() {
 	genTx, err := GenerateTransaction(&transaction)
 	assert.Equal(suite.T(), err, nil)
 	assert.Equal(suite.T(), genTx.Hash().IsEqual(txExample.Hash()), true)
+}
+
+func (suite *TestTransactionsSuite) TestGenerateTransactionByFetch() {
+	tx, err := dgraph.GetTx("9552674e9c19536d69dcf45ccf7ec548939c7cc257581edbc85bc5cd9528cf78")
+	assert.Equal(suite.T(), err, nil)
+	fmt.Println("found tx", tx.Hash)
+	transaction, err := GenerateTransaction(&tx)
+	assert.Equal(suite.T(), err, nil)
+	fmt.Println("wat", transaction.Hash().String())
 }
 
 // func (suite *TestTransactionsSuite) TestGetSpentTx() {

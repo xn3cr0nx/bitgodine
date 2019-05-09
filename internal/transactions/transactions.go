@@ -1,6 +1,7 @@
 package txs
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -30,16 +31,13 @@ func GenerateTransaction(tx *dgraph.Transaction) (Tx, error) {
 		}
 		prev := wire.NewOutPoint(hash, input.Vout)
 
-		var witness [][]byte
-		for _, w := range input.Witness {
-			witness = append(witness, []byte(w))
-		}
-
-		ti := wire.NewTxIn(prev, []byte(input.SignatureScript), wire.TxWitness(witness))
+		sigScript, _ := hex.DecodeString(input.SignatureScript)
+		ti := wire.NewTxIn(prev, sigScript, wire.TxWitness([][]byte{}))
 		msgTx.AddTxIn(ti)
 	}
 	for _, output := range tx.Outputs {
-		to := wire.NewTxOut(output.Value, []byte(output.PkScript))
+		pkScript, _ := hex.DecodeString(output.PkScript)
+		to := wire.NewTxOut(output.Value, pkScript)
 		msgTx.AddTxOut(to)
 	}
 	transaction := btcutil.NewTx(msgTx)
@@ -85,7 +83,6 @@ func (tx *Tx) Store() error {
 		Inputs:   txIns,
 		Outputs:  txOuts,
 	}
-	// if err := dgraph.StoreTx(&transaction); err != nil {
 	if err := dgraph.Store(&transaction); err != nil {
 		return err
 	}

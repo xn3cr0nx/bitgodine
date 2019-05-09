@@ -292,7 +292,7 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
         }
       }
 		}
-	}`, *from, (*to)-(*from)))
+	}`, *from, (*to)-(*from)+1))
 	if err != nil {
 		return nil, err
 	}

@@ -2,12 +2,11 @@ package block
 
 import (
 	"os"
-	"sort"
 	"strconv"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -17,7 +16,7 @@ var heightCmd = &cobra.Command{
 	Short: "Show the height of the last block stored",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		blocks, err := db.StoredBlocks()
+		block, err := dgraph.LastBlock()
 		if err != nil {
 			logger.Error("blocks height", err, logger.Params{})
 			return
@@ -26,12 +25,7 @@ var heightCmd = &cobra.Command{
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"Height", "Block Hash"})
 
-		si := make([]int, 0, len(blocks))
-		for i := range blocks {
-			si = append(si, int(i))
-		}
-		sort.Ints(si)
-		table.Append([]string{strconv.Itoa(len(blocks) - 1), blocks[int32(si[len(si)-1])]})
+		table.Append([]string{strconv.Itoa(int(block.Height)), block.Hash})
 
 		table.Render()
 	},

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -29,7 +28,9 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	hash := strings.Repeat("0", 64)
 	if _, err := dgraph.GetTxUID(&hash); err != nil {
 		logger.Debug("Blockchain", "missing coinbase outputs", logger.Params{"hash": hash})
-		dgraph.StoreTx(hash, "", 0, 0, nil, []*wire.TxOut{wire.NewTxOut(int64(5000000000), nil), wire.NewTxOut(int64(2500000000), nil), wire.NewTxOut(int64(1250000000), nil)})
+		if err := dgraph.StoreCoinbase(); err != nil {
+			logger.Panic("Blockchain", err, logger.Params{})
+		}
 	}
 
 	var rawChain [][]uint8
@@ -39,15 +40,17 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	logger.Debug("Blockchain", fmt.Sprintf("Files converted to be parsed: %d", len(rawChain)), logger.Params{})
 
 	if height > 0 {
-		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to reach %d", height), logger.Params{})
+		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to start from %d", height), logger.Params{})
 		if err := findCheckPoint(&rawChain, &prevHeight, &height); err != nil {
+			logger.Panic("Blockchain", err, logger.Params{})
 		}
 		last, err := bc.Head()
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
-		goalPrevHash = (*last).Hash()
-		lastBlock = *last
+		goalPrevHash = last.Hash()
+		logger.Debug("Blockchain", "Goal Prev Hash", logger.Params{"hash": goalPrevHash.String()})
+		lastBlock = last
 		logger.Debug("Blockchain", "Last Block", logger.Params{"hash": lastBlock.Hash().String()})
 	}
 	logger.Info("Blockchain", fmt.Sprintf("Starting syncing from block %d", height), logger.Params{})
@@ -112,7 +115,7 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 				break
 			}
 
-			logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
+			// logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 
 			logger.Debug("Blockchain", "Checking Prev block equal prev goal hash", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String(), "prev_goal": goalPrevHash.String(), "cond": block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash)})
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
@@ -167,13 +170,16 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 func findCheckPoint(chain *[][]uint8, prevHeight, height *int32) error {
 	for k, slice := range *chain {
 		for len(slice) > 0 {
-			_, err := blocks.Parse(&slice)
+			block, err := blocks.Parse(&slice)
 			if err != nil {
 				return err
 			}
+			// added -1 to height because without it, it starts syncing two block after the checkpoint (TODO: validate this stuff)
 			if *prevHeight == *height {
+				// if *prevHeight == (*height)-1 {
 				(*height)++
 				(*chain)[k] = slice
+				logger.Debug("Blockchain", "Reached endpoint", logger.Params{"last_block": block.Hash().String(), "height": *height, "prev_height": *prevHeight})
 				return nil
 			}
 			(*prevHeight)++

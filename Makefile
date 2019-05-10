@@ -10,6 +10,7 @@ MAKE=make
 BUILD_PATH=build
 ENTRY=./cmd/bitgodine
 BINARY_NAME=bitgodine
+SCRIPTS_PATH=scripts
 
 LNX_BUILD=$(build)/$(BINARY_NAME)
 WIN_BUILD=$(build)/$(BINARY_NAME).exe
@@ -30,6 +31,8 @@ clean:
 	rm -f $(BUILD_PATH)/$(BINARY_NAME).exe
 run:
 	$(GORUN) $(ENTRY)
+diggy:
+	./$(SCRIPTS_PATH)/dgraph.sh
 
 # Interacting with bitgodine cli
 install:

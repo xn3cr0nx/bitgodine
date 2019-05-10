@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/address"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analysis"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
@@ -49,14 +50,16 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		_, err := db.Instance(DBConf())
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			return
-		}
+		// _, err := db.Instance(DBConf())
+		// if err != nil {
+		// 	logger.Error("Bitgodine", err, logger.Params{})
+		// 	return
+		// }
 
 		dg := dgraph.Instance(DGraphConf())
-		dgraph.Setup(dg)
+		if err := dgraph.Setup(dg); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+		}
 
 		net, _ := cmd.Flags().GetString("network")
 		switch net {
@@ -87,6 +90,7 @@ func init() {
 	// Adds subdirectories command
 	rootCmd.AddCommand(block.BlockCmd)
 	rootCmd.AddCommand(transaction.TransactionCmd)
+	rootCmd.AddCommand(address.AddressCmd)
 	rootCmd.AddCommand(cluster.ClusterCmd)
 	rootCmd.AddCommand(analysis.AnalysisCmd)
 

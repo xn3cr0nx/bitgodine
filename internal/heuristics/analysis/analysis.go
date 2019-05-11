@@ -24,28 +24,51 @@ import (
 // Range applies heuristics to transaction contained in blocks specified in the range
 func Range(from, to int32) ([][]bool, error) {
 	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
-	var analysis [][]bool
+
 	transactions, err := txs.GetHeightRange(&from, &to)
 	if err != nil {
 		logger.Error("Analysis", err, logger.Params{})
 		return nil, err
 	}
+	lenAnalysis := len(transactions)
+	analysis := make(chan []bool, lenAnalysis)
+	result := make([][]bool, lenAnalysis)
 	for _, tx := range transactions {
 		logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
 		if len(tx.MsgTx().TxOut) <= 1 {
 			// TODO: find a nice way to put a placeholder line
-			analysis = append(analysis, []bool{false, false, false, false, false, false, false, false, false})
+			// analysis <- []bool{false, false, false, false, false, false, false, false, false}
 			continue
 		}
-		res := Tx(&tx)
-		analysis = append(analysis, res)
+		go Tx(tx, analysis)
 	}
-	return analysis, nil
+	for i := 0; i < lenAnalysis; i++ {
+		resp := <-analysis
+		result[i] = resp
+	}
+	return result, nil
 }
 
 // Tx applies all the heuristics to the passed transaction returning a boolean value for each of them
 // representing in vulnerable or not
-func Tx(tx *txs.Tx) (privacy []bool) {
+func Tx(tx txs.Tx, analysis chan []bool) {
+	fmt.Println("analyzing tx", tx.Hash().String())
+	var privacy []bool
+	privacy = append(privacy, peeling.IsPeelingChain(&tx))
+	privacy = append(privacy, power.Vulnerable(&tx))
+	privacy = append(privacy, optimal.Vulnerable(&tx))
+	privacy = append(privacy, class.Vulnerable(&tx))
+	privacy = append(privacy, reuse.Vulnerable(&tx))
+	privacy = append(privacy, locktime.Vulnerable(&tx))
+	privacy = append(privacy, behaviour.Vulnerable(&tx))
+	privacy = append(privacy, forward.Vulnerable(&tx))
+	privacy = append(privacy, backward.Vulnerable(&tx))
+	analysis <- privacy
+}
+
+// TxSingleCore applies all the heuristics to the passed transaction returning a boolean value for each of them
+// representing in vulnerable or not
+func TxSingleCore(tx *txs.Tx) (privacy []bool) {
 	privacy = append(privacy, peeling.IsPeelingChain(tx))
 	privacy = append(privacy, power.Vulnerable(tx))
 	privacy = append(privacy, optimal.Vulnerable(tx))

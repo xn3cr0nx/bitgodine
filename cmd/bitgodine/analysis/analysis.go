@@ -92,6 +92,13 @@ var AnalysisCmd = &cobra.Command{
 func init() {
 	AnalysisCmd.AddCommand(txCmd)
 	AnalysisCmd.AddCommand(peelingCmd)
+	AnalysisCmd.AddCommand(powerCmd)
+	AnalysisCmd.AddCommand(reuseCmd)
+	AnalysisCmd.AddCommand(behaviourCmd)
+	AnalysisCmd.AddCommand(locktimeCmd)
+	AnalysisCmd.AddCommand(optimalCmd)
+	AnalysisCmd.AddCommand(powerCmd)
+	AnalysisCmd.AddCommand(typeCmd)
 	AnalysisCmd.AddCommand(forwardCmd)
 	AnalysisCmd.AddCommand(backwardCmd)
 

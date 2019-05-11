@@ -11,7 +11,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -28,13 +27,6 @@ var (
 	BitcoinNet                                                          chaincfg.Params
 )
 
-// DBConf exports the Config object to initialize indexing db
-func DBConf() *db.Config {
-	return &db.Config{
-		Dir: viper.GetString("dbDir"),
-	}
-}
-
 // DGraphConf exports the Config object to initialize indexing dgraph
 func DGraphConf() *dgraph.Config {
 	return &dgraph.Config{
@@ -50,15 +42,11 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 
-		// _, err := db.Instance(DBConf())
-		// if err != nil {
-		// 	logger.Error("Bitgodine", err, logger.Params{})
-		// 	return
-		// }
-
 		dg := dgraph.Instance(DGraphConf())
 		if err := dgraph.Setup(dg); err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
+			logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
+			os.Exit(-1)
 		}
 
 		net, _ := cmd.Flags().GetString("network")
@@ -96,7 +84,6 @@ func init() {
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.bitgodine.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&network, "network", "n", chaincfg.MainNetParams.Name, "Specify blockchain network - mainnet - testnet3 - regtest [default: mainnet]")
 

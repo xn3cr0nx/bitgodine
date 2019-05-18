@@ -12,6 +12,7 @@ import (
 	// "github.com/btcsuite/btcd/wire"
 	// "github.com/btcsuite/btcutil"
 	// "github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/protos/api"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -127,6 +128,7 @@ func LastBlock() (Block, error) {
 			h as max(val(blocks_height))
 		}
     b(func: eq(height, val(h))) {
+			uid
       hash
       height
       version
@@ -174,4 +176,47 @@ func StoredBlocks() ([]Block, error) {
 	}
 
 	return blocks, nil
+}
+
+// RemoveBlock removes the block specified by its height
+func RemoveBlock(block *Block) error {
+	var delete = struct {
+		UID string `json:"uid"`
+	}{
+		UID: block.UID,
+	}
+	out, err := json.Marshal(delete)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: out, CommitNow: true})
+	return err
+}
+
+// GetBlockUIDFromHeight returnes the dgraph uid of the block stored at the passed height
+func GetBlockUIDFromHeight(height int32) ([]string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		block(func: eq(height, %d)) {
+			uid
+		}
+	}`, height))
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Block []struct {
+			UID string `json:"uid,omitempty"`
+		}
+	}
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Block) == 0 {
+		return nil, errors.New("Block not found")
+	}
+	var uids []string
+	for _, b := range r.Block {
+		uids = append(uids, b.UID)
+	}
+	return uids, nil
 }

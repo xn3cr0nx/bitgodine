@@ -2,6 +2,7 @@ package blocks
 
 import (
 	"errors"
+	"fmt"
 	// "fmt"
 	"math"
 
@@ -129,4 +130,43 @@ func Parse(slice *[]uint8) (*Block, error) {
 		logger.Error("Blockchain", err, logger.Params{})
 		return nil, err
 	}
+}
+
+// RemoveLast deletes the last block stored in the db
+func RemoveLast() error {
+	var blocks []dgraph.Block
+	var height int32
+	block, err := dgraph.LastBlock()
+	if err != nil {
+		if err.Error() == "Something went wrong retrieving last block" {
+			height, err = dgraph.LastBlockHeight()
+			if err != nil {
+				return err
+			}
+			uids, err := dgraph.GetBlockUIDFromHeight(height)
+			if err != nil {
+				return err
+			}
+			for _, uid := range uids {
+				blocks = append(blocks, dgraph.Block{UID: uid})
+			}
+		} else {
+			return err
+		}
+	}
+
+	if block.Hash != "" {
+		if err := dgraph.RemoveBlock(&block); err != nil {
+			return err
+		}
+		logger.Info("Block rm", fmt.Sprintf("Block %d correctly removed", block.Height), logger.Params{})
+	} else {
+		for _, b := range blocks {
+			if err := dgraph.RemoveBlock(&b); err != nil {
+				return err
+			}
+		}
+		logger.Info("Block rm", fmt.Sprintf("Block %d correctly removed", height), logger.Params{})
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,17 +18,23 @@ var rmCmd = &cobra.Command{
 	Short: "Remove stored blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		// height, err := strconv.Atoi(args[0])
-		// if err == nil {
-		// }
-		if args[0] == "last" {
-			if err := blocks.RemoveLast(); err != nil {
-				logger.Error("Block rm", err, logger.Params{})
-				os.Exit(-1)
+		if len(args) > 0 && args[0] != "" && args[0] == "last" {
+			logger.Info("Block rm", "Removing last block...", logger.Params{})
+
+			num := 1
+			if args[1] != "" {
+				num, _ = strconv.Atoi(args[1])
+			}
+			for i := 0; i < num; i++ {
+				if err := blocks.RemoveLast(); err != nil {
+					logger.Error("Block rm", err, logger.Params{})
+					os.Exit(-1)
+				}
 			}
 			os.Exit(1)
 		}
 
+		logger.Info("Block rm", "Removing all stored blocks...", logger.Params{})
 		dir, err := ioutil.ReadDir(viper.GetString("dbDir"))
 		if err != nil {
 			logger.Error("Block rm", err, logger.Params{})

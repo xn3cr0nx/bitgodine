@@ -98,7 +98,6 @@ func (tx *Tx) Store() error {
 func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
 	for _, tx := range txs {
-		// fmt.Println("Parsing tx", tx.Hash().String())
 		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
 		if err != nil {
 			return nil, err
@@ -122,7 +121,6 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 	var txIns []dgraph.Input
 	for _, in := range inputs {
 		h := in.PreviousOutPoint.Hash.String()
-		// fmt.Println("input", h)
 		stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 		if err != nil {
 			if err.Error() != "output not found" {
@@ -134,7 +132,6 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 			wtn = append(wtn, dgraph.TxWitness(w))
 		}
 		input := dgraph.Input{UID: stxo.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: fmt.Sprintf("%X", in.SignatureScript), Witness: wtn}
-		// This is for managing the TODO specified above
 		if input.UID == "" && in.PreviousOutPoint.Index != uint32(4294967295) {
 			for i, tx := range *transactions {
 				if tx.Hash == in.PreviousOutPoint.Hash.String() {
@@ -161,7 +158,12 @@ func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 			if err != nil {
 				return nil, err
 			}
-			txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)})
+			// TODO: here should be managemed the multisig (just take all the addr, not just the first)
+			if len(addr) > 0 {
+				txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)})
+			} else {
+				txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), PkScript: fmt.Sprintf("%X", out.PkScript)})
+			}
 		}
 	}
 

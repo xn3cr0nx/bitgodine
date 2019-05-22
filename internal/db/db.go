@@ -63,6 +63,21 @@ func StoreBlock(b *blocks.Block) error {
 	return err
 }
 
+// StoreBlockPrevHash inserts in the db the block as []byte passed, using the previous hash as key
+func StoreBlockPrevHash(b *blocks.Block) error {
+	return instance.Update(func(txn *badger.Txn) error {
+		buff := new(bytes.Buffer)
+		serial := bufio.NewWriter(buff)
+		b.MsgBlock().Serialize(serial)
+
+		bnr := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bnr, uint32(b.Height()))
+		buff.Write(bnr)
+		serial.Flush()
+		return txn.Set(b.MsgBlock().Header.PrevBlock.CloneBytes(), buff.Bytes())
+	})
+}
+
 // GetBlock returnes a *Block looking for the block corresponding to the hash passed
 func GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 	var loadedBlockBytes []byte
@@ -198,9 +213,9 @@ func LastBlock() (*chainhash.Hash, error) {
 }
 
 // DeleteBlock inserts in the db the block as []byte passed
-func DeleteBlock(b *blocks.Block) error {
+func DeleteBlock(hash *chainhash.Hash) error {
 	err := instance.Update(func(txn *badger.Txn) error {
-		return txn.Delete(b.Hash().CloneBytes())
+		return txn.Delete(hash.CloneBytes())
 	})
 	return err
 }

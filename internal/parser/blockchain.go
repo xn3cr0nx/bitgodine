@@ -51,7 +51,7 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 			logger.Error("Blockchain", err, logger.Params{})
 			os.Exit(-1)
 		}
-		lastBlock, err := findCheckPointByHash(&rawChain, last.Hash(), &skipped)
+		lastBlock, err := findCheckPointByHash(&rawChain, last.Hash())
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
@@ -79,9 +79,6 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 		case x, ok := <-interrupt:
 			if ok {
 				logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
-				if err := cacheSkipped(skipped); err != nil {
-					logger.Panic("Blockchain", err, logger.Params{})
-				}
 
 				select {
 				case _, ok := <-done:
@@ -105,6 +102,10 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 				for {
 					if block, ok := (*skipped)[*goalPrevHash]; ok {
 						delete(*skipped, *goalPrevHash)
+						if err := db.DeleteBlock(goalPrevHash); err != nil {
+							logger.Error("Blockchain", err, logger.Params{})
+							return
+						}
 						logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 						BlockWalk(&block, v, height, utxoSet)
 						(*height)++
@@ -138,6 +139,9 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
 				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
+				if err := db.StoreBlockPrevHash(block); err != nil {
+					logger.Panic("Blockchain", err, logger.Params{})
+				}
 
 				// check if last_block.is_some() condition is correctly replaced with checkBlock()
 				if lastBlock.CheckBlock() && block.MsgBlock().Header.PrevBlock == lastBlock.MsgBlock().Header.PrevBlock {
@@ -156,6 +160,9 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 						}
 
 						(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
+						if err := db.StoreBlockPrevHash(block); err != nil {
+							logger.Panic("Blockchain", err, logger.Params{})
+						}
 						if block.MsgBlock().Header.PrevBlock == *firstOrphan.Hash() {
 							// First wins
 							logger.Debug("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", firstOrphan.Hash().String()), logger.Params{})
@@ -184,13 +191,9 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 			*lastBlock = *block
 		}
 	}
-
-	if err := cacheSkipped(skipped); err != nil {
-		logger.Panic("Blockchain", err, logger.Params{})
-	}
 }
 
-func findCheckPointByHash(chain *[][]uint8, hash *chainhash.Hash, skipped *map[chainhash.Hash]blocks.Block) (blocks.Block, error) {
+func findCheckPointByHash(chain *[][]uint8, hash *chainhash.Hash) (blocks.Block, error) {
 	for k, slice := range *chain {
 		for len(slice) > 0 {
 			block, err := blocks.Parse(&slice)
@@ -215,19 +218,6 @@ func restoreSkipped(skipped *map[chainhash.Hash]blocks.Block) error {
 	logger.Info("Blockchain", "Restoring skipped blocks", logger.Params{"n_blocks": len(cachedSkipped)})
 	for _, skip := range cachedSkipped {
 		(*skipped)[skip.MsgBlock().Header.PrevBlock] = skip
-		if err := db.DeleteBlock(&skip); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func cacheSkipped(skipped *map[chainhash.Hash]blocks.Block) error {
-	logger.Info("Blockchain", "Saving skipped blocks for next sync", logger.Params{"n_blocks": len(*skipped)})
-	for _, block := range *skipped {
-		if err := db.StoreBlock(&block); err != nil {
-			return err
-		}
 	}
 	return nil
 }

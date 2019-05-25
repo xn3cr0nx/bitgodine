@@ -3,6 +3,7 @@ package dgraph
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -64,7 +65,7 @@ func Setup(c *dgo.Dgraph) error {
 // Empty removes all data from dgraph with a drop all command
 func Empty() error {
 	var cmd = []byte(`{ "drop_all": true }`)
-	req, err := http.NewRequest("POST", "localhost:8080/alter", bytes.NewBuffer(cmd))
+	req, err := http.NewRequest("POST", "http://localhost:8080/alter", bytes.NewBuffer(cmd))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -74,4 +75,14 @@ func Empty() error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+// Store encodes received object as json object and stores it in dgraph
+func Store(v interface{}) error {
+	out, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+	return err
 }

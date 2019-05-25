@@ -5,11 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/chenjiandongx/go-echarts/charts"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/backward"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/behaviour"
@@ -27,40 +24,51 @@ import (
 // Range applies heuristics to transaction contained in blocks specified in the range
 func Range(from, to int32) ([][]bool, error) {
 	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
-	var analysis [][]bool
-	for i := from; i <= to; i++ {
-		block, err := dgraph.GetBlockHashFromHeight(i)
-		if err != nil {
-			logger.Error("Analysis", err, logger.Params{})
-			return nil, err
-		}
-		logger.Debug("Analysis", fmt.Sprintf("Analyzing block %s", block), logger.Params{})
-		hash, err := chainhash.NewHashFromStr(block)
-		if err != nil {
-			logger.Error("Analysis", err, logger.Params{})
-			return nil, err
-		}
-		b, err := db.GetBlock(hash)
-		if err != nil {
-			logger.Error("Analysis", err, logger.Params{})
-			return nil, err
-		}
-		for _, tx := range b.Transactions() {
-			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
-			if len(tx.MsgTx().TxOut) <= 1 {
-				continue
-			}
-			res := Tx(&txs.Tx{Tx: *tx})
-			analysis = append(analysis, res)
-		}
-	}
 
-	return analysis, nil
+	transactions, err := txs.GetHeightRange(&from, &to)
+	if err != nil {
+		logger.Error("Analysis", err, logger.Params{})
+		return nil, err
+	}
+	lenAnalysis := len(transactions)
+	analysis := make(chan []bool, lenAnalysis)
+	result := make([][]bool, lenAnalysis)
+	for _, tx := range transactions {
+		logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
+		if len(tx.MsgTx().TxOut) <= 1 {
+			// TODO: find a nice way to put a placeholder line
+			// analysis <- []bool{false, false, false, false, false, false, false, false, false}
+			continue
+		}
+		go Tx(tx, analysis)
+	}
+	for i := 0; i < lenAnalysis; i++ {
+		resp := <-analysis
+		result[i] = resp
+	}
+	return result, nil
 }
 
 // Tx applies all the heuristics to the passed transaction returning a boolean value for each of them
 // representing in vulnerable or not
-func Tx(tx *txs.Tx) (privacy []bool) {
+func Tx(tx txs.Tx, analysis chan []bool) {
+	fmt.Println("analyzing tx", tx.Hash().String())
+	var privacy []bool
+	privacy = append(privacy, peeling.IsPeelingChain(&tx))
+	privacy = append(privacy, power.Vulnerable(&tx))
+	privacy = append(privacy, optimal.Vulnerable(&tx))
+	privacy = append(privacy, class.Vulnerable(&tx))
+	privacy = append(privacy, reuse.Vulnerable(&tx))
+	privacy = append(privacy, locktime.Vulnerable(&tx))
+	privacy = append(privacy, behaviour.Vulnerable(&tx))
+	privacy = append(privacy, forward.Vulnerable(&tx))
+	privacy = append(privacy, backward.Vulnerable(&tx))
+	analysis <- privacy
+}
+
+// TxSingleCore applies all the heuristics to the passed transaction returning a boolean value for each of them
+// representing in vulnerable or not
+func TxSingleCore(tx *txs.Tx) (privacy []bool) {
 	privacy = append(privacy, peeling.IsPeelingChain(tx))
 	privacy = append(privacy, power.Vulnerable(tx))
 	privacy = append(privacy, optimal.Vulnerable(tx))
@@ -73,65 +81,38 @@ func Tx(tx *txs.Tx) (privacy []bool) {
 	return privacy
 }
 
+func evaulateOutput(privacy *[]string, output uint32, err error) {
+	if err != nil {
+		*privacy = append(*privacy, "unknown")
+	} else {
+		*privacy = append(*privacy, strconv.Itoa(int(output)))
+	}
+}
+
 // TxChange applies all the heuristics to the passed transaction returning the vout of the change output for each of them
 func TxChange(tx *txs.Tx) (privacy []string) {
 	output, err := peeling.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = power.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = optimal.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = class.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = reuse.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = locktime.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = behaviour.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = forward.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	output, err = backward.ChangeOutput(tx)
-	if err != nil {
-		privacy = append(privacy, "unknown")
-	} else {
-		privacy = append(privacy, strconv.Itoa(int(output)))
-	}
+	evaulateOutput(&privacy, output, err)
 	return privacy
 }
 
+// Percentages prints a table with percentages of heuristics success rate based on passed analysis
 func Percentages(analysis [][]bool) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})

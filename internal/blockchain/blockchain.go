@@ -82,7 +82,7 @@ func (b *Blockchain) Head() (blocks.Block, error) {
 	if err != nil {
 		return blocks.Block{}, err
 	}
-	block, err := last.GenerateBlock()
+	block, err := blocks.GenerateBlock(&last)
 	if err != nil {
 		return blocks.Block{}, err
 	}

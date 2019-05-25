@@ -6,11 +6,20 @@ import (
 	"os/signal"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/parser"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
+
+// BadgerConf exports the Config object to initialize indexing dgraph
+func BadgerConf() *db.Config {
+	return &db.Config{
+		Dir: viper.GetString("dbDir"),
+	}
+}
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -22,6 +31,11 @@ The parsing stores blocks and transaction and creates clusters to provide
 data representation to analyze the blockchain.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Info("Sync", "sync called", logger.Params{})
+
+		if _, err := db.Instance(BadgerConf()); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
 
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()

@@ -1,16 +1,12 @@
 package reuse
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/dgo"
-	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/suite"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -20,7 +16,6 @@ import (
 type TestAddressReuseSuite struct {
 	suite.Suite
 	dgraph *dgo.Dgraph
-	db     *badger.DB
 }
 
 func (suite *TestAddressReuseSuite) SetupSuite() {
@@ -32,36 +27,26 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 	}
 	suite.dgraph = dgraph.Instance(DgConf)
 	dgraph.Setup(suite.dgraph)
-
-	hd, err := homedir.Dir()
-	assert.Equal(suite.T(), err, nil)
-	DbConf := &db.Config{
-		Dir: filepath.Join(hd, ".bitgodine", "badger"),
-	}
-	suite.db, err = db.Instance(DbConf)
-	assert.Equal(suite.T(), err, nil)
-	assert.NotEqual(suite.T(), suite.db, nil)
-
-	suite.Setup()
+	// suite.Setup()
 }
 
 func (suite *TestAddressReuseSuite) Setup() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
+	// block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
+	// assert.Equal(suite.T(), err, nil)
 
-	if !db.IsStored(block.Hash()) {
-		err := db.StoreBlock(&blocks.Block{Block: *block})
-		assert.Equal(suite.T(), err, nil)
+	// if !db.IsStored(block.Hash()) {
+	// 	err := db.StoreBlock(&blocks.Block{Block: *block})
+	// 	assert.Equal(suite.T(), err, nil)
 
-		for _, tx := range block.Transactions() {
-			err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
-			assert.Equal(suite.T(), err, nil)
-		}
-	}
+	// 	for _, tx := range block.Transactions() {
+	// 		err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
+	// 		assert.Equal(suite.T(), err, nil)
+	// 	}
+	// }
 }
 
 func (suite *TestAddressReuseSuite) TearDownSuite() {
-	(*suite.db).Close()
+	// (*suite.db).Close()
 }
 
 func (suite *TestAddressReuseSuite) TestChangeOutput() {

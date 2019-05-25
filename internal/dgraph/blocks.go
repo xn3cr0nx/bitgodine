@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	// "github.com/btcsuite/btcd/chaincfg/chainhash"
+	// "github.com/btcsuite/btcd/wire"
+	// "github.com/btcsuite/btcutil"
+	// "github.com/dgraph-io/dgo/protos/api"
 	"github.com/dgraph-io/dgo/protos/api"
-	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -19,7 +20,7 @@ import (
 type Block struct {
 	UID          string        `json:"uid,omitempty"`
 	Hash         string        `json:"hash,omitempty"`
-	Height       int32         `json:"height,omitempty"`
+	Height       int32         `json:"height"`
 	PrevBlock    string        `json:"prev_block,omitempty"`
 	Time         time.Time     `json:"time,omitempty"`
 	Transactions []Transaction `json:"transactions,omitempty"`
@@ -29,70 +30,57 @@ type Block struct {
 	Nonce        uint32        `json:"nonce,omitempty"`
 }
 
-// GenerateBlock converts the Block node struct to a btcsuite Block struct
-func (block *Block) GenerateBlock() (blocks.Block, error) {
-	prevHash, err := chainhash.NewHashFromStr(block.PrevBlock)
-	if err != nil {
-		return blocks.Block{}, err
-	}
-	merkleHash, err := chainhash.NewHashFromStr(block.MerkleRoot)
-	if err != nil {
-		return blocks.Block{}, err
-	}
-	header := wire.NewBlockHeader(block.Version, prevHash, merkleHash, block.Bits, block.Nonce)
-	msgBlock := wire.NewMsgBlock(header)
-	b := btcutil.NewBlock(msgBlock)
-	return blocks.Block{Block: *b}, nil
+// BlockResp represent the resp from a dgraph query returning a transaction node
+type BlockResp struct {
+	Blk []struct{ Block }
 }
 
-// TODO: Fix struct to unmarshal hash in, already fixed the query
-// GetBlockHashFromHeight returnes the hash of the block retrieving it based on its height
-func GetBlockHashFromHeight(height int32) (string, error) {
-	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-	// 	block_hash(func: eq(height, %d), first: 1) {
-	// 		hash
-	// 	}
-	// }`, height))
-	// if err != nil {
-	// 	return "", err
-	// }
-	// // var r struct{ BlockHash []struct{ Hash } }
-	// if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-	// 	return "", err
-	// }
-	// if len(r.Q) == 0 {
-	return "", errors.New("No address occurences")
-	// }
-	// return r.Q[0].Block, nil
-}
-
-// StoreBlock stored a Block node in dgraph
-func StoreBlock(b *blocks.Block) error {
-	transactions, err := PrepareTransactions(b.Transactions(), b.Height())
+// GetBlockFromHeight returnes the hash of the block retrieving it based on its height
+func GetBlockFromHeight(height int32) (Block, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		blk(func: eq(height, %d), first: 1) {
+			uid
+			hash
+			height
+			prev_block
+			time
+			version
+			merkle_root
+			bits
+			nonce
+			transactions {
+				uid
+				hash
+				locktime
+				version
+				inputs {
+					uid
+					hash
+					vout
+					signature_script
+					witness
+				}
+				outputs {
+					uid
+					value
+					vout
+					address
+					pk_script
+				}
+			}
+		}
+	}`, height))
 	if err != nil {
-		return err
+		return Block{}, err
 	}
-	node := Block{
-		Hash:         b.Hash().String(),
-		PrevBlock:    b.MsgBlock().Header.PrevBlock.String(),
-		Height:       b.Height(),
-		Time:         b.MsgBlock().Header.Timestamp,
-		Transactions: transactions,
-		Version:      b.MsgBlock().Header.Version,
-		MerkleRoot:   b.MsgBlock().Header.MerkleRoot.String(),
-		Bits:         b.MsgBlock().Header.Bits,
-		Nonce:        b.MsgBlock().Header.Nonce,
+	var r BlockResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Block{}, err
 	}
-	out, err := json.Marshal(node)
-	if err != nil {
-		return err
+	if len(r.Blk) == 0 {
+		return Block{}, errors.New("Block not found")
 	}
-	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.Blk[0].Block, nil
 }
 
 // LastBlockHeight returnes the height of the last block synced by Bitgodine
@@ -140,6 +128,7 @@ func LastBlock() (Block, error) {
 			h as max(val(blocks_height))
 		}
     b(func: eq(height, val(h))) {
+			uid
       hash
       height
       version
@@ -187,4 +176,47 @@ func StoredBlocks() ([]Block, error) {
 	}
 
 	return blocks, nil
+}
+
+// RemoveBlock removes the block specified by its height
+func RemoveBlock(block *Block) error {
+	var delete = struct {
+		UID string `json:"uid"`
+	}{
+		UID: block.UID,
+	}
+	out, err := json.Marshal(delete)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: out, CommitNow: true})
+	return err
+}
+
+// GetBlockUIDFromHeight returnes the dgraph uid of the block stored at the passed height
+func GetBlockUIDFromHeight(height int32) ([]string, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		block(func: eq(height, %d)) {
+			uid
+		}
+	}`, height))
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Block []struct {
+			UID string `json:"uid,omitempty"`
+		}
+	}
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Block) == 0 {
+		return nil, errors.New("Block not found")
+	}
+	var uids []string
+	for _, b := range r.Block {
+		uids = append(uids, b.UID)
+	}
+	return uids, nil
 }

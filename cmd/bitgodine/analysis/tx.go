@@ -54,7 +54,7 @@ var txCmd = &cobra.Command{
 		} else {
 			table.SetHeader([]string{"Heuristic", "Privacy"})
 			// table.SetBorder(false)
-			privacy := analysis.Tx(&tx)
+			privacy := analysis.TxSingleCore(&tx)
 			for i, p := range privacy {
 				if p {
 					table.SetColumnColor(

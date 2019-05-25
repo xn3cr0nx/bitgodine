@@ -9,7 +9,7 @@ import (
 	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 )
 
-// ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
+// ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic
 func ChangeOutput(tx *txs.Tx) (uint32, error) {
 	var outputAddresses []uint32
 	blockHeight, err := tx.BlockHeight()
@@ -21,9 +21,14 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 		if err != nil {
 			return 0, err
 		}
-		firstOccurence, err := addresses.FirstAppearence(addr[0].EncodeAddress())
-		if err != nil {
-			return 0, err
+		var firstOccurence int32
+		if len(addr) > 0 {
+			firstOccurence, err = addresses.FirstAppearence(&addr[0])
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			continue
 		}
 		// check if occurence is the first, e.g. the transaction block height is the firstOccurence
 		if firstOccurence == blockHeight {

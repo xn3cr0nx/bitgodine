@@ -20,18 +20,21 @@ var behaviourCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if args[0] == "" {
-			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})
+			logger.Error("Analyze", errors.New("Missing transaction hash"), logger.Params{})
+			os.Exit(-1)
 		}
 
 		logger.Info("Analyze behaviour", "Analyzing...", logger.Params{"tx": args[0]})
 
 		txHash, err := chainhash.NewHashFromStr(args[0])
 		if err != nil {
-			logger.Panic("Analyze behaviour", err, logger.Params{})
+			logger.Error("Analyze behaviour", err, logger.Params{})
+			os.Exit(-1)
 		}
 		tx, err := txs.Get(txHash)
 		if err != nil {
-			logger.Panic("Analyze behaviour", err, logger.Params{})
+			logger.Error("Analyze behaviour", err, logger.Params{})
+			os.Exit(-1)
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
@@ -43,7 +46,7 @@ var behaviourCmd = &cobra.Command{
 				tablewriter.Colors{},
 				tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiRedColor},
 				tablewriter.Colors{tablewriter.Bold, tablewriter.FgHiRedColor})
-			table.Append([]string{"behaviour Chain", args[0], "✓"})
+			table.Append([]string{"behaviour", args[0], "✓"})
 		} else {
 			table.SetColumnColor(
 				tablewriter.Colors{},

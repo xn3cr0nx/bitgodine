@@ -88,7 +88,7 @@ func StoreCoinbase() error {
 // GetTx returnes the node from the query queried
 func GetTx(hash string) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		txs(func: eq(hash, %s)) {
+		txs(func: eq(hash, "%s")) {
 			uid
 			hash
 			locktime
@@ -266,7 +266,7 @@ func GetTxBlockHeight(hash string) (int32, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		block(func: has(prev_block)) @cascade {
 			height
-			transactions @filter(eq(hash, "%s")) {}
+			transactions @filter(eq(hash, "%s"))
 		}
 	}`, hash))
 	if err != nil {
@@ -284,15 +284,6 @@ func GetTxBlockHeight(hash string) (int32, error) {
 
 // GetTransactionsHeightRange returnes the list of transaction contained between height boundaries passed as arguments
 func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
-	// resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-	// 	txs(func: ge(height, %d), first: %d)  {
-	// 		transactions {
-	//       expand(_all_) {
-	//         expand(_all_)
-	//       }
-	//     }
-	// 	}
-	// }`, *from, (*to)-(*from)+1))
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		txs(func: ge(height, %d), first: %d)  {
 			transactions @filter(gt(count(outputs), 1)) {

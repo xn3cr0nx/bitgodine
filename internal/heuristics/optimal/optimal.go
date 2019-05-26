@@ -4,23 +4,23 @@ import (
 	"errors"
 	"math"
 
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 )
 
 // ChangeOutput returnes the index of the output which value is less than any inputs value, if there is any
-func ChangeOutput(tx *txs.Tx) (uint32, error) {
+func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 	// max value int64
 	var minInput int64 = 9223372036854775807
-	for i, in := range tx.MsgTx().TxIn {
-		spentTx, err := tx.GetSpentTx(uint32(i))
+	for _, in := range tx.Inputs {
+		spentTx, err := dgraph.GetTx(in.Hash)
 		if err != nil {
 			return 0, err
 		}
-		value := spentTx.MsgTx().TxOut[int(in.PreviousOutPoint.Index)].Value
+		value := spentTx.Outputs[int(in.Vout)].Value
 		minInput = int64(math.Min(float64(minInput), float64(value)))
 	}
 	var lowerOuts []uint32
-	for o, out := range tx.MsgTx().TxOut {
+	for o, out := range tx.Outputs {
 		if out.Value < minInput {
 			lowerOuts = append(lowerOuts, uint32(o))
 		}
@@ -35,7 +35,7 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(tx *txs.Tx) bool {
+func Vulnerable(tx *dgraph.Transaction) bool {
 	_, err := ChangeOutput(tx)
 	if err == nil {
 		return true

@@ -3,14 +3,13 @@ package power
 import (
 	"errors"
 
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 )
 
 // ChangeOutput returnes the index of the output which value is power of ten, if there is any and only one
-func ChangeOutput(tx *txs.Tx) (uint32, error) {
+func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 	var powerOutputs []uint32
-
-	for k, out := range tx.MsgTx().TxOut {
+	for k, out := range tx.Outputs {
 		if (out.Value % 10) == 0 {
 			powerOutputs = append(powerOutputs, uint32(k))
 		}
@@ -25,7 +24,7 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to power heuristic
-func Vulnerable(tx *txs.Tx) bool {
+func Vulnerable(tx *dgraph.Transaction) bool {
 	_, err := ChangeOutput(tx)
 	if err != nil {
 		return false

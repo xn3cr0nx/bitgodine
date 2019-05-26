@@ -1,33 +1,30 @@
 package class
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 )
 
 // ChangeOutput returnes the index of the output which address type corresponds to input addresses type
-func ChangeOutput(tx *txs.Tx) (uint32, error) {
+func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 	var inputTypes []txscript.ScriptClass
 	var outputTypes []txscript.ScriptClass
 
-	for vout, in := range tx.MsgTx().TxIn {
-		spentTx, err := tx.GetSpentTx(uint32(vout))
+	for _, in := range tx.Inputs {
+		spentTx, err := dgraph.GetTx(in.Hash)
 		if err != nil {
 			if err.Error() == "Coinbase transaction" {
 				continue
 			}
 			return 0, err
 		}
-		class, _, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[in.PreviousOutPoint.Index].PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			if err.Error() == "Coinbase transaction" {
-				continue
-			}
-			return 0, err
-		}
+		script, _ := hex.DecodeString(spentTx.Outputs[in.Vout].PkScript)
+		class := txscript.GetScriptClass(script)
+		fmt.Println("extract class?", class.String())
 		inputTypes = append(inputTypes, class)
 	}
 	// check all inputs are of the same type
@@ -36,11 +33,10 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 			return 0, errors.New("There are different kind of addresses between inputs")
 		}
 	}
-	for _, out := range tx.MsgTx().TxOut {
-		class, _, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			return 0, err
-		}
+	for _, out := range tx.Outputs {
+		script, _ := hex.DecodeString(out.PkScript)
+		class := txscript.GetScriptClass(script)
+		fmt.Println("and then extract class?", class.String())
 		outputTypes = append(outputTypes, class)
 	}
 	// check there are not two or more outputs of the same type
@@ -61,7 +57,7 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(tx *txs.Tx) bool {
+func Vulnerable(tx *dgraph.Transaction) bool {
 	_, err := ChangeOutput(tx)
 	if err == nil {
 		return true

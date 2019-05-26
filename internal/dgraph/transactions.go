@@ -306,6 +306,9 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, err
 	}
+	if len(r.Txs) < 1 {
+		return nil, errors.New("No transaction found in the block height range")
+	}
 	if len(r.Txs[0].Transactions) == 0 {
 		return nil, errors.New("No transaction found in the block height range")
 	}

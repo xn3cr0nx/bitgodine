@@ -7,6 +7,7 @@ import (
 
 	"github.com/chenjiandongx/go-echarts/charts"
 	"github.com/olekukonko/tablewriter"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/backward"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/behaviour"
@@ -17,7 +18,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/power"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/reuse"
 	class "github.com/xn3cr0nx/bitgodine_code/internal/heuristics/type"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -25,7 +25,7 @@ import (
 func Range(from, to int32) ([][]bool, error) {
 	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
 
-	transactions, err := txs.GetHeightRange(&from, &to)
+	transactions, err := dgraph.GetTransactionsHeightRange(&from, &to)
 	if err != nil {
 		logger.Error("Analysis", err, logger.Params{})
 		return nil, err
@@ -34,8 +34,8 @@ func Range(from, to int32) ([][]bool, error) {
 	analysis := make(chan []bool, lenAnalysis)
 	result := make([][]bool, lenAnalysis)
 	for _, tx := range transactions {
-		logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash().String()), logger.Params{})
-		if len(tx.MsgTx().TxOut) <= 1 {
+		logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash), logger.Params{})
+		if len(tx.Outputs) <= 1 {
 			// TODO: find a nice way to put a placeholder line
 			// analysis <- []bool{false, false, false, false, false, false, false, false, false}
 			continue
@@ -51,8 +51,8 @@ func Range(from, to int32) ([][]bool, error) {
 
 // Tx applies all the heuristics to the passed transaction returning a boolean value for each of them
 // representing in vulnerable or not
-func Tx(tx txs.Tx, analysis chan []bool) {
-	fmt.Println("analyzing tx", tx.Hash().String())
+func Tx(tx dgraph.Transaction, analysis chan []bool) {
+	fmt.Println("analyzing tx", tx.Hash)
 	var privacy []bool
 	privacy = append(privacy, peeling.IsPeelingChain(&tx))
 	privacy = append(privacy, power.Vulnerable(&tx))
@@ -68,7 +68,7 @@ func Tx(tx txs.Tx, analysis chan []bool) {
 
 // TxSingleCore applies all the heuristics to the passed transaction returning a boolean value for each of them
 // representing in vulnerable or not
-func TxSingleCore(tx *txs.Tx) (privacy []bool) {
+func TxSingleCore(tx *dgraph.Transaction) (privacy []bool) {
 	privacy = append(privacy, peeling.IsPeelingChain(tx))
 	privacy = append(privacy, power.Vulnerable(tx))
 	privacy = append(privacy, optimal.Vulnerable(tx))
@@ -90,7 +90,7 @@ func evaulateOutput(privacy *[]string, output uint32, err error) {
 }
 
 // TxChange applies all the heuristics to the passed transaction returning the vout of the change output for each of them
-func TxChange(tx *txs.Tx) (privacy []string) {
+func TxChange(tx *dgraph.Transaction) (privacy []string) {
 	output, err := peeling.ChangeOutput(tx)
 	evaulateOutput(&privacy, output, err)
 	output, err = power.ChangeOutput(tx)

@@ -4,33 +4,26 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(tx *txs.Tx) (uint32, error) {
-	var inputAddresses []btcutil.Address
+func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
+	var inputAddresses []string
 
-	logger.Debug("Forward Heuristic", fmt.Sprintf("transaction %s", tx.Hash().String()), logger.Params{})
+	logger.Debug("Forward Heuristic", fmt.Sprintf("transaction %s", tx.Hash), logger.Params{})
 
-	for vout, in := range tx.MsgTx().TxIn {
-		spentTx, err := tx.GetSpentTx(uint32(vout))
+	for _, in := range tx.Inputs {
+		spentTx, err := dgraph.GetTx(in.Hash)
 		if err != nil {
 			return 0, err
 		}
-		_, addr, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[int(in.PreviousOutPoint.Index)].PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			return 0, err
-		}
-		inputAddresses = append(inputAddresses, addr[0])
+		inputAddresses = append(inputAddresses, spentTx.Outputs[in.Vout].Address)
 	}
 
-	for vout := range tx.MsgTx().TxOut {
-		spendingTx, err := tx.GetSpendingTx(uint32(vout))
+	for _, out := range tx.Outputs {
+		spendingTx, err := dgraph.GetFollowingTx(&tx.Hash, &out.Vout)
 		if err != nil {
 			// transaction not found => output not yet spent, but we can identify the change output anyway
 			if err.Error() == "transaction not found" {
@@ -38,25 +31,22 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 			}
 			return 0, err
 		}
-		logger.Debug("Forward Heuristic", fmt.Sprintf("tx spending output vout %d: %s", vout, spendingTx.Hash().String()), logger.Params{})
-		for in, spendingIn := range spendingTx.MsgTx().TxIn {
-			logger.Debug("Forward Heuristic", fmt.Sprintf("input of spending tx %s", spendingIn.PreviousOutPoint.Hash.String()), logger.Params{})
+		logger.Debug("Forward Heuristic", fmt.Sprintf("tx spending output vout %d: %s", out.Vout, spendingTx.Hash), logger.Params{})
+		for _, spendingIn := range spendingTx.Inputs {
+			logger.Debug("Forward Heuristic", fmt.Sprintf("input of spending tx %s", spendingIn.Hash), logger.Params{})
 			// check if the input is the one the spending transaction is reached from
-			if spendingIn.PreviousOutPoint.Index == uint32(vout) {
+			if spendingIn.Vout == out.Vout {
 				continue
 			}
-			spentTx, err := spendingTx.GetSpentTx(uint32(in))
+			spentTx, err := dgraph.GetTx(spendingIn.Hash)
 			if err != nil {
 				return 0, err
 			}
-			logger.Debug("Forward Heuristic", fmt.Sprintf("spent tx %s", spentTx.Hash().String()), logger.Params{})
-			_, addr, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[int(spendingIn.PreviousOutPoint.Index)].PkScript, &chaincfg.MainNetParams)
-			if err != nil {
-				return 0, err
-			}
+			logger.Debug("Forward Heuristic", fmt.Sprintf("spent tx %s", spentTx.Hash), logger.Params{})
+			addr := spentTx.Outputs[spendingIn.Vout].Address
 			for _, inputAddr := range inputAddresses {
-				if addr[0].EncodeAddress() == inputAddr.EncodeAddress() {
-					return uint32(vout), nil
+				if addr == inputAddr {
+					return out.Vout, nil
 				}
 			}
 		}
@@ -66,7 +56,7 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(tx *txs.Tx) bool {
+func Vulnerable(tx *dgraph.Transaction) bool {
 	_, err := ChangeOutput(tx)
 	if err == nil {
 		return true

@@ -93,14 +93,14 @@ func GetTx(hash string) (Transaction, error) {
 			hash
 			locktime
 			version
-			inputs {
+			inputs (orderasc: vout) {
 				uid
 				hash
 				vout
 				signature_script
 				witness
 			}
-			outputs {
+			outputs (orderasc: vout) {
 				uid
 				value
 				vout
@@ -152,7 +152,7 @@ func GetTxUID(hash *string) (string, error) {
 func GetTxOutputs(hash *string) ([]Output, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		transactions(func: allofterms(hash, %s)) {
-			outputs {
+			outputs (orderasc: vout) {
 				uid
         value
         vout
@@ -217,7 +217,7 @@ func GetFollowingTx(hash *string, vout *uint32) (Transaction, error) {
 				hash
 				vout
 			}
-			outputs {
+			outputs (orderasc: vout) {
 				value
 				vout
 			}
@@ -306,6 +306,9 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, err
 	}
+	if len(r.Txs) < 1 {
+		return nil, errors.New("No transaction found in the block height range")
+	}
 	if len(r.Txs[0].Transactions) == 0 {
 		return nil, errors.New("No transaction found in the block height range")
 	}
@@ -317,4 +320,18 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 		}
 	}
 	return txs, nil
+}
+
+// IsSpent returnes true if exists a transaction that takes as input to the new tx
+// the output corresponding to the index passed to the function
+func IsSpent(tx string, index uint32) bool {
+	_, err := GetFollowingTx(&tx, &index)
+	if err != nil {
+		// just for sake of clarity, untill I'm going to refactor this piece to be more useful
+		if err.Error() == "transaction not found" {
+			return false
+		}
+		return false
+	}
+	return true
 }

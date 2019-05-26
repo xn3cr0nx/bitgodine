@@ -4,75 +4,61 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(tx *txs.Tx) (uint32, error) {
+func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 	var outputAddresses,
 		inputAddresses,
-		inputTargets []btcutil.Address
-	var spentTxs []txs.Tx
+		inputTargets []string
+	var spentTxs []dgraph.Transaction
 	var outputTargets []uint32
 
-	logger.Debug("Backward Heuristic", fmt.Sprintf("transaction %s", tx.Hash().String()), logger.Params{})
+	logger.Debug("Backward Heuristic", fmt.Sprintf("transaction %s", tx.Hash), logger.Params{})
 
-	for _, out := range tx.MsgTx().TxOut {
-		_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			return 0, err
-		}
-		outputAddresses = append(outputAddresses, addr[0])
+	for _, out := range tx.Outputs {
+		outputAddresses = append(outputAddresses, out.Address)
 	}
-
-	for vout, in := range tx.MsgTx().TxIn {
-		spentTx, err := tx.GetSpentTx(uint32(vout))
+	for _, in := range tx.Inputs {
+		spentTx, err := dgraph.GetTx(in.Hash)
 		if err != nil {
 			return 0, err
 		}
-		_, addr, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[int(in.PreviousOutPoint.Index)].PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			return 0, err
-		}
-		inputAddresses = append(inputAddresses, addr[0])
+		addr := spentTx.Outputs[in.Vout].Address
+		inputAddresses = append(inputAddresses, addr)
 		spentTxs = append(spentTxs, spentTx)
 	}
 
 	for _, spent := range spentTxs {
-		logger.Debug("Backward Heuristic", fmt.Sprintf("spent transaction %s", spent.Hash().String()), logger.Params{})
-		for vout, in := range spent.MsgTx().TxIn {
-			spentTx, err := spent.GetSpentTx(uint32(vout))
+		logger.Debug("Backward Heuristic", fmt.Sprintf("spent transaction %s", spent.Hash), logger.Params{})
+		for _, in := range spent.Inputs {
+			spentTx, err := dgraph.GetTx(in.Hash)
 			if err != nil {
 				return 0, err
 			}
-			_, addr, _, err := txscript.ExtractPkScriptAddrs(spentTx.MsgTx().TxOut[int(in.PreviousOutPoint.Index)].PkScript, &chaincfg.MainNetParams)
-			if err != nil {
-				return 0, err
-			}
+			addr := spentTx.Outputs[in.Vout].Address
 			for _, inputAddr := range inputAddresses {
-				if addr[0].EncodeAddress() == inputAddr.EncodeAddress() {
-					inputTargets = append(inputTargets, addr[0])
+				if addr == inputAddr {
+					inputTargets = append(inputTargets, addr)
 				}
 			}
 			if len(inputTargets) > 0 {
 				for target, outputAddr := range outputAddresses {
-					if addr[0].EncodeAddress() == outputAddr.EncodeAddress() {
+					if addr == outputAddr {
 						outputTargets = append(outputTargets, uint32(target))
 					}
 				}
 
 				for _, target := range outputTargets {
 					for _, input := range inputTargets {
-						if outputAddresses[int(target)].EncodeAddress() != input.EncodeAddress() {
+						if outputAddresses[int(target)] != input {
 							return target, nil
 						}
 					}
 				}
-				inputTargets, outputTargets = []btcutil.Address{}, []uint32{}
+				inputTargets, outputTargets = []string{}, []uint32{}
 			}
 		}
 	}
@@ -81,7 +67,7 @@ func ChangeOutput(tx *txs.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(tx *txs.Tx) bool {
+func Vulnerable(tx *dgraph.Transaction) bool {
 	_, err := ChangeOutput(tx)
 	if err == nil {
 		return true

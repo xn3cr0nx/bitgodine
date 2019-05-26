@@ -4,11 +4,10 @@ import (
 	"errors"
 	"os"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/peeling"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -25,11 +24,7 @@ var peelingCmd = &cobra.Command{
 
 		logger.Info("Analyze peeling", "Analyzing...", logger.Params{"tx": args[0]})
 
-		txHash, err := chainhash.NewHashFromStr(args[0])
-		if err != nil {
-			logger.Panic("Analyze peeling", err, logger.Params{})
-		}
-		tx, err := txs.Get(txHash)
+		tx, err := dgraph.GetTx(args[0])
 		if err != nil {
 			logger.Panic("Analyze peeling", err, logger.Params{})
 		}

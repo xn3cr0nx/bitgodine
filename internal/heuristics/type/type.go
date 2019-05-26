@@ -3,7 +3,6 @@ package class
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -24,7 +23,6 @@ func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 		}
 		script, _ := hex.DecodeString(spentTx.Outputs[in.Vout].PkScript)
 		class := txscript.GetScriptClass(script)
-		fmt.Println("extract class?", class.String())
 		inputTypes = append(inputTypes, class)
 	}
 	// check all inputs are of the same type
@@ -36,7 +34,6 @@ func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 	for _, out := range tx.Outputs {
 		script, _ := hex.DecodeString(out.PkScript)
 		class := txscript.GetScriptClass(script)
-		fmt.Println("and then extract class?", class.String())
 		outputTypes = append(outputTypes, class)
 	}
 	// check there are not two or more outputs of the same type

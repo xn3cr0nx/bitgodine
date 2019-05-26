@@ -4,13 +4,12 @@ import (
 	"errors"
 	"os"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics/analysis"
-	txs "github.com/xn3cr0nx/bitgodine_code/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -24,19 +23,20 @@ var txCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if args[0] == "" {
-			logger.Panic("Analyze", errors.New("Missing transaction hash"), logger.Params{})
+			logger.Error("Analyze", errors.New("Missing transaction hash"), logger.Params{})
+			os.Exit(-1)
 		}
 
 		logger.Info("Analyze", "Analyzing...", logger.Params{"tx": args[0]})
 
-		txHash, err := chainhash.NewHashFromStr(args[0])
+		tx, err := dgraph.GetTx(args[0])
 		if err != nil {
-			logger.Panic("Analyze peeling", err, logger.Params{})
+			logger.Error("Analyze Transactions", err, logger.Params{})
+			os.Exit(-1)
 		}
-		tx, err := txs.Get(txHash)
-		if len(tx.MsgTx().TxOut) <= 1 {
+		if len(tx.Outputs) <= 1 {
 			logger.Error("Analysis Transaction", errors.New("The transaction cannot be analyzed, less than 2 tx output"), logger.Params{})
-			return
+			os.Exit(-1)
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)

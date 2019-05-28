@@ -24,27 +24,40 @@ import (
 // Range applies heuristics to transaction contained in blocks specified in the range
 func Range(from, to int32) ([][]bool, error) {
 	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
+	var result [][]bool
 
-	transactions, err := dgraph.GetTransactionsHeightRange(&from, &to)
-	if err != nil {
-		logger.Error("Analysis", err, logger.Params{})
-		return nil, err
-	}
-	lenAnalysis := len(transactions)
-	analysis := make(chan []bool, lenAnalysis)
-	result := make([][]bool, lenAnalysis)
-	for _, tx := range transactions {
-		logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash), logger.Params{})
-		if len(tx.Outputs) <= 1 {
-			// TODO: find a nice way to put a placeholder line
-			// analysis <- []bool{false, false, false, false, false, false, false, false, false}
-			continue
+	for i := from; i < to; i = i + 10 {
+		// transactions, err := dgraph.GetTransactionsHeightRange(&from, &to)
+		var hbound int32
+		if (i + 10) < to {
+			hbound = i + 10
+		} else {
+			hbound = to - i
 		}
-		go Tx(tx, analysis)
-	}
-	for i := 0; i < lenAnalysis; i++ {
-		resp := <-analysis
-		result[i] = resp
+		transactions, err := dgraph.GetTransactionsHeightRange(&i, &hbound)
+		if err != nil {
+			if err.Error() == "No transaction found in the block height range" {
+				continue
+			}
+			logger.Error("Analysis", err, logger.Params{})
+			return nil, err
+		}
+		lenAnalysis := len(transactions)
+		analysis := make(chan []bool, lenAnalysis)
+		for _, tx := range transactions {
+			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.Hash), logger.Params{})
+			if len(tx.Outputs) <= 1 {
+				// TODO: find a nice way to put a placeholder line
+				// analysis <- []bool{false, false, false, false, false, false, false, false, false}
+				continue
+			}
+			go Tx(tx, analysis)
+		}
+		for i := 0; i < lenAnalysis; i++ {
+			resp := <-analysis
+			// result[i] = resp
+			result = append(result, resp)
+		}
 	}
 	return result, nil
 }

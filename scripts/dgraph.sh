@@ -12,7 +12,7 @@ else
 fi
 
 # Run Dgraph Alpha
-docker exec -d diggy dgraph alpha --lru_mb 4096 --zero localhost:5080
+docker exec -d diggy dgraph alpha --lru_mb 12288 --zero localhost:5080
 
 # Run Dgraph Ratel
 docker exec -d diggy dgraph-ratel

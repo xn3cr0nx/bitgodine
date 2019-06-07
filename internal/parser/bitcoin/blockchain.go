@@ -1,4 +1,4 @@
-package parser
+package bitcoin
 
 import (
 	"errors"
@@ -7,16 +7,15 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Walk goes through the blockchain block by block
-func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, done chan int) (int32, *chainhash.Hash, map[chainhash.Hash][]visitor.Utxo) {
+func (p *Parser) Walk() (int32, *chainhash.Hash, map[chainhash.Hash][]visitor.Utxo) {
 	skipped := make(map[chainhash.Hash]blocks.Block)
 	// Hashmap that represents the utxos set. For each transaction keeps track of utxo associated
 	// with each transaction mapping the tx hash to the array of related utxo
@@ -24,7 +23,7 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock blocks.Block
 	// prevHeight := int32(0)
-	height := bc.Height()
+	height := p.blockchain.Height()
 
 	// check if "coinbase output" is stored in dgraph
 	hash := strings.Repeat("0", 64)
@@ -36,18 +35,18 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 	}
 
 	var rawChain [][]uint8
-	for _, ref := range bc.Maps {
+	for _, ref := range p.blockchain.Maps {
 		rawChain = append(rawChain, []uint8(ref))
 	}
 	logger.Debug("Blockchain", fmt.Sprintf("Files converted to be parsed: %d", len(rawChain)), logger.Params{})
 
 	if height > 0 {
 		logger.Debug("Blockchain", fmt.Sprintf("reaching endpoint to start from %d", height), logger.Params{})
-		last, err := bc.Head()
+		last, err := p.blockchain.Head()
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
-		if err := restoreSkipped(&skipped); err != nil {
+		if err := restoreSkipped(p.dbblocks, &skipped); err != nil {
 			logger.Error("Blockchain", err, logger.Params{})
 			os.Exit(-1)
 		}
@@ -65,23 +64,23 @@ func Walk(bc *blockchain.Blockchain, v visitor.BlockchainVisitor, interrupt, don
 		if len(ref) == 0 {
 			continue
 		}
-		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": fmt.Sprintf("%v/%v", k, len(bc.Maps)-1)})
-		WalkSlice(&ref, goalPrevHash, &lastBlock, &height, &skipped, &utxoSet, &v, interrupt, done)
+		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": fmt.Sprintf("%v/%v", k, len(p.blockchain.Maps)-1)})
+		WalkSlice(p, &ref, goalPrevHash, &lastBlock, &height, &skipped, &utxoSet)
 	}
 
 	return height, goalPrevHash, utxoSet
 }
 
 // WalkSlice goes through a slice (block) of the chain
-func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.Block, height *int32, skipped *map[chainhash.Hash]blocks.Block, utxoSet *map[chainhash.Hash][]visitor.Utxo, v *visitor.BlockchainVisitor, interrupt, done chan int) {
+func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.Block, height *int32, skipped *map[chainhash.Hash]blocks.Block, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
 	for len(*slice) > 0 {
 		select {
-		case x, ok := <-interrupt:
+		case x, ok := <-p.interrupt:
 			if ok {
 				logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
 
 				select {
-				case _, ok := <-done:
+				case _, ok := <-p.done:
 					fmt.Println("Received done")
 					if ok {
 						logger.Info("Blockchain", "Exporting done", logger.Params{})
@@ -95,19 +94,19 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 		default:
 			if _, ok := (*skipped)[*goalPrevHash]; ok {
 				logger.Debug("Blockchain", fmt.Sprintf("(rewind - pre-step) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
-				BlockWalk(lastBlock, v, height, utxoSet)
+				BlockWalk(lastBlock, &p.visitor, height, utxoSet)
 				(*height)++
 				// Here I should do the for loop removing every goal_prev_hash and
 				// walking the block obtained at the index of goal_prev_hash
 				for {
 					if block, ok := (*skipped)[*goalPrevHash]; ok {
 						delete(*skipped, *goalPrevHash)
-						if err := db.DeleteBlock(goalPrevHash); err != nil {
+						if err := p.dbblocks.DeleteBlock(goalPrevHash); err != nil {
 							logger.Error("Blockchain", err, logger.Params{})
 							return
 						}
 						logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
-						BlockWalk(&block, v, height, utxoSet)
+						BlockWalk(&block, &p.visitor, height, utxoSet)
 						(*height)++
 						*goalPrevHash = *block.Hash()
 						// possible bug initialization to null (None in rust)
@@ -139,7 +138,7 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
 				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
-				if err := db.StoreBlockPrevHash(block); err != nil {
+				if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
 					logger.Panic("Blockchain", err, logger.Params{})
 				}
 
@@ -160,7 +159,7 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 						}
 
 						(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
-						if err := db.StoreBlockPrevHash(block); err != nil {
+						if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
 							logger.Panic("Blockchain", err, logger.Params{})
 						}
 						if block.MsgBlock().Header.PrevBlock == *firstOrphan.Hash() {
@@ -182,7 +181,7 @@ func WalkSlice(slice *[]uint8, goalPrevHash *chainhash.Hash, lastBlock *blocks.B
 
 			if lastBlock.CheckBlock() {
 				logger.Debug("Blockchain", fmt.Sprintf("(last_block) Block %v - %v -> %v", *height, lastBlock.MsgBlock().Header.PrevBlock.String(), lastBlock.Hash().String()), logger.Params{})
-				BlockWalk(lastBlock, v, height, utxoSet)
+				BlockWalk(lastBlock, &p.visitor, height, utxoSet)
 				(*height)++
 			}
 
@@ -210,7 +209,7 @@ func findCheckPointByHash(chain *[][]uint8, hash *chainhash.Hash) (blocks.Block,
 	return blocks.Block{}, nil
 }
 
-func restoreSkipped(skipped *map[chainhash.Hash]blocks.Block) error {
+func restoreSkipped(db *dbblocks.DbBlocks, skipped *map[chainhash.Hash]blocks.Block) error {
 	cachedSkipped, err := db.GetAll()
 	if err != nil {
 		return err

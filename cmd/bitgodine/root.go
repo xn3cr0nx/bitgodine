@@ -102,7 +102,7 @@ func init() {
 	viper.SetDefault("outputDir", bitgodineFolder)
 
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(bitgodineFolder, "badger"), "Sets the path to the indexing db files")
-	viper.SetDefault("dbDir", filepath.Join(hd, ".bitgodine", "badger"))
+	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 
 	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")

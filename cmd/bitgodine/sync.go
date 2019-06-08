@@ -10,6 +10,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbclusters"
+	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint/persistent"
 	"github.com/xn3cr0nx/bitgodine_code/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
@@ -33,18 +35,24 @@ data representation to analyze the blockchain.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Info("Sync", "Sync called", logger.Params{})
 
-		skippedBlocksStorage, err := dbblocks.NewDbBlocks(&dbblocks.Config{Dir: viper.GetString("dbDir")})
+		skippedBlocksStorage, err := dbblocks.NewDbBlocks(BadgerConf())
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		clustersStorage, err := dbclusters.NewDbClusters(BadgerConf())
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
-		cltz := visitor.NewClusterizer()
+		set := persistent.NewDisjointSet(clustersStorage)
+		cltz := visitor.NewClusterizer(&set)
 		interrupt := make(chan int)
 		done := make(chan int)
 
-		bp := bitcoin.NewParser(b, cltz, skippedBlocksStorage, nil, interrupt, done)
+		bp := bitcoin.NewParser(b, cltz, skippedBlocksStorage, interrupt, done)
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)

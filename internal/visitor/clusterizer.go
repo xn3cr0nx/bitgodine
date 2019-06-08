@@ -22,13 +22,13 @@ import (
 
 // Clusterizer struct containing the disjoint set data structure
 type Clusterizer struct {
-	clusters *disjoint.DisjointSet
+	clusters disjoint.DisjointSet
 }
 
 // NewClusterizer returns a new clusterizer
-func NewClusterizer() Clusterizer {
+func NewClusterizer(set disjoint.DisjointSet) Clusterizer {
 	return Clusterizer{
-		clusters: disjoint.NewDisjointSet(),
+		clusters: set,
 	}
 }
 
@@ -93,9 +93,9 @@ func (c Clusterizer) Done() (DoneItem, error) {
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
-	for address, tag := range c.clusters.HashMap {
+	for address, tag := range c.clusters.GetHashMap() {
 		// fmt.Printf("	tag %v, element %v\n", tag, c.clusters.Parent[tag])
-		writer.Write([]string{string(address.(Utxo)), strconv.Itoa(c.clusters.Parent[tag])})
+		writer.Write([]string{string(address.(Utxo)), strconv.Itoa(c.clusters.GetParent(tag))})
 	}
 
 	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": c.clusters.Size()})

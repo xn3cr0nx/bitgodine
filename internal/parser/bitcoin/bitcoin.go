@@ -3,7 +3,6 @@ package bitcoin
 import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbclusters"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 )
 
@@ -14,18 +13,16 @@ type Parser struct {
 	blockchain *blockchain.Blockchain
 	visitor    visitor.BlockchainVisitor
 	dbblocks   *dbblocks.DbBlocks
-	dbclusters *dbclusters.DbClusters
 	interrupt  chan int
 	done       chan int
 }
 
 // NewParser return a new instance to Bitcoin blockchai parser
-func NewParser(blockchain *blockchain.Blockchain, visitor visitor.BlockchainVisitor, dbblocks *dbblocks.DbBlocks, dbclusters *dbclusters.DbClusters, interrupt chan int, done chan int) *Parser {
+func NewParser(blockchain *blockchain.Blockchain, visitor visitor.BlockchainVisitor, dbblocks *dbblocks.DbBlocks, interrupt chan int, done chan int) *Parser {
 	return &Parser{
 		blockchain: blockchain,
 		visitor:    visitor,
 		dbblocks:   dbblocks,
-		dbclusters: dbclusters,
 		interrupt:  interrupt,
 		done:       done,
 	}

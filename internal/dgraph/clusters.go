@@ -10,7 +10,7 @@ import (
 // Clusters represents the set of clusters
 type Clusters struct {
 	UID     string    `json:"uid,omitempty"`
-	Size    int       `json:"size"`
+	Size    uint32    `json:"size"`
 	Parents []Parent  `json:"parents,omitempty"`
 	Ranks   []Rank    `json:"ranks,omitempty"`
 	Set     []Cluster `json:"set,omitempty"`
@@ -20,7 +20,7 @@ type Clusters struct {
 type Cluster struct {
 	UID       string    `json:"uid,omitempty"`
 	Addresses []Address `json:"addresses,omitempty"`
-	Cluster   int       `json:"cluster"`
+	Cluster   uint32    `json:"cluster"`
 }
 
 // Address node
@@ -32,20 +32,36 @@ type Address struct {
 // Parent persist the parent tag and its position
 type Parent struct {
 	UID    string `json:"uid,omitempty"`
-	Pos    int    `json:"pos"`
-	Parent int    `json:"parent"`
+	Pos    uint32 `json:"pos"`
+	Parent uint32 `json:"parent"`
 }
 
 // Rank persist rank and its position
 type Rank struct {
 	UID  string `json:"uid,omitempty"`
-	Pos  int    `json:"pos"`
-	Rank int    `json:"rank"`
+	Pos  uint32 `json:"pos"`
+	Rank uint32 `json:"rank"`
 }
 
 // ClustersResp basic structure to unmarshall cluster query
 type ClustersResp struct {
 	C []struct{ Clusters }
+}
+
+// NewClusters stores the basic struct to manage the cluster sets
+func NewClusters() error {
+	c := Clusters{
+		Size: 0,
+		Set: []Cluster{
+			{
+				UID: "_:init",
+			},
+		},
+	}
+	if err := Store(c); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetClusters returnes the set of all clusters stored in dgraph
@@ -108,7 +124,7 @@ func GetClusterUID() (string, error) {
 }
 
 // GetSetUID returnes the UID of the specified set of addresses
-func GetSetUID(set int) (string, error) {
+func GetSetUID(set uint32) (string, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		c(func: has(set)) {
 			uid
@@ -139,7 +155,7 @@ func GetSetUID(set int) (string, error) {
 }
 
 // UpdateSet adds an address to a cluster
-func UpdateSet(address string, cluster int) error {
+func UpdateSet(address string, cluster uint32) error {
 	uid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -168,7 +184,7 @@ func UpdateSet(address string, cluster int) error {
 
 // NewSet creates a new set in the cluster. A set is composed by
 // at least an addres, that is why address is passed as argument
-func NewSet(address string, cluster int) error {
+func NewSet(address string, cluster uint32) error {
 	uid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -192,7 +208,7 @@ func NewSet(address string, cluster int) error {
 }
 
 // UpdateSize updates the size of the cluster
-func UpdateSize(size int) error {
+func UpdateSize(size uint32) error {
 	uid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -208,7 +224,7 @@ func UpdateSize(size int) error {
 }
 
 // GetParent returns the parent struct at the required position
-func GetParent(pos int) (Parent, error) {
+func GetParent(pos uint32) (Parent, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`
 		c(func: has(set)) {
     	uid
@@ -238,7 +254,7 @@ func GetParent(pos int) (Parent, error) {
 }
 
 // AddParent appends a rank to the cluster
-func AddParent(pos, parent int) error {
+func AddParent(pos, parent uint32) error {
 	uid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -260,7 +276,7 @@ func AddParent(pos, parent int) error {
 }
 
 // UpdateParent updates the parent tag in parent node based on passed position
-func UpdateParent(pos, parent int) error {
+func UpdateParent(pos, parent uint32) error {
 	cuid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -285,7 +301,7 @@ func UpdateParent(pos, parent int) error {
 }
 
 // GetRank returns the parent struct at the required position
-func GetRank(pos int) (Rank, error) {
+func GetRank(pos uint32) (Rank, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`
 		c(func: has(set)) {
     	uid
@@ -315,7 +331,7 @@ func GetRank(pos int) (Rank, error) {
 }
 
 // AddRank appends a rank to the cluster
-func AddRank(pos, rank int) error {
+func AddRank(pos, rank uint32) error {
 	uid, err := GetClusterUID()
 	if err != nil {
 		return err
@@ -337,7 +353,7 @@ func AddRank(pos, rank int) error {
 }
 
 // UpdateRank updates the parent tag in parent node based on passed position
-func UpdateRank(pos, rank int) error {
+func UpdateRank(pos, rank uint32) error {
 	cuid, err := GetClusterUID()
 	if err != nil {
 		return err

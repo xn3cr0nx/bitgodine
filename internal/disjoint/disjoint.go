@@ -2,12 +2,12 @@ package disjoint
 
 // DisjointSet implements disjoint set structure
 type DisjointSet interface {
-	Size() int
-	GetHashMap() map[interface{}]int
-	GetParent(int) int
+	Size() uint32
+	GetHashMap() map[interface{}]uint32
+	GetParent(uint32) uint32
 	MakeSet(interface{})
-	Find(interface{}) (int, error)
-	FindInternal([]int, int) int
-	Union(interface{}, interface{}) (int, error)
+	Find(interface{}) (uint32, error)
+	FindInternal([]uint32, uint32) uint32
+	Union(interface{}, interface{}) (uint32, error)
 	Finalize()
 }

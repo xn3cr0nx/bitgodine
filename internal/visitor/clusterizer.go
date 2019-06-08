@@ -22,13 +22,13 @@ import (
 
 // Clusterizer struct containing the disjoint set data structure
 type Clusterizer struct {
-	clusters disjoint.DisjointSet
+	Clusters disjoint.DisjointSet
 }
 
 // NewClusterizer returns a new clusterizer
 func NewClusterizer(set disjoint.DisjointSet) Clusterizer {
 	return Clusterizer{
-		clusters: set,
+		Clusters: set,
 	}
 }
 
@@ -73,10 +73,10 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 		txInputs := (*txItem).Values()
 		lastAddress := txInputs[0].(Utxo)
 		logger.Debug("Clusterizer", "Enhancing disjoint set", logger.Params{"last_address": lastAddress})
-		c.clusters.MakeSet(lastAddress)
+		c.Clusters.MakeSet(lastAddress)
 		for _, address := range txInputs {
-			c.clusters.MakeSet(address.(Utxo))
-			c.clusters.Union(lastAddress, address.(Utxo))
+			c.Clusters.MakeSet(address.(Utxo))
+			c.Clusters.Union(lastAddress, address.(Utxo))
 			lastAddress = address.(Utxo)
 		}
 	}
@@ -84,8 +84,8 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 
 // Done finalizes the operations of the clusterizer exporting its content to a csv file
 func (c Clusterizer) Done() (DoneItem, error) {
-	c.clusters.Finalize()
-	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.clusters.Size()})
+	c.Clusters.Finalize()
+	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.Clusters.Size()})
 	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("outputDir")))
 	if err != nil {
 		logger.Error("Clusterizer", err, logger.Params{})
@@ -93,11 +93,11 @@ func (c Clusterizer) Done() (DoneItem, error) {
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
-	for address, tag := range c.clusters.GetHashMap() {
-		// fmt.Printf("	tag %v, element %v\n", tag, c.clusters.Parent[tag])
-		writer.Write([]string{string(address.(Utxo)), strconv.Itoa(c.clusters.GetParent(tag))})
+	for address, tag := range c.Clusters.GetHashMap() {
+		// fmt.Printf("	tag %v, element %v\n", tag, c.Clusters.Parent[tag])
+		writer.Write([]string{string(address.(Utxo)), strconv.Itoa(int(c.Clusters.GetParent(tag)))})
 	}
 
-	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": c.clusters.Size()})
-	return DoneItem(c.clusters.Size()), nil
+	logger.Info("Clusterizer", "Exported clusters to CSV", logger.Params{"size": c.Clusters.Size()})
+	return DoneItem(c.Clusters.Size()), nil
 }

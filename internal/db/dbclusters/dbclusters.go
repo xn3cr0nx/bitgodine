@@ -1,10 +1,9 @@
 package dbclusters
 
-import "github.com/dgraph-io/badger"
-
-type Config struct {
-	Dir string
-}
+import (
+	"github.com/dgraph-io/badger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+)
 
 // DbClusters instance of key value store designed to treat clusters of addresses
 type DbClusters struct {
@@ -12,7 +11,7 @@ type DbClusters struct {
 }
 
 // NewDbClusters creates a new instance of DbClusters
-func NewDbClusters(conf *Config) (*DbClusters, error) {
+func NewDbClusters(conf *db.Config) (*DbClusters, error) {
 	opts := badger.DefaultOptions
 	opts.Dir, opts.ValueDir = conf.Dir, conf.Dir
 	db, err := badger.Open(opts)

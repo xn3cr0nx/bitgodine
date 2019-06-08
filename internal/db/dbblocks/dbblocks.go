@@ -11,12 +11,9 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/badger"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
-
-type Config struct {
-	Dir string
-}
 
 // DbBlocks instance of key value store designed to treat block structs
 type DbBlocks struct {
@@ -24,7 +21,7 @@ type DbBlocks struct {
 }
 
 // NewDbBlocks creates a new instance of DbBlocks
-func NewDbBlocks(conf *Config) (*DbBlocks, error) {
+func NewDbBlocks(conf *db.Config) (*DbBlocks, error) {
 	opts := badger.DefaultOptions
 	opts.Dir, opts.ValueDir = conf.Dir, conf.Dir
 	db, err := badger.Open(opts)

@@ -12,7 +12,7 @@ import (
 	// "github.com/btcsuite/btcd/wire"
 	// "github.com/btcsuite/btcutil"
 	// "github.com/dgraph-io/dgo/protos/api"
-	"github.com/dgraph-io/dgo/protos/api"
+
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -180,17 +180,7 @@ func StoredBlocks() ([]Block, error) {
 
 // RemoveBlock removes the block specified by its height
 func RemoveBlock(block *Block) error {
-	var delete = struct {
-		UID string `json:"uid"`
-	}{
-		UID: block.UID,
-	}
-	out, err := json.Marshal(delete)
-	if err != nil {
-		return err
-	}
-	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: out, CommitNow: true})
-	return err
+	return Delete(block.UID)
 }
 
 // GetBlockUIDFromHeight returnes the dgraph uid of the block stored at the passed height

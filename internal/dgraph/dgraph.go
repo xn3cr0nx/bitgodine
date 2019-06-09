@@ -57,8 +57,8 @@ func Setup(c *dgo.Dgraph) error {
 		address: string @index(term) .
 		time: datetime .
 		cluster: int @index(int) .
-		parent: int .
-		rank: int .
+		parent: int @index(int) .
+		rank: int @index(int) .
 		size: int .
 		pos: int @index(int) .
 		`,

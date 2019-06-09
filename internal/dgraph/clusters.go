@@ -10,7 +10,7 @@ import (
 // Clusters represents the set of clusters
 type Clusters struct {
 	UID     string    `json:"uid,omitempty"`
-	Size    uint32    `json:"size"`
+	Size    uint32    `json:"size,omitempty"`
 	Parents []Parent  `json:"parents,omitempty"`
 	Ranks   []Rank    `json:"ranks,omitempty"`
 	Set     []Cluster `json:"set,omitempty"`
@@ -20,7 +20,7 @@ type Clusters struct {
 type Cluster struct {
 	UID       string    `json:"uid,omitempty"`
 	Addresses []Address `json:"addresses,omitempty"`
-	Cluster   uint32    `json:"cluster"`
+	Cluster   uint32    `json:"cluster,omitempty"`
 }
 
 // Address node
@@ -70,12 +70,12 @@ func GetClusters() (Clusters, error) {
 		c(func: has(set)) {
 			uid
 			size
-			parents {
+			parents (orderasc: pos) {
 				uid
 				pos
 				parent
 			}
-			ranks {
+			ranks (orderasc: pos) {
 				uid
 				pos
 				rank
@@ -166,7 +166,8 @@ func UpdateSet(address string, cluster uint32) error {
 	}
 	c := []Cluster{
 		{
-			UID: clusterUID,
+			UID:     clusterUID,
+			Cluster: cluster,
 			Addresses: []Address{
 				{Address: address},
 			},
@@ -225,14 +226,15 @@ func UpdateSize(size uint32) error {
 
 // GetParent returns the parent struct at the required position
 func GetParent(pos uint32) (Parent, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		c(func: has(set)) {
     	uid
     	parents @filter(eq(pos, %d)) {
     	  uid
     	  pos
     	  parent
-    	}
+			}
+		}
   }`, pos))
 	if err != nil {
 		return Parent{}, err
@@ -290,6 +292,7 @@ func UpdateParent(pos, parent uint32) error {
 		Parents: []Parent{
 			{
 				UID:    p.UID,
+				Pos:    pos,
 				Parent: parent,
 			},
 		},
@@ -302,14 +305,15 @@ func UpdateParent(pos, parent uint32) error {
 
 // GetRank returns the parent struct at the required position
 func GetRank(pos uint32) (Rank, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		c(func: has(set)) {
     	uid
     	ranks @filter(eq(pos, %d)) {
     	  uid
     	  pos
     	  rank
-    	}
+			}
+		}
   }`, pos))
 	if err != nil {
 		return Rank{}, err
@@ -321,10 +325,10 @@ func GetRank(pos uint32) (Rank, error) {
 	if len(r.C) == 0 {
 		return Rank{}, errors.New("Cluster not found")
 	}
-	if len(r.C[0].Parents) == 0 {
-		return Rank{}, errors.New("Parent not found")
+	if len(r.C[0].Ranks) == 0 {
+		return Rank{}, errors.New("Rank not found")
 	}
-	if len(r.C[0].Parents) > 1 {
+	if len(r.C[0].Ranks) > 1 {
 		return Rank{}, errors.New("More than a parent found, something is wrong")
 	}
 	return r.C[0].Ranks[0], nil
@@ -367,6 +371,7 @@ func UpdateRank(pos, rank uint32) error {
 		Ranks: []Rank{
 			{
 				UID:  r.UID,
+				Pos:  pos,
 				Rank: rank,
 			},
 		},

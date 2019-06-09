@@ -10,7 +10,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbclusters"
+	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint/persistent"
 	"github.com/xn3cr0nx/bitgodine_code/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
@@ -40,14 +40,17 @@ data representation to analyze the blockchain.`,
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
-		clustersStorage, err := dbclusters.NewDbClusters(BadgerConf())
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
-		set := persistent.NewDisjointSet(clustersStorage)
+		set := persistent.NewDisjointSet(dgraph.Instance(nil))
+
+		if err := persistent.RestorePersistentSet(&set); err != nil {
+			if err.Error() != "Cluster not found" {
+				logger.Error("Blockchain", err, logger.Params{})
+				os.Exit(-1)
+			}
+		}
+
 		cltz := visitor.NewClusterizer(&set)
 		interrupt := make(chan int)
 		done := make(chan int)

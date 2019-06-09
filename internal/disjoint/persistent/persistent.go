@@ -2,7 +2,6 @@ package persistent
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/dgraph-io/dgo"
@@ -47,22 +46,19 @@ func RestorePersistentSet(d *DisjointSet) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("found cluster")
 
-	fmt.Println("size", clusters.Size)
+	logger.Info("Persistent Disjoint Set", "Restoring the clusters", logger.Params{"size": clusters.Size})
+
 	d.SetSize = clusters.Size
-	fmt.Println("parents", clusters.Parents)
 	for _, parent := range clusters.Parents {
-		d.Parent[parent.Pos] = parent.Parent
+		d.Parent = append(d.Parent, parent.Parent)
 	}
-	fmt.Println("ranks", clusters.Ranks)
 	for _, rank := range clusters.Ranks {
-		d.Rank[rank.Pos] = rank.Rank
+		d.Rank = append(d.Rank, rank.Rank)
 	}
-	fmt.Println("sets", clusters.Set)
 	for _, cluster := range clusters.Set {
 		for _, address := range cluster.Addresses {
-			d.HashMap[address.Address] = cluster.Cluster
+			d.HashMap[visitor.Utxo(address.Address)] = cluster.Cluster
 		}
 	}
 	return nil
@@ -91,28 +87,39 @@ func (d *DisjointSet) MakeSet(x interface{}) {
 
 	d.HashMap[x] = d.SetSize
 	// persistence
-	dgraph.NewSet(string(x.(visitor.Utxo)), d.SetSize)
+	if err := dgraph.NewSet(string(x.(visitor.Utxo)), d.SetSize); err != nil {
+		logger.Error("Persistent Disjoint Set", err, logger.Params{})
+		os.Exit(-1)
+	}
 	//
 
 	d.Parent = append(d.Parent, d.SetSize)
 	// persistence
-	dgraph.AddParent(uint32(len(d.Parent)), d.SetSize)
+	if err := dgraph.AddParent(uint32(len(d.Parent)-1), d.SetSize); err != nil {
+		logger.Error("Persistent Disjoint Set", err, logger.Params{})
+		os.Exit(-1)
+	}
 	//
 
 	d.Rank = append(d.Rank, 0)
 	// persistence
-	dgraph.AddRank(uint32(len(d.Rank)), 0)
+	if err := dgraph.AddRank(uint32(len(d.Rank)-1), 0); err != nil {
+		logger.Error("Persistent Disjoint Set", err, logger.Params{})
+		os.Exit(-1)
+	}
 	//
 
 	d.SetSize = d.SetSize + 1
 	// persistence
-	dgraph.UpdateSize(d.SetSize + 1)
+	if err := dgraph.UpdateSize(d.SetSize); err != nil {
+		logger.Error("Persistent Disjoint Set", err, logger.Params{})
+		os.Exit(-1)
+	}
 	//
 }
 
 // Find returnes the value of the set required as argument to the function
 func (d *DisjointSet) Find(x interface{}) (uint32, error) {
-
 	pos, ok := d.HashMap[x]
 	if !ok {
 		return 0, errors.New("Element not found")
@@ -158,15 +165,27 @@ func (d *DisjointSet) Union(x, y interface{}) (uint32, error) {
 	if xRank > yRank {
 		d.Parent[yRoot] = xRoot
 		// persistent
-		dgraph.UpdateParent(yRoot, xRoot)
+		if err := dgraph.UpdateParent(yRoot, xRoot); err != nil {
+			logger.Error("Persistent Disjoint Set", err, logger.Params{})
+			os.Exit(-1)
+		}
 		//
 		return xRoot, nil
 	}
 	d.Parent[xRoot] = yRoot
+	// persistent
+	if err := dgraph.UpdateParent(xRoot, yRoot); err != nil {
+		logger.Error("Persistent Disjoint Set", err, logger.Params{})
+		os.Exit(-1)
+	}
+	//
 	if xRank == yRank {
 		d.Rank[yRoot]++
 		// persistent
-		dgraph.UpdateRank(yRoot, d.Rank[yRoot])
+		if err := dgraph.UpdateRank(yRoot, d.Rank[yRoot]); err != nil {
+			logger.Error("Persistent Disjoint Set", err, logger.Params{})
+			os.Exit(-1)
+		}
 		//
 	}
 	return yRoot, nil

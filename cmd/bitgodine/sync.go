@@ -17,6 +17,10 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
+var (
+	csv bool
+)
+
 // BadgerConf exports the Config object to initialize indexing dgraph
 func BadgerConf() *db.Config {
 	return &db.Config{
@@ -62,37 +66,36 @@ data representation to analyze the blockchain.`,
 		go handleInterrupt(cltz, c, interrupt, done)
 
 		bp.Walk()
-		cltzCount, err := cltz.Done()
-		if err != nil {
-			logger.Error("Blockchain test", err, logger.Params{})
+
+		if viper.GetBool("sync.csv") {
+			cltzCount, err := cltz.Done()
+			if err != nil {
+				logger.Error("Blockchain test", err, logger.Params{})
+			}
+			fmt.Printf("Exported Clusters: %v\n", cltzCount)
 		}
-		fmt.Printf("Exported Clusters: %v\n", cltzCount)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// syncCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// syncCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	syncCmd.PersistentFlags().BoolVar(&csv, "csv", false, "Creates output csv file with cluster when program ends")
+	viper.SetDefault("sync.csv", false)
+	viper.BindPFlag("sync.csv", syncCmd.PersistentFlags().Lookup("csv"))
 }
 
 func handleInterrupt(cltz visitor.BlockchainVisitor, c chan os.Signal, interrupt, done chan int) {
 	for sig := range c {
 		logger.Info("Sync", "Killing the application", logger.Params{"signal": sig})
 		interrupt <- 1
-		cltzCount, err := cltz.Done()
-		if err != nil {
-			logger.Error("Sync", err, logger.Params{})
+		if viper.GetBool("sync.csv") {
+			cltzCount, err := cltz.Done()
+			if err != nil {
+				logger.Error("Sync", err, logger.Params{})
+			}
+			logger.Info("Sync", fmt.Sprintf("Exported Clusters: %v\n", cltzCount), logger.Params{})
 		}
-		logger.Info("Sync", fmt.Sprintf("Exported Clusters: %v\n", cltzCount), logger.Params{})
 		done <- 1
 		os.Exit(1)
 	}

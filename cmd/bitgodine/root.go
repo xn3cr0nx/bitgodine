@@ -21,10 +21,10 @@ import (
 )
 
 var (
-	cfgFile, network, bitgodineDir, blocksDir, outputDir, dbDir, dgHost string
-	dgPort                                                              int
-	debug                                                               bool
-	BitcoinNet                                                          chaincfg.Params
+	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost string
+	dgPort                                                   int
+	debug                                                    bool
+	BitcoinNet                                               chaincfg.Params
 )
 
 // DGraphConf exports the Config object to initialize indexing dgraph
@@ -98,9 +98,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
 	viper.SetDefault("blocksDir", hd)
 
-	rootCmd.PersistentFlags().StringVarP(&outputDir, "outputDir", "o", bitgodineFolder, "Sets the path to the output clusters.csv file")
-	viper.SetDefault("outputDir", bitgodineFolder)
-
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(bitgodineFolder, "badger"), "Sets the path to the indexing db files")
 	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 
@@ -119,7 +116,6 @@ func initConfig() {
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
 	viper.BindPFlag("bitgodineDir", rootCmd.PersistentFlags().Lookup("bitgodineDir"))
 	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
-	viper.BindPFlag("outputDir", rootCmd.PersistentFlags().Lookup("outputDir"))
 	viper.BindPFlag("dbDir", rootCmd.PersistentFlags().Lookup("dbDir"))
 	viper.BindPFlag("dgHost", rootCmd.PersistentFlags().Lookup("dgHost"))
 	viper.BindPFlag("dgPort", rootCmd.PersistentFlags().Lookup("dgPort"))

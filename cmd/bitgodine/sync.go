@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	csv bool
+	csv    bool
+	output string
 )
 
 // BadgerConf exports the Config object to initialize indexing dgraph
@@ -83,6 +84,11 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&csv, "csv", false, "Creates output csv file with cluster when program ends")
 	viper.SetDefault("sync.csv", false)
 	viper.BindPFlag("sync.csv", syncCmd.PersistentFlags().Lookup("csv"))
+
+	folder := viper.GetString("bitgodineDir")
+	syncCmd.PersistentFlags().StringVarP(&output, "output", "o", folder, "Sets the path to output clusters.csv file")
+	viper.SetDefault("sync.output", folder)
+	viper.BindPFlag("sync.output", syncCmd.PersistentFlags().Lookup("output"))
 }
 
 func handleInterrupt(cltz visitor.BlockchainVisitor, c chan os.Signal, interrupt, done chan int) {

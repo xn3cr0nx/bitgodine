@@ -86,7 +86,7 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 func (c Clusterizer) Done() (DoneItem, error) {
 	c.Clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.Clusters.Size()})
-	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("outputDir")))
+	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("sync.output")))
 	if err != nil {
 		logger.Error("Clusterizer", err, logger.Params{})
 	}

@@ -1,4 +1,4 @@
-package disjoint
+package memory
 
 import (
 	"testing"

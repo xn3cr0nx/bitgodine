@@ -56,6 +56,11 @@ func Setup(c *dgo.Dgraph) error {
 		locktime: int @index(int) .
 		address: string @index(term) .
 		time: datetime .
+		cluster: int @index(int) .
+		parent: int @index(int) .
+		rank: int @index(int) .
+		size: int .
+		pos: int @index(int) .
 		`,
 	})
 	// prev_block: string @index(term) @reverse .
@@ -84,5 +89,20 @@ func Store(v interface{}) error {
 		return err
 	}
 	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{SetJson: out, CommitNow: true})
+	return err
+}
+
+// Delete removes the node corresponding to the passed uid
+func Delete(UID string) error {
+	var delete = struct {
+		UID string `json:"uid"`
+	}{
+		UID: UID,
+	}
+	out, err := json.Marshal(delete)
+	if err != nil {
+		return err
+	}
+	_, err = instance.NewTxn().Mutate(context.Background(), &api.Mutation{DeleteJson: out, CommitNow: true})
 	return err
 }

@@ -1,0 +1,24 @@
+{
+  c(func: has(set)) {
+    uid
+    size
+    ranks (orderasc: pos) {
+      uid
+      pos
+      rank
+    }
+    parents (orderasc: pos) {
+      uid
+      pos
+      parent
+    }
+    set {
+      uid
+      cluster
+      addresses {
+        uid
+        address
+      }
+    }
+  }
+}

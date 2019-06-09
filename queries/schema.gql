@@ -34,4 +34,37 @@
    _:output21 <value> "30" .
    _:output21 <address> "testAddress" .
   }
+
+  set {
+    _:clusters <size> "0"^^<xs:int> .
+  
+  	_:clusters <parents> _:p1 .
+  	_:clusters <parents> _:p2 .
+  	_:p1 <pos> "0"^^<xs:int> .
+  	_:p1 <parent> "0"^^<xs:int> .
+  	_:p2 <pos> "1"^^<xs:int> .
+  	_:p2 <parent> "3"^^<xs:int> .
+  
+  	_:clusters <ranks> _:r1 .
+  	_:clusters <ranks> _:r2 .
+  	_:r1 <pos> "0"^^<xs:int> .
+  	_:r1 <rank> "1"^^<xs:int> .
+  	_:r2 <pos> "1"^^<xs:int> .
+  	_:r2 <rank> "2"^^<xs:int> .
+  
+  	_:clusters <set> _:c1 .
+  	_:clusters <set> _:c2 .
+  
+  	_:c1 <addresses> _:a11 .
+  	_:c1 <addresses> _:a12 .
+  	_:c1 <cluster> "5"^^<xs:int> .
+  	_:a11 <address> "1BoatSLRHtKNngkdXEeobR76b53LETtpyT"^^<xs:string> .
+ 		_:a12 <address> "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"^^<xs:string> .
+  
+  	_:c2 <addresses> _:a21 .
+  	_:c2 <addresses> _:a22 .
+  	_:c2 <cluster> "6"^^<xs:int> .
+  	_:a21 <address> "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy"^^<xs:string> .
+ 		_:a22 <address> "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"^^<xs:string> .
+ }
 }

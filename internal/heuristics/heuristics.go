@@ -15,6 +15,11 @@ const (
 	Backward
 )
 
+// SetCardinality returnes the cardinality of the heuristics set
+func SetCardinality() int {
+	return int(Backward)
+}
+
 func (h Heuristic) String() string {
 	heuristics := [...]string{
 		"Peeling Chain",

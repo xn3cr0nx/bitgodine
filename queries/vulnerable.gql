@@ -1,0 +1,10 @@
+{
+		txs(func: has(vulnerabilities)) @cascade {
+			uid
+			hash
+			vulnerabilities @filter(eq(heuristic, 4)) (orderasc: heuristic) {
+				uid
+				heuristic
+			}
+		}
+	}

@@ -30,7 +30,17 @@ func (p *Parser) Walk() (int32, *chainhash.Hash, map[chainhash.Hash][]visitor.Ut
 	if _, err := dgraph.GetTxUID(&hash); err != nil {
 		logger.Debug("Blockchain", "missing coinbase outputs", logger.Params{"hash": hash})
 		if err := dgraph.StoreCoinbase(); err != nil {
-			logger.Panic("Blockchain", err, logger.Params{})
+			logger.Error("Blockchain", err, logger.Params{})
+			os.Exit(-1)
+		}
+	}
+
+	if _, err := dgraph.GetHeuristicUID(0); err != nil {
+		logger.Debug("Blockchain", "missing heuristics", logger.Params{})
+		fmt.Println("no didn't found", err)
+		if err := dgraph.StoreHeuristics(); err != nil {
+			logger.Error("Blockchain", err, logger.Params{})
+			os.Exit(-1)
 		}
 	}
 

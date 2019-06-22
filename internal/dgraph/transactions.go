@@ -6,22 +6,27 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
 	// "github.com/btcsuite/btcd/chaincfg"
 	// "github.com/btcsuite/btcd/txscript"
 	// "github.com/btcsuite/btcd/wire"
 	// "github.com/btcsuite/btcutil"
 	// "github.com/dgraph-io/dgo/protos/api"
-	// "github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"github.com/allegro/bigcache"
+	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
+	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Transaction represents the tx node structure in dgraph
 type Transaction struct {
-	UID      string   `json:"uid,omitempty"`
-	Hash     string   `json:"hash,omitempty"`
-	Locktime uint32   `json:"locktime,omitempty"`
-	Version  int32    `json:"version,omitempty"`
-	Inputs   []Input  `json:"inputs,omitempty"`
-	Outputs  []Output `json:"outputs,omitempty"`
+	UID             string          `json:"uid,omitempty"`
+	Hash            string          `json:"hash,omitempty"`
+	Locktime        uint32          `json:"locktime,omitempty"`
+	Version         int32           `json:"version,omitempty"`
+	Inputs          []Input         `json:"inputs,omitempty"`
+	Outputs         []Output        `json:"outputs,omitempty"`
+	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
 }
 
 // Input represent input transaction, e.g. the link to a previous spent tx hash
@@ -57,6 +62,12 @@ type OutputsResp struct {
 	}
 }
 
+// Vulnerability node represent heuristics
+type Vulnerability struct {
+	UID       string `json:"uid,omitempty"`
+	Heuristic int    `json:"heuristic"`
+}
+
 // StoreCoinbase prepare coinbase output to be used as input for coinbase transactions
 func StoreCoinbase() error {
 	t := Transaction{
@@ -87,6 +98,18 @@ func StoreCoinbase() error {
 
 // GetTx returnes the node from the query queried
 func GetTx(hash string) (Transaction, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return Transaction{}, err
+	}
+	cached, err := c.Get(hash)
+	if len(cached) != 0 {
+		var r Transaction
+		if err := json.Unmarshal(cached, &r); err == nil {
+			return r, nil
+		}
+	}
+
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		txs(func: eq(hash, "%s")) {
 			uid
@@ -107,6 +130,10 @@ func GetTx(hash string) (Transaction, error) {
 				address
 				pk_script
 			}
+			vulnerabilities (orderasc: heuristic) {
+				uid
+				heuristic
+			}
 		}
 	}`, hash))
 	if err != nil {
@@ -121,19 +148,31 @@ func GetTx(hash string) (Transaction, error) {
 	}
 	for _, tx := range r.Txs {
 		if len(tx.Transaction.Outputs) > 0 {
+
+			bytes, err := json.Marshal(tx.Transaction)
+			if err == nil {
+				if err := c.Set(tx.Transaction.Hash, bytes); err != nil {
+					logger.Error("Cache", err, logger.Params{})
+				}
+			}
+
 			return tx.Transaction, nil
 		}
 	}
+
 	return Transaction{}, errors.New("transaction not found")
 }
 
 // GetTxUID returnes the uid of the queried tx by hash
 func GetTxUID(hash *string) (string, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		txs(func: allofterms(hash, %s)) {
-			uid
-		}
-	}`, *hash))
+			txs(func: allofterms(hash, %s)) @cascade {
+				uid
+				outputs {
+					uid
+				}
+			}
+		}`, *hash))
 	if err != nil {
 		return "", err
 	}
@@ -144,7 +183,6 @@ func GetTxUID(hash *string) (string, error) {
 	if len(r.Txs) == 0 {
 		return "", errors.New("transaction not found")
 	}
-
 	return r.Txs[0].UID, nil
 }
 
@@ -220,6 +258,10 @@ func GetFollowingTx(hash *string, vout *uint32) (Transaction, error) {
 			outputs (orderasc: vout) {
 				value
 				vout
+			}
+			vulnerabilities (orderasc: heuristic) {
+				uid
+				heuristic
 			}
 		}
 	}`, *hash, *vout))
@@ -334,4 +376,86 @@ func IsSpent(tx string, index uint32) bool {
 		return false
 	}
 	return true
+}
+
+// UpdateVulnerabilities update heuristics array in transaction node
+func UpdateVulnerabilities(hash string, heuristics []bool) error {
+	uid, err := GetTxUID(&hash)
+	if err != nil {
+		return err
+	}
+	var vuln []Vulnerability
+	for i, vulnerability := range heuristics {
+		if vulnerability {
+			heuristicUID, err := GetHeuristicUID(i)
+			if err != nil {
+				return err
+			}
+			v := Vulnerability{
+				UID:       heuristicUID,
+				Heuristic: i,
+			}
+			vuln = append(vuln, v)
+		}
+	}
+	tx := []Transaction{
+		{
+			UID:             uid,
+			Vulnerabilities: vuln,
+		},
+	}
+	if err := Store(tx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetHeuristicUID returnes the uid of the heuristic stored in draph of the corresponding heuristic
+func GetHeuristicUID(heuristic int) (string, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return "", err
+	}
+	uid, err := c.Get(fmt.Sprintf("heuristic%d", heuristic))
+	if err == nil {
+		return string(uid), nil
+	}
+
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	  vulnerability(func: has(heuristic)) @filter(eq(heuristic, %d)) {
+			uid
+		}
+	}`, heuristic))
+	if err != nil {
+		return "", err
+	}
+
+	var r struct{ Vulnerability []struct{ UID string } }
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return "", err
+	}
+
+	if len(r.Vulnerability) == 0 {
+		return "", errors.New("Vulnerability not found")
+	}
+
+	if err := c.Set(fmt.Sprintf("heuristic%d", heuristic), []byte(r.Vulnerability[0].UID)); err != nil {
+		logger.Error("Cache", err, logger.Params{})
+	}
+
+	return r.Vulnerability[0].UID, nil
+}
+
+// StoreHeuristics saves heuristics node in dgraph to be referred from transactions' vulnerabilities
+func StoreHeuristics() error {
+	var h []Vulnerability
+	for i := 0; i < heuristics.SetCardinality(); i++ {
+		h = append(h, Vulnerability{
+			Heuristic: i,
+		})
+	}
+	if err := Store(&h); err != nil {
+		return err
+	}
+	return nil
 }

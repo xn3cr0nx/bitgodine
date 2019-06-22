@@ -19,6 +19,9 @@ func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 		if err != nil {
 			return 0, err
 		}
+		if int(in.Vout) == 4294967295 {
+			continue
+		}
 		inputAddresses = append(inputAddresses, spentTx.Outputs[in.Vout].Address)
 	}
 

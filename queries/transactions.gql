@@ -1,0 +1,26 @@
+{
+		txs(func: eq(hash, "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16")) {
+			uid
+			hash
+			locktime
+			version
+			inputs (orderasc: vout) {
+				uid
+				hash
+				vout
+				signature_script
+				witness
+			}
+			outputs (orderasc: vout) {
+				uid
+				value
+				vout
+				address
+				pk_script
+			}
+			vulnerabilities (orderasc: heuristic) {
+				uid
+				heuristic
+			}
+		}
+	}

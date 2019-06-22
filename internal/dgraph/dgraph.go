@@ -61,6 +61,7 @@ func Setup(c *dgo.Dgraph) error {
 		rank: int @index(int) .
 		size: int .
 		pos: int @index(int) .
+		heuristic: int @index(int) .
 		`,
 	})
 	// prev_block: string @index(term) @reverse .

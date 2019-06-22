@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/allegro/bigcache"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/address"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analysis"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
+	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -46,6 +49,12 @@ var rootCmd = &cobra.Command{
 		if err := dgraph.Setup(dg); err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
+			os.Exit(-1)
+		}
+
+		_, err := cache.Instance(bigcache.DefaultConfig(10 * time.Minute))
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
 

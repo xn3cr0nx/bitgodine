@@ -4,6 +4,7 @@ require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/alexflint/go-filemutex v0.0.0-20171028004239-d358565f3c3f // indirect
+	github.com/allegro/bigcache v1.2.1
 	github.com/btcsuite/btcd v0.0.0-20181130015935-7d2daa5bfef2
 	github.com/btcsuite/btcutil v0.0.0-20180706230648-ab6388e0c60a
 	github.com/cevaris/ordered_map v0.0.0-20180310183325-0efaee1733e3

@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/allegro/bigcache"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -45,6 +48,11 @@ data representation to analyze the blockchain.`,
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
+		bigCache, err := cache.Instance(bigcache.DefaultConfig(10 * time.Minute))
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
 		b := blockchain.Instance(BitcoinNet)
 		b.Read()
 		set := persistent.NewDisjointSet(dgraph.Instance(nil))
@@ -60,7 +68,7 @@ data representation to analyze the blockchain.`,
 		interrupt := make(chan int)
 		done := make(chan int)
 
-		bp := bitcoin.NewParser(b, cltz, skippedBlocksStorage, interrupt, done)
+		bp := bitcoin.NewParser(b, cltz, skippedBlocksStorage, bigCache, interrupt, done)
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)

@@ -51,11 +51,19 @@ func Range(from, to int32) ([][]bool, error) {
 				// analysis <- []bool{false, false, false, false, false, false, false, false, false}
 				continue
 			}
+			if len(tx.Vulnerabilities) > 0 {
+				privacy := []bool{false, false, false, false, false, false, false, false, false}
+				for _, h := range tx.Vulnerabilities {
+					privacy[h.Heuristic] = true
+				}
+				logger.Debug("Analysis", fmt.Sprintf("Already analyzed %s", tx.Hash), logger.Params{})
+				analysis <- privacy
+				continue
+			}
 			go Tx(tx, analysis)
 		}
 		for i := 0; i < lenAnalysis; i++ {
 			resp := <-analysis
-			// result[i] = resp
 			result = append(result, resp)
 		}
 	}
@@ -65,7 +73,6 @@ func Range(from, to int32) ([][]bool, error) {
 // Tx applies all the heuristics to the passed transaction returning a boolean value for each of them
 // representing in vulnerable or not
 func Tx(tx dgraph.Transaction, analysis chan []bool) {
-	fmt.Println("analyzing tx", tx.Hash)
 	var privacy []bool
 	privacy = append(privacy, peeling.IsPeelingChain(&tx))
 	privacy = append(privacy, power.Vulnerable(&tx))
@@ -76,6 +83,21 @@ func Tx(tx dgraph.Transaction, analysis chan []bool) {
 	privacy = append(privacy, behaviour.Vulnerable(&tx))
 	privacy = append(privacy, forward.Vulnerable(&tx))
 	privacy = append(privacy, backward.Vulnerable(&tx))
+
+	vulnerable := false
+	for _, v := range privacy {
+		if v {
+			vulnerable = true
+			break
+		}
+	}
+
+	if len(tx.Vulnerabilities) == 0 && vulnerable {
+		if err := dgraph.UpdateVulnerabilities(tx.Hash, privacy); err != nil {
+			logger.Error("Analysis", err, logger.Params{})
+		}
+	}
+
 	analysis <- privacy
 }
 
@@ -91,6 +113,18 @@ func TxSingleCore(tx *dgraph.Transaction) (privacy []bool) {
 	privacy = append(privacy, behaviour.Vulnerable(tx))
 	privacy = append(privacy, forward.Vulnerable(tx))
 	privacy = append(privacy, backward.Vulnerable(tx))
+	vulnerable := false
+	for _, v := range privacy {
+		if v {
+			vulnerable = true
+			break
+		}
+	}
+	if len(tx.Vulnerabilities) == 0 && vulnerable {
+		if err := dgraph.UpdateVulnerabilities(tx.UID, privacy); err != nil {
+			logger.Error("Analysis", err, logger.Params{})
+		}
+	}
 	return privacy
 }
 

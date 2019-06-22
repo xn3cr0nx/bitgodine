@@ -33,10 +33,14 @@ func ChangeOutput(tx *dgraph.Transaction) (uint32, error) {
 
 	for _, spent := range spentTxs {
 		logger.Debug("Backward Heuristic", fmt.Sprintf("spent transaction %s", spent.Hash), logger.Params{})
+
 		for _, in := range spent.Inputs {
 			spentTx, err := dgraph.GetTx(in.Hash)
 			if err != nil {
 				return 0, err
+			}
+			if int(in.Vout) == 4294967295 {
+				continue
 			}
 			addr := spentTx.Outputs[in.Vout].Address
 			for _, inputAddr := range inputAddresses {

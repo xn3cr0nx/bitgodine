@@ -12,6 +12,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analysis"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/tag"
 	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -90,6 +91,7 @@ func init() {
 	rootCmd.AddCommand(address.AddressCmd)
 	rootCmd.AddCommand(cluster.ClusterCmd)
 	rootCmd.AddCommand(analysis.AnalysisCmd)
+	rootCmd.AddCommand(tag.TagCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
@@ -101,14 +103,11 @@ func init() {
 		panic(fmt.Sprintf("Bitgodine %v", err))
 	}
 	bitgodineFolder := filepath.Join(hd, ".bitgodine")
-	rootCmd.PersistentFlags().StringVar(&bitgodineDir, "bitgodineDir", hd, "Sets the folder containing configuration files and stored data")
-	viper.SetDefault("bitgodineDir", bitgodineFolder)
+	rootCmd.PersistentFlags().StringVar(&bitgodineDir, "bitgodineDir", bitgodineFolder, "Sets the folder containing configuration files and stored data")
 
 	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
-	viper.SetDefault("blocksDir", hd)
 
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(bitgodineFolder, "badger"), "Sets the path to the indexing db files")
-	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 
 	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
@@ -116,10 +115,18 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	hd, err := homedir.Dir()
+	if err != nil {
+		panic(fmt.Sprintf("Bitgodine %v", err))
+	}
+	bitgodineFolder := filepath.Join(hd, ".bitgodine")
 	viper.SetDefault("debug", false)
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
 	viper.SetDefault("dgHost", "localhost")
 	viper.SetDefault("dgPort", 9080)
+	viper.SetDefault("bitgodineDir", bitgodineFolder)
+	viper.SetDefault("blocksDir", hd)
+	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))

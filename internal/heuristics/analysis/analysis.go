@@ -26,11 +26,11 @@ func Range(from, to int32) ([][]bool, error) {
 	logger.Info("Analysis", fmt.Sprintf("Analyzing the transactions in blocks between block %d and block %d", from, to), logger.Params{})
 	var result [][]bool
 
-	for i := from; i < to; i = i + 10 {
+	for i := from; i < to; i = i + 5 {
 		// transactions, err := dgraph.GetTransactionsHeightRange(&from, &to)
 		var hbound int32
-		if (i + 10) < to {
-			hbound = i + 10
+		if (i + 5) < to {
+			hbound = i + 5
 		} else {
 			hbound = to - i
 		}
@@ -66,6 +66,7 @@ func Range(from, to int32) ([][]bool, error) {
 			resp := <-analysis
 			result = append(result, resp)
 		}
+		logger.Info("Analysis", fmt.Sprintf("Blocks untill %d analyzed", i), logger.Params{})
 	}
 	return result, nil
 }

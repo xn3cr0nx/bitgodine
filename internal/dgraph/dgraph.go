@@ -30,7 +30,10 @@ func Instance(conf *Config) *dgo.Dgraph {
 		}
 		// Dial a gRPC connection. The address to dial to can be configured when
 		// setting up the dgraph cluster.
-		d, err := grpc.Dial(fmt.Sprintf("%s:%d", conf.Host, conf.Port), grpc.WithInsecure())
+		d, err := grpc.Dial(fmt.Sprintf("%s:%d", conf.Host, conf.Port), grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1024*1024*1024),
+			grpc.MaxCallSendMsgSize(1024*1024*1024)),
+			grpc.WithInsecure())
 		if err != nil {
 			logger.Panic("DGraph", err, logger.Params{})
 		}

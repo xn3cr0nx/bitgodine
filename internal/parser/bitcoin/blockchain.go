@@ -86,20 +86,20 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 	for len(*slice) > 0 {
 		select {
 		case x, ok := <-p.interrupt:
-			if ok {
-				logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
-
-				select {
-				case _, ok := <-p.done:
-					fmt.Println("Received done")
-					if ok {
-						logger.Info("Blockchain", "Exporting done", logger.Params{})
-						return
-					}
-				}
+			if !ok {
+				logger.Error("Blockchain", errors.New("Something wrong in interrupt signal"), logger.Params{"signal": x})
 			}
-			logger.Error("Blockchain", errors.New("interrupt received but something wrong"), logger.Params{"signal": x})
-			return
+			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
+
+			select {
+			case x, ok := <-p.done:
+				logger.Info("Blockchain", "Received done signal", logger.Params{"signal": x})
+				if !ok {
+					logger.Error("Blockchain", errors.New("Something wrong in done signal"), logger.Params{"signal": x})
+				}
+				logger.Info("Blockchain", "Sync stopped", logger.Params{})
+				os.Exit(1)
+			}
 
 		default:
 			if _, ok := (*skipped)[*goalPrevHash]; ok {

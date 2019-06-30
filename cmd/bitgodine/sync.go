@@ -111,6 +111,5 @@ func handleInterrupt(cltz visitor.BlockchainVisitor, c chan os.Signal, interrupt
 			logger.Info("Sync", fmt.Sprintf("Exported Clusters: %v\n", cltzCount), logger.Params{})
 		}
 		done <- 1
-		os.Exit(1)
 	}
 }

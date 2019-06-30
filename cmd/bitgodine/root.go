@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		_, err := cache.Instance(bigcache.DefaultConfig(10 * time.Minute))
+		_, err := cache.Instance(bigcache.DefaultConfig(2 * time.Minute))
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)

@@ -48,7 +48,7 @@ data representation to analyze the blockchain.`,
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
-		bigCache, err := cache.Instance(bigcache.DefaultConfig(10 * time.Minute))
+		bigCache, err := cache.Instance(bigcache.DefaultConfig(2 * time.Minute))
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)

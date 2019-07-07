@@ -86,9 +86,12 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 func (c Clusterizer) Done() (DoneItem, error) {
 	c.Clusters.Finalize()
 	logger.Info("Clusterizer", "Exporting clusters to CSV", logger.Params{"size": c.Clusters.Size()})
-	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("sync.output")))
+	if viper.IsSet("csv.output") == false {
+		return 0, errors.New("unknown output destination")
+	}
+	file, err := os.Create(fmt.Sprintf("%s/clusters.csv", viper.GetString("csv.output")))
 	if err != nil {
-		logger.Error("Clusterizer", err, logger.Params{})
+		return 0, err
 	}
 	defer file.Close()
 	writer := csv.NewWriter(file)

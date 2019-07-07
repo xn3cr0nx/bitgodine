@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -10,6 +9,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
+
+var output string
 
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
@@ -21,18 +22,17 @@ var exportCmd = &cobra.Command{
 		set := persistent.NewDisjointSet(dgraph.Instance(nil))
 		if err := persistent.RestorePersistentSet(&set); err != nil {
 			if err.Error() != "Cluster not found" {
-				logger.Error("Blockchain", err, logger.Params{})
+				logger.Error("Cluster export", err, logger.Params{})
 				os.Exit(-1)
 			}
 		}
 		cltz := visitor.NewClusterizer(&set)
-		cltzCount, err := cltz.Done()
-		if err != nil {
-			logger.Error("Blockchain test", err, logger.Params{})
+		if _, err := cltz.Done(); err != nil {
+			logger.Error("Cluster export", err, logger.Params{})
+			os.Exit(-1)
 		}
-		fmt.Printf("Exported Clusters: %v\n", cltzCount)
 	},
 }
 
-// func init() {
-// }
+func init() {
+}

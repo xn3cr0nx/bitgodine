@@ -15,6 +15,7 @@ var TagCmd = &cobra.Command{
 
 func init() {
 	TagCmd.AddCommand(syncCmd)
+	TagCmd.AddCommand(getCmd)
 
 	// Here you will define your flags and configuration settings.
 

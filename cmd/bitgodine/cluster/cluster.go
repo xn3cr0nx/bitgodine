@@ -18,4 +18,5 @@ func init() {
 	ClusterCmd.AddCommand(rmCmd)
 	ClusterCmd.AddCommand(exportCmd)
 	ClusterCmd.AddCommand(storeCmd)
+	ClusterCmd.AddCommand(tagCmd)
 }

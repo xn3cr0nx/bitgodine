@@ -2,6 +2,7 @@ version: "3.2"
 services:
   zero:
     image: dgraph/dgraph:latest
+    container_name: zero
     volumes:
       - ~/.bitgodine/dgraph:/dgraph
     ports:
@@ -26,6 +27,7 @@ services:
 
   ratel:
     image: dgraph/dgraph:latest
+    container_name: ratel
     volumes:
       - ~/.bitgodine/dgraph:/dgraph
     ports:
@@ -33,6 +35,36 @@ services:
     networks:
       - dgraph
     command: dgraph-ratel
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    environment:
+      # - POSTGRES_HOST=bitgodine
+      - POSTGRES_USER=bitgodine
+      - POSTGRES_PASSWORD=bitgodine
+      - POSTGRES_DB=bitgodine
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/.bitgodine/postgresql:/var/lib/postgresql
+    networks:
+      - dgraph
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 9876:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
+      - PGADMIN_DEFAULT_PASSWORD=bitgodine
+    links:
+      - postgres
+    logging:
+      driver: none
+    networks:
+      - dgraph
 
 volumes:
   dgraph:

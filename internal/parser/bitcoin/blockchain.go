@@ -60,7 +60,7 @@ func (p *Parser) Walk() (int32, *chainhash.Hash, map[chainhash.Hash][]visitor.Ut
 			logger.Error("Blockchain", err, logger.Params{})
 			os.Exit(-1)
 		}
-		lastBlock, err := findCheckPointByHash(&rawChain, last.Hash())
+		lastBlock, err = findCheckPointByHash(&rawChain, last.Hash())
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
@@ -111,10 +111,6 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 				for {
 					if block, ok := (*skipped)[*goalPrevHash]; ok {
 						delete(*skipped, *goalPrevHash)
-						if err := p.dbblocks.DeleteBlock(goalPrevHash); err != nil {
-							logger.Error("Blockchain", err, logger.Params{})
-							return
-						}
 						logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 						BlockWalk(&block, &p.visitor, height, utxoSet)
 						(*height)++

@@ -3,6 +3,7 @@ package dgraph
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	// "github.com/btcsuite/btcutil"
 	// "github.com/dgraph-io/dgo/protos/api"
 
+	"github.com/allegro/bigcache"
+	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -37,6 +40,18 @@ type BlockResp struct {
 
 // GetBlockFromHeight returnes the hash of the block retrieving it based on its height
 func GetBlockFromHeight(height int32) (Block, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return Block{}, err
+	}
+	cached, err := c.Get(strconv.Itoa(int(height)))
+	if len(cached) != 0 {
+		var r Block
+		if err := json.Unmarshal(cached, &r); err == nil {
+			return r, nil
+		}
+	}
+
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		blk(func: eq(height, %d), first: 1) {
 			uid
@@ -79,6 +94,12 @@ func GetBlockFromHeight(height int32) (Block, error) {
 	}
 	if len(r.Blk) == 0 {
 		return Block{}, errors.New("Block not found")
+	}
+	bytes, err := json.Marshal(r.Blk[0].Block)
+	if err == nil {
+		if err := c.Set(strconv.Itoa(int(r.Blk[0].Block.Height)), bytes); err != nil {
+			logger.Error("Cache", err, logger.Params{})
+		}
 	}
 	return r.Blk[0].Block, nil
 }

@@ -459,3 +459,11 @@ func StoreHeuristics() error {
 	}
 	return nil
 }
+
+func (i *Input) GetAddress() (string, error) {
+	tx, err := GetTx(i.Hash)
+	if err != nil {
+		return "", err
+	}
+	return tx.Outputs[i.Vout].Address, nil
+}

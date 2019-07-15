@@ -22,7 +22,7 @@ var rmCmd = &cobra.Command{
 			logger.Info("Block rm", "Removing last block...", logger.Params{})
 
 			num := 1
-			if args[1] != "" {
+			if len(args) > 1 && args[1] != "" {
 				num, _ = strconv.Atoi(args[1])
 			}
 			for i := 0; i < num; i++ {

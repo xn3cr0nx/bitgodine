@@ -32,16 +32,16 @@ func BadgerConf() *db.Config {
 	}
 }
 
-// syncCmd represents the sync command
-var syncCmd = &cobra.Command{
-	Use:   "sync",
+// startCmd represents the start command
+var startCmd = &cobra.Command{
+	Use:   "start",
 	Short: "Parses the blockchain to sync it",
 	Long: `Parses the blockchain, from the last point,
 if the synced is being previously performed.
 The parsing stores blocks and transaction and creates clusters to provide
 data representation to analyze the blockchain.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.Info("Sync", "Sync called", logger.Params{})
+		logger.Info("Start", "Start called", logger.Params{})
 
 		skippedBlocksStorage, err := dbblocks.NewDbBlocks(BadgerConf())
 		if err != nil {
@@ -87,11 +87,11 @@ data representation to analyze the blockchain.`,
 }
 
 func init() {
-	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(startCmd)
 
-	syncCmd.PersistentFlags().BoolVar(&csv, "csv", false, "Creates output csv file with cluster when program ends")
+	startCmd.PersistentFlags().BoolVar(&csv, "csv", false, "Creates output csv file with cluster when program ends")
 	viper.SetDefault("sync.csv", false)
-	viper.BindPFlag("sync.csv", syncCmd.PersistentFlags().Lookup("csv"))
+	viper.BindPFlag("sync.csv", startCmd.PersistentFlags().Lookup("csv"))
 }
 
 func handleInterrupt(cltz visitor.BlockchainVisitor, c chan os.Signal, interrupt, done chan int) {

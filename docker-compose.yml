@@ -15,6 +15,7 @@ services:
 
   server:
     image: dgraph/dgraph:latest
+    container_name: dgraph
     volumes:
       - ~/.bitgodine/dgraph:/dgraph
     ports:

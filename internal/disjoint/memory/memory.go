@@ -26,22 +26,22 @@ func NewDisjointSet() DisjointSet {
 }
 
 // Size returnes the number of elements in the set
-func (d DisjointSet) Size() uint32 {
+func (d *DisjointSet) Size() uint32 {
 	return d.SetSize
 }
 
 // GetHashMap returnes the set hashmap
-func (d DisjointSet) GetHashMap() map[interface{}]uint32 {
+func (d *DisjointSet) GetHashMap() map[interface{}]uint32 {
 	return d.HashMap
 }
 
 // GetParent returnes parent based on the passed tag
-func (d DisjointSet) GetParent(tag uint32) uint32 {
+func (d *DisjointSet) GetParent(tag uint32) uint32 {
 	return d.Parent[tag]
 }
 
 // MakeSet creates a new set based adding the parameter passed as argument to the set
-func (d DisjointSet) MakeSet(x interface{}) {
+func (d *DisjointSet) MakeSet(x interface{}) {
 	if _, ok := d.HashMap[x]; ok {
 		return
 	}
@@ -53,7 +53,7 @@ func (d DisjointSet) MakeSet(x interface{}) {
 }
 
 // Find returnes the value of the set required as argument to the function
-func (d DisjointSet) Find(x interface{}) (uint32, error) {
+func (d *DisjointSet) Find(x interface{}) (uint32, error) {
 	pos, ok := d.HashMap[x]
 	if !ok {
 		return 0, errors.New("Element not found")
@@ -62,7 +62,7 @@ func (d DisjointSet) Find(x interface{}) (uint32, error) {
 }
 
 // FindInternal recursively search for the element of depth n in the set
-func (d DisjointSet) FindInternal(p []uint32, n uint32) uint32 {
+func (d *DisjointSet) FindInternal(p []uint32, n uint32) uint32 {
 	if p[n] != n {
 		parent := p[n]
 		p[n] = d.FindInternal(p, parent)
@@ -72,7 +72,7 @@ func (d DisjointSet) FindInternal(p []uint32, n uint32) uint32 {
 }
 
 // Union returnes the common set to the elements passed as arguments
-func (d DisjointSet) Union(x, y interface{}) (uint32, error) {
+func (d *DisjointSet) Union(x, y interface{}) (uint32, error) {
 	var (
 		xRoot,
 		yRoot,
@@ -108,7 +108,7 @@ func (d DisjointSet) Union(x, y interface{}) (uint32, error) {
 }
 
 // Finalize parses the entire set
-func (d DisjointSet) Finalize() {
+func (d *DisjointSet) Finalize() {
 	for i := 0; uint32(i) < d.SetSize; i++ {
 		d.FindInternal(d.Parent, uint32(i))
 	}

@@ -2,10 +2,15 @@ package persistent
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
+	"sync"
 
 	"github.com/dgraph-io/dgo"
+	"github.com/gosuri/uiprogress"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint/memory"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -61,6 +66,135 @@ func RestorePersistentSet(d *DisjointSet) error {
 			d.HashMap[visitor.Utxo(address.Address)] = cluster.Cluster
 		}
 	}
+	return nil
+}
+
+// RecoverPersistentSet restores consisent clusters set based on blocks synced in dgraph
+func (d *DisjointSet) RecoverPersistentSet(m *memory.DisjointSet) error {
+	logger.Info("Persistent", "Recovering clusters", logger.Params{"size": strconv.Itoa(int(d.SetSize))})
+
+	fmt.Println("")
+	uiprogress.Start()
+	bar := uiprogress.AddBar(int(d.SetSize)).AppendCompleted().PrependElapsed()
+	bar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Building new set")
+	})
+
+	var height int32
+	for {
+		block, err := dgraph.GetBlockFromHeight(height)
+		if err != nil {
+			if err.Error() == "Block not found" {
+				break
+			}
+			return err
+		}
+
+		for _, tx := range block.Transactions {
+			// TODO: need to check coinjoin too
+			logger.Debug("Persistent", fmt.Sprintf("Restoring tx %v", tx.Hash), logger.Params{})
+			if len(tx.Inputs) > 1 {
+				lastAddress, err := tx.Inputs[0].GetAddress()
+				if err != nil {
+					return err
+				}
+				m.MakeSet(lastAddress)
+				for _, input := range tx.Inputs {
+					addr, err := input.GetAddress()
+					if err != nil {
+						return err
+					}
+					m.MakeSet(addr)
+					m.Union(lastAddress, addr)
+					lastAddress = addr
+
+					bar.Incr()
+				}
+			}
+		}
+		height++
+	}
+
+	// replace broken persistent set
+	if err := dgraph.UpdateSize(m.SetSize); err != nil {
+		return err
+	}
+
+	uiprogress.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	setBar := uiprogress.AddBar(len(m.HashMap)).AppendCompleted().PrependElapsed()
+	setBar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Updating set: %v/%v", b.Current(), len(m.HashMap))
+	})
+	go func() {
+		defer wg.Done()
+		for addr := range m.HashMap {
+			if _, ok := d.HashMap[addr]; !ok {
+				if err := dgraph.NewSet(addr.(string), d.SetSize); err != nil {
+					logger.Error("Persistent", err, logger.Params{})
+					os.Exit(-1)
+				}
+			}
+			setBar.Incr()
+		}
+	}()
+
+	wg.Add(1)
+	rankBar := uiprogress.AddBar(len(m.Rank)).AppendCompleted().PrependElapsed()
+	rankBar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Updating ranks: %v/%v", b.Current(), len(m.Rank))
+	})
+	go func() {
+		defer wg.Done()
+		for i, rank := range m.Rank {
+			if len(d.Rank) > i {
+				if d.Rank[i] != m.Rank[i] {
+					if err := dgraph.UpdateRank(uint32(i), rank); err != nil {
+						logger.Error("Persistent", err, logger.Params{})
+						os.Exit(-1)
+					}
+				}
+			} else {
+				if err := dgraph.AddRank(uint32(i), rank); err != nil {
+					logger.Error("Persistent", err, logger.Params{})
+					os.Exit(-1)
+				}
+			}
+			rankBar.Incr()
+		}
+	}()
+
+	wg.Add(1)
+	parentBar := uiprogress.AddBar(len(m.Parent)).AppendCompleted().PrependElapsed()
+	parentBar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Updating parents: %v/%v", b.Current(), len(m.Parent))
+	})
+	go func() {
+		defer wg.Done()
+		for i, rank := range m.Rank {
+			if len(d.Rank) > i {
+				if d.Rank[i] != m.Rank[i] {
+					if err := dgraph.UpdateParent(uint32(i), rank); err != nil {
+						logger.Error("Persistent", err, logger.Params{})
+						os.Exit(-1)
+					}
+				}
+			} else {
+				if err := dgraph.AddParent(uint32(i), rank); err != nil {
+					logger.Error("Persistent", err, logger.Params{})
+					os.Exit(-1)
+				}
+			}
+			parentBar.Incr()
+		}
+	}()
+
+	wg.Wait()
+	uiprogress.Stop()
+
 	return nil
 }
 

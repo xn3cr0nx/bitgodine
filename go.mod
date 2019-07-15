@@ -27,6 +27,8 @@ require (
 	github.com/gocolly/colly v1.2.0
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/google/pprof v0.0.0-20190208070709-b421f19a5c07 // indirect
+	github.com/gosuri/uilive v0.0.3 // indirect
+	github.com/gosuri/uiprogress v0.0.1
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
 	github.com/jawher/mow.cli v1.1.0 // indirect
 	github.com/jinzhu/gorm v1.9.2

@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/allegro/bigcache"
+	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
+	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Clusters represents the set of clusters
@@ -105,6 +109,15 @@ func GetClusters() (Clusters, error) {
 
 // GetClusterUID returns the UID of the cluster
 func GetClusterUID() (string, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return "", err
+	}
+	cached, err := c.Get("clusterUID")
+	if len(cached) != 0 {
+		return string(cached), nil
+	}
+
 	resp, err := instance.NewTxn().Query(context.Background(), `{
 		c(func: has(set)) {
 			uid
@@ -119,6 +132,12 @@ func GetClusterUID() (string, error) {
 	}
 	if len(r.C) == 0 {
 		return "", errors.New("Cluster not found")
+	}
+
+	if err == nil {
+		if err := c.Set("clusterUID", []byte(r.C[0].Clusters.UID)); err != nil {
+			logger.Error("Cache", err, logger.Params{})
+		}
 	}
 	return r.C[0].Clusters.UID, nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	mmap "github.com/edsrzf/mmap-go"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
@@ -41,8 +42,14 @@ func (b *Blockchain) Read() error {
 	if b.Network.Name == "mainnet" {
 		netPath = ""
 	}
+	if blocksDir == "" {
+		hd, err := homedir.Dir()
+		if err != nil {
+			return err
+		}
+		blocksDir = hd
+	}
 	blocksDir = filepath.Join(blocksDir, ".bitcoin", netPath, "blocks")
-	fmt.Printf("%v\n", blocksDir)
 
 	for {
 		f, err := os.OpenFile(filepath.Join(blocksDir, fmt.Sprintf("blk%05d.dat", n)), os.O_RDWR, 0644)
@@ -59,7 +66,6 @@ func (b *Blockchain) Read() error {
 		}
 		Maps = append(Maps, m)
 	}
-
 	b.Maps = Maps
 	return nil
 }

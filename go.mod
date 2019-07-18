@@ -44,6 +44,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/olekukonko/tablewriter v0.0.1
+	github.com/onsi/ginkgo v1.7.0
+	github.com/onsi/gomega v1.4.3
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/afero v1.2.0 // indirect

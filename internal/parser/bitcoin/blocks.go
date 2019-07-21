@@ -14,18 +14,17 @@ import (
 
 // BlockWalk parses the block and iterates over block's transaction to parse them
 func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utxoSet *map[chainhash.Hash][]visitor.Utxo) {
-	timestamp := b.MsgBlock().Header.Timestamp
 	b.SetHeight(*height)
 	blockItem := (*v).VisitBlockBegin(b, *height)
 	if *height%100 == 0 {
 		logger.Info("Parser Blocks", fmt.Sprintf("Block %d", b.Height()), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
 	logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
+	for _, tx := range b.Transactions() {
+		TxWalk(&txs.Tx{Tx: *tx}, b, v, &blockItem, utxoSet)
+	}
 	if err := b.Store(); err != nil {
 		logger.Panic("Block Parser", err, logger.Params{})
-	}
-	for _, tx := range b.Transactions() {
-		TxWalk(&txs.Tx{Tx: *tx}, b, v, timestamp, &blockItem, utxoSet)
 	}
 	(*v).VisitBlockEnd(b, *height, blockItem)
 }

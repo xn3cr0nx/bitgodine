@@ -24,10 +24,11 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 
 	var wg sync.WaitGroup
 	var lock = sync.RWMutex{}
+	var clusterLock = sync.RWMutex{}
 	wg.Add(len(b.Transactions()))
 	logger.Debug("Blocks", fmt.Sprintf("Dispatching %d threads to parse transactions", len(b.Transactions())), logger.Params{})
 	for _, tx := range b.Transactions() {
-		go TxWalk(&txs.Tx{Tx: *tx}, b, v, &blockItem, utxoSet, &wg, &lock)
+		go TxWalk(&txs.Tx{Tx: *tx}, b, v, &blockItem, utxoSet, &wg, &lock, &clusterLock)
 	}
 	wg.Wait()
 

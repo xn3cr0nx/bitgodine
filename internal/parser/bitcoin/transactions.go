@@ -21,11 +21,11 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 }
 
 // TxWalk parses the txs.Tx object
-func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, wg *sync.WaitGroup, lock *sync.RWMutex) txs.Tx {
+func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, wg *sync.WaitGroup, lock *sync.RWMutex, clusterLock *sync.RWMutex) txs.Tx {
 	defer wg.Done()
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
 	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem, lock)
-	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem, lock)
+	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem, lock, clusterLock)
 	if err != nil {
 		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
 		return txs.Tx{}
@@ -56,13 +56,15 @@ func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Bloc
 }
 
 // Creates a new set of utxo to append to the global utxo set (utxoSet)
-func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, lock *sync.RWMutex) error {
+func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, lock *sync.RWMutex, clusterLock *sync.RWMutex) error {
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	for n, o := range tx.MsgTx().TxOut {
+		clusterLock.Lock()
 		utxo, err := (*v).VisitTransactionOutput(*o, blockItem, transactionItem)
 		if err != nil {
 			return err
 		}
+		clusterLock.Unlock()
 		curUtxoSet[n] = utxo
 	}
 	if len(curUtxoSet) > 0 {

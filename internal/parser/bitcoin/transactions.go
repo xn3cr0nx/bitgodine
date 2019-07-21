@@ -1,6 +1,8 @@
 package bitcoin
 
 import (
+	"sync"
+
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
@@ -19,10 +21,11 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 }
 
 // TxWalk parses the txs.Tx object
-func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
+func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, wg *sync.WaitGroup, lock *sync.RWMutex) txs.Tx {
+	defer wg.Done()
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
-	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem)
-	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)
+	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem, lock)
+	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem, lock)
 	if err != nil {
 		logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
 		return txs.Tx{}
@@ -32,14 +35,20 @@ func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem
 }
 
 // Read the tx inputs removing them from related utxo set. The tx is deleted from utxo set when all outputs are spent
-func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) {
+func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, lock *sync.RWMutex) {
 	for _, i := range tx.MsgTx().TxIn {
 		var utxo visitor.Utxo
-		if occupied, ok := (*utxoSet)[(*i).PreviousOutPoint.Hash]; ok {
+		lock.RLock()
+		occupied, ok := (*utxoSet)[(*i).PreviousOutPoint.Hash]
+		lock.RUnlock()
+		if ok {
+			// if occupied, ok := (*utxoSet)[(*i).PreviousOutPoint.Hash]; ok {
 			utxo = occupied[(*i).PreviousOutPoint.Index]
 			occupied[(*i).PreviousOutPoint.Index] = visitor.Utxo("")
 			if emptySlice(&occupied) {
+				lock.Lock()
 				delete(*utxoSet, (*i).PreviousOutPoint.Hash)
+				lock.Unlock()
 			}
 		}
 		(*v).VisitTransactionInput(*i, blockItem, transactionItem, utxo)
@@ -47,7 +56,7 @@ func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Bloc
 }
 
 // Creates a new set of utxo to append to the global utxo set (utxoSet)
-func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem) error {
+func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, lock *sync.RWMutex) error {
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	for n, o := range tx.MsgTx().TxOut {
 		utxo, err := (*v).VisitTransactionOutput(*o, blockItem, transactionItem)
@@ -57,7 +66,9 @@ func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Blo
 		curUtxoSet[n] = utxo
 	}
 	if len(curUtxoSet) > 0 {
+		lock.Lock()
 		(*utxoSet)[*tx.Hash()] = curUtxoSet
+		lock.Unlock()
 	}
 	return nil
 }

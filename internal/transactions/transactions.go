@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -97,23 +98,38 @@ func (tx *Tx) Store() error {
 // 2) if this situation is more common than I though, well is better to check this condition before to start parsing the tx, so I'll refactor
 func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
+	var wg sync.WaitGroup
+	wg.Add(len(txs))
+	alarm := make(chan error)
 	for _, tx := range txs {
-		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
-		if err != nil {
-			return nil, err
-		}
-		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
-		if err != nil {
-			return nil, err
-		}
-		transactions = append(transactions, dgraph.Transaction{
-			Hash:     tx.Hash().String(),
-			Locktime: tx.MsgTx().LockTime,
-			Version:  tx.MsgTx().Version,
-			Inputs:   inputs,
-			Outputs:  outputs,
-		})
+		go func() {
+			defer wg.Done()
+			inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
+			if err != nil {
+				// return nil, err
+				alarm <- err
+			}
+			outputs, err := prepareOutputs(tx.MsgTx().TxOut)
+			if err != nil {
+				// return nil, err
+				alarm <- err
+			}
+			transactions = append(transactions, dgraph.Transaction{
+				Hash:     tx.Hash().String(),
+				Locktime: tx.MsgTx().LockTime,
+				Version:  tx.MsgTx().Version,
+				Inputs:   inputs,
+				Outputs:  outputs,
+			})
+		}()
 	}
+	wg.Wait()
+	select {
+	case err := <-alarm:
+		return nil, err
+	default:
+	}
+
 	return transactions, nil
 }
 

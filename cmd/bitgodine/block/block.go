@@ -55,6 +55,7 @@ func init() {
 	BlockCmd.AddCommand(lsCmd)
 	BlockCmd.AddCommand(rmCmd)
 	BlockCmd.AddCommand(heightCmd)
+	BlockCmd.AddCommand(skippedCmd)
 
 	BlockCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Specify verbose output to show all block info")
 	viper.SetDefault("block.verbose", false)

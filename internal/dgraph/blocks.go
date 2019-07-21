@@ -38,6 +38,72 @@ type BlockResp struct {
 	Blk []struct{ Block }
 }
 
+// GetBlockFromHash returnes the hash of the block retrieving it based on its height
+func GetBlockFromHash(hash string) (Block, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return Block{}, err
+	}
+	cached, err := c.Get(hash)
+	if len(cached) != 0 {
+		var r Block
+		if err := json.Unmarshal(cached, &r); err == nil {
+			return r, nil
+		}
+	}
+
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		blk(func: eq(hash, %s)) {
+			uid
+			hash
+			height
+			prev_block
+			time
+			version
+			merkle_root
+			bits
+			nonce
+			transactions {
+				uid
+				hash
+				locktime
+				version
+				inputs {
+					uid
+					hash
+					vout
+					signature_script
+					witness
+				}
+				outputs {
+					uid
+					value
+					vout
+					address
+					pk_script
+				}
+			}
+		}
+	}`, hash))
+	if err != nil {
+		return Block{}, err
+	}
+	var r BlockResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Block{}, err
+	}
+	if len(r.Blk) == 0 {
+		return Block{}, errors.New("Block not found")
+	}
+	bytes, err := json.Marshal(r.Blk[0].Block)
+	if err == nil {
+		if err := c.Set(r.Blk[0].Block.Hash, bytes); err != nil {
+			logger.Error("Cache", err, logger.Params{})
+		}
+	}
+	return r.Blk[0].Block, nil
+}
+
 // GetBlockFromHeight returnes the hash of the block retrieving it based on its height
 func GetBlockFromHeight(height int32) (Block, error) {
 	c, err := cache.Instance(bigcache.Config{})

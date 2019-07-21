@@ -1,8 +1,6 @@
 package bitcoin
 
 import (
-	"time"
-
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
@@ -21,7 +19,7 @@ func emptySlice(arr *[]visitor.Utxo) bool {
 }
 
 // TxWalk parses the txs.Tx object
-func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, timestamp time.Time, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
+func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo) txs.Tx {
 	transactionItem := (*v).VisitTransactionBegin(blockItem)
 	parseTxIn(tx, v, blockItem, utxoSet, &transactionItem)
 	err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)

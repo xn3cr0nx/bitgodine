@@ -98,30 +98,60 @@ func (tx *Tx) Store() error {
 // 2) if this situation is more common than I though, well is better to check this condition before to start parsing the tx, so I'll refactor
 func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
-	var wg sync.WaitGroup
-	wg.Add(len(txs))
-	alarm := make(chan error)
 	for _, tx := range txs {
-		go func() {
-			defer wg.Done()
-			inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
+		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
+		if err != nil {
+			return nil, err
+		}
+		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, dgraph.Transaction{
+			Hash:     tx.Hash().String(),
+			Locktime: tx.MsgTx().LockTime,
+			Version:  tx.MsgTx().Version,
+			Inputs:   inputs,
+			Outputs:  outputs,
+		})
+	}
+
+	return transactions, nil
+}
+
+func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]dgraph.Input, error) {
+	txIns := make([]dgraph.Input, len(inputs))
+	var wg sync.WaitGroup
+	alarm := make(chan error)
+	wg.Add(len(inputs))
+	for k := range inputs {
+		j := k
+		go func(index int, in *wire.TxIn) {
+			wg.Done()
+			h := in.PreviousOutPoint.Hash.String()
+			stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 			if err != nil {
-				// return nil, err
-				alarm <- err
+				if err.Error() != "output not found" {
+					// return nil, err
+					alarm <- err
+				}
 			}
-			outputs, err := prepareOutputs(tx.MsgTx().TxOut)
-			if err != nil {
-				// return nil, err
-				alarm <- err
+			var wtn []dgraph.TxWitness
+			for _, w := range [][]byte(in.Witness) {
+				wtn = append(wtn, dgraph.TxWitness(w))
 			}
-			transactions = append(transactions, dgraph.Transaction{
-				Hash:     tx.Hash().String(),
-				Locktime: tx.MsgTx().LockTime,
-				Version:  tx.MsgTx().Version,
-				Inputs:   inputs,
-				Outputs:  outputs,
-			})
-		}()
+			input := dgraph.Input{UID: stxo.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: fmt.Sprintf("%X", in.SignatureScript), Witness: wtn}
+			if input.UID == "" && in.PreviousOutPoint.Index != uint32(4294967295) {
+				for i, tx := range *transactions {
+					if tx.Hash == in.PreviousOutPoint.Hash.String() {
+						UID := fmt.Sprintf("_:utxo%dvout%d", i, in.PreviousOutPoint.Index)
+						input.UID = UID
+						tx.Outputs[in.PreviousOutPoint.Index].UID = UID
+					}
+				}
+			}
+			txIns[index] = input
+		}(j, inputs[j])
 	}
 	wg.Wait()
 	select {
@@ -129,60 +159,42 @@ func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 		return nil, err
 	default:
 	}
-
-	return transactions, nil
-}
-
-func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]dgraph.Input, error) {
-	var txIns []dgraph.Input
-	for _, in := range inputs {
-		h := in.PreviousOutPoint.Hash.String()
-		stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
-		if err != nil {
-			if err.Error() != "output not found" {
-				return nil, err
-			}
-		}
-		var wtn []dgraph.TxWitness
-		for _, w := range [][]byte(in.Witness) {
-			wtn = append(wtn, dgraph.TxWitness(w))
-		}
-		input := dgraph.Input{UID: stxo.UID, Hash: h, Vout: in.PreviousOutPoint.Index, SignatureScript: fmt.Sprintf("%X", in.SignatureScript), Witness: wtn}
-		if input.UID == "" && in.PreviousOutPoint.Index != uint32(4294967295) {
-			for i, tx := range *transactions {
-				if tx.Hash == in.PreviousOutPoint.Hash.String() {
-					UID := fmt.Sprintf("_:utxo%dvout%d", i, in.PreviousOutPoint.Index)
-					input.UID = UID
-					tx.Outputs[in.PreviousOutPoint.Index].UID = UID
-				}
-			}
-		}
-		txIns = append(txIns, input)
-	}
 	return txIns, nil
 }
 
 func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
-	var txOuts []dgraph.Output
-	for k, out := range outputs {
-		if out.PkScript == nil {
-			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
-			txOuts = append(txOuts, dgraph.Output{Value: out.Value})
-		} else {
-			// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value, Vout: uint32(k)})
-			_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
-			if err != nil {
-				return nil, err
-			}
-			// TODO: here should be managemed the multisig (just take all the addr, not just the first)
-			if len(addr) > 0 {
-				txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)})
+	txOuts := make([]dgraph.Output, len(outputs))
+	var wg sync.WaitGroup
+	alarm := make(chan error)
+	wg.Add(len(outputs))
+	for k := range outputs {
+		i := k
+		go func(index int, out *wire.TxOut) {
+			wg.Done()
+			if out.PkScript == nil {
+				// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
+				txOuts = append(txOuts, dgraph.Output{Value: out.Value})
 			} else {
-				txOuts = append(txOuts, dgraph.Output{Value: out.Value, Vout: uint32(k), PkScript: fmt.Sprintf("%X", out.PkScript)})
+				// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value, Vout: uint32(k)})
+				_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
+				if err != nil {
+					alarm <- err
+				}
+				// TODO: here should be managemed the multisig (just take all the addr, not just the first)
+				if len(addr) > 0 {
+					txOuts[i] = dgraph.Output{Value: out.Value, Vout: uint32(i), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)}
+				} else {
+					txOuts[i] = dgraph.Output{Value: out.Value, Vout: uint32(i), PkScript: fmt.Sprintf("%X", out.PkScript)}
+				}
 			}
-		}
+		}(i, outputs[k])
 	}
-
+	wg.Wait()
+	select {
+	case err := <-alarm:
+		return nil, err
+	default:
+	}
 	return txOuts, nil
 }
 

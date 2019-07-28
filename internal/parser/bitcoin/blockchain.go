@@ -133,7 +133,6 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 
 			logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 
-			logger.Debug("Blockchain", "Checking Prev block equal prev goal hash", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String(), "prev_goal": goalPrevHash.String(), "cond": block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash)})
 
 			// Explanation: parsing the dat files means find a not ordinate sequence of blocks. In most cases parsing the next block means
 			// find a block that it's been added to blockchain many blocks after, so at a higher height. This means that, that block, will
@@ -217,7 +216,7 @@ func findCheckPointByHash(p *Parser, chain *[][]uint8, hash *chainhash.Hash, ski
 			if current {
 				if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
 					return blocks.Block{}, err
-		}
+				}
 				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 			}
 		}

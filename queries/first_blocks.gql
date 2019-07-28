@@ -1,0 +1,22 @@
+{
+	block(func: has(prev_block), first: 500) {
+  	uid  
+    hash
+    height
+    transactions {
+    	uid
+      hash
+      inputs {
+        uid
+        hash
+        vout
+      }
+      outputs {
+        uid
+        value
+        vout
+        address
+      }
+    }
+  }
+}

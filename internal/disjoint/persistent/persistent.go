@@ -55,9 +55,11 @@ func RestorePersistentSet(d *DisjointSet) error {
 	logger.Info("Persistent Disjoint Set", "Restoring the clusters", logger.Params{"size": clusters.Size})
 
 	d.SetSize = clusters.Size
+	logger.Debug("Persistent", "Restoring parents", logger.Params{"size": len(clusters.Parents)})
 	for _, parent := range clusters.Parents {
 		d.Parent = append(d.Parent, parent.Parent)
 	}
+	logger.Debug("Persistent", "Restoring ranks", logger.Params{"size": len(clusters.Ranks)})
 	for _, rank := range clusters.Ranks {
 		d.Rank = append(d.Rank, rank.Rank)
 	}
@@ -120,7 +122,7 @@ func (d *DisjointSet) RecoverPersistentSet(m *memory.DisjointSet) error {
 		return err
 	}
 
-	uiprogress.Stop()
+	// uiprogress.Stop()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -229,6 +231,7 @@ func (d *DisjointSet) MakeSet(x interface{}) {
 
 	d.Parent = append(d.Parent, d.SetSize)
 	// persistence
+	logger.Debug("Dgraph Cluster", "Parent length", logger.Params{"parent_length": len(d.Parent), "rank_length": len(d.Rank), "set_size": d.SetSize})
 	if err := dgraph.AddParent(uint32(len(d.Parent)-1), d.SetSize); err != nil {
 		logger.Error("Persistent Disjoint Set", err, logger.Params{})
 		os.Exit(-1)

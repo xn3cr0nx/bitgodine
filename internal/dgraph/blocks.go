@@ -3,9 +3,9 @@ package dgraph
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 

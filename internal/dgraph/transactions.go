@@ -97,6 +97,7 @@ func StoreCoinbase() error {
 }
 
 // GetTx returnes the node from the query queried
+// TODO: orderasc on inputs, outputs, vulnerabilities, check whether they can have more than 1000 elments (1000 dgraph limit fetch)
 func GetTx(hash string) (Transaction, error) {
 	c, err := cache.Instance(bigcache.Config{})
 	if err != nil {
@@ -187,6 +188,7 @@ func GetTxUID(hash *string) (string, error) {
 }
 
 // GetTxOutputs returnes the outputs of the queried tx by hash
+// TODO: rememeber orderasc fetches no more than 1000 elements
 func GetTxOutputs(hash *string) ([]Output, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		transactions(func: allofterms(hash, %s)) {
@@ -245,6 +247,7 @@ func GetSpentTxOutput(hash *string, vout *uint32) (Output, error) {
 
 // GetFollowingTx returns the transaction spending the output (vout) of
 // the transaction passed as input to the function
+// TODO: rememeber orderasc fetches no more than 1000 elements
 func GetFollowingTx(hash *string, vout *uint32) (Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		txs(func: has(inputs)) @cascade {

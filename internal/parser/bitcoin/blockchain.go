@@ -60,7 +60,7 @@ func (p *Parser) Walk() (int32, *chainhash.Hash, map[chainhash.Hash][]visitor.Ut
 			logger.Error("Blockchain", err, logger.Params{})
 			os.Exit(-1)
 		}
-		lastBlock, err = findCheckPointByHash(&rawChain, last.Hash())
+		lastBlock, err = findCheckPointByHash(p, &rawChain, last.Hash(), &skipped)
 		if err != nil {
 			logger.Panic("Blockchain", err, logger.Params{})
 		}
@@ -143,10 +143,10 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 			// needed to complete the chain.
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
-				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 				if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
 					logger.Panic("Blockchain", err, logger.Params{})
 				}
+				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 
 				// check if last_block.is_some() condition is correctly replaced with checkBlock()
 				if lastBlock.CheckBlock() && block.MsgBlock().Header.PrevBlock == lastBlock.MsgBlock().Header.PrevBlock {
@@ -164,10 +164,10 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 							break
 						}
 
-						(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 						if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
 							logger.Panic("Blockchain", err, logger.Params{})
 						}
+						(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 						if block.MsgBlock().Header.PrevBlock == *firstOrphan.Hash() {
 							// First wins
 							logger.Debug("Blockchain", fmt.Sprintf("Chain split: %v is on the main chain!", firstOrphan.Hash().String()), logger.Params{})
@@ -198,7 +198,8 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 	}
 }
 
-func findCheckPointByHash(chain *[][]uint8, hash *chainhash.Hash) (blocks.Block, error) {
+func findCheckPointByHash(p *Parser, chain *[][]uint8, hash *chainhash.Hash, skipped *map[chainhash.Hash]blocks.Block) (blocks.Block, error) {
+	current := false
 	for k, slice := range *chain {
 		for len(slice) > 0 {
 			block, err := blocks.Parse(&slice)
@@ -206,13 +207,23 @@ func findCheckPointByHash(chain *[][]uint8, hash *chainhash.Hash) (blocks.Block,
 				return blocks.Block{}, err
 			}
 			if block.Hash().IsEqual(hash) {
+				current = true
+				continue
+			}
+			if block.MsgBlock().Header.PrevBlock.IsEqual(hash) {
 				(*chain)[k] = slice
 				return *block, nil
+			}
+			if current {
+				if err := p.dbblocks.StoreBlockPrevHash(block); err != nil {
+					return blocks.Block{}, err
+		}
+				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
 			}
 		}
 		(*chain)[k] = slice
 	}
-	return blocks.Block{}, nil
+	return blocks.Block{}, errors.New("Checkpoint not found")
 }
 
 func restoreSkipped(db *dbblocks.DbBlocks, skipped *map[chainhash.Hash]blocks.Block) error {

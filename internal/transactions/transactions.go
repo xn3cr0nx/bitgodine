@@ -127,7 +127,7 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 	for k := range inputs {
 		j := k
 		go func(index int, in *wire.TxIn) {
-			wg.Done()
+			defer wg.Done()
 			h := in.PreviousOutPoint.Hash.String()
 			stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 			if err != nil {
@@ -170,7 +170,7 @@ func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 	for k := range outputs {
 		i := k
 		go func(index int, out *wire.TxOut) {
-			wg.Done()
+			defer wg.Done()
 			if out.PkScript == nil {
 				// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
 				txOuts = append(txOuts, dgraph.Output{Value: out.Value})

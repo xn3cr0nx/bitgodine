@@ -1,38 +1,55 @@
-package visitor
+package visitor_test
 
 import (
-	"fmt"
-	"io/ioutil"
-	"testing"
+	"github.com/btcsuite/btcutil"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint/memory"
+	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 )
 
-func TestVisitTransactionOutput(t *testing.T) {
-	f, _ := ioutil.ReadFile("/home/xn3cr0nx/.bitcoin/blocks/blk00000.dat")
-	block, _ := blocks.Parse(&f)
+var _ = Describe("Clusterizer", func() {
+	var (
+		cltz   visitor.Clusterizer
+		set    memory.DisjointSet
+		block  blocks.Block
+		txItem visitor.TransactionItem
+	)
 
-	script := block.Transactions()[0].MsgTx().TxOut[0].PkScript
-	fmt.Printf("block: %v, script: %v\n", block.Hash(), script)
+	BeforeEach(func() {
+		set = memory.NewDisjointSet()
+		cltz = visitor.NewClusterizer(&set)
+		blockExample, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
+		blockExample.SetHeight(181)
+		block = blocks.Block{Block: *blockExample}
+		Expect(err).ToNot(HaveOccurred())
+	})
 
-	scriptClass, addresses, reqSigs, err := txscript.ExtractPkScriptAddrs(
-		script, &chaincfg.MainNetParams)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("Script Class:", scriptClass)
-	fmt.Println("Addresses:", addresses)
-	fmt.Println("Required Signatures:", reqSigs)
+	It("Should visit block begin and return nil", func() {
+		res := cltz.VisitBlockBegin(&block, block.Height())
+		Expect(block.Height()).To(Equal(int32(181)))
+		Expect(res).To(BeNil())
+	})
 
-	addr := addresses[0].EncodeAddress()
-	// addrHash := addr.AddressPubKeyHash()
-	// fmt.Println("PubkKey", addr, "PubKeyHash", addrHash)
-	fmt.Println("PubKeyHash", addr)
+	It("Should visit transaction begin and return transaction item", func() {
+		txItem = cltz.VisitTransactionBegin(nil)
+		Expect(txItem).ToNot(BeNil())
+	})
 
-	// assert.Equal(t, "pubkeyhash", scriptClass.String())
-	// assert.Equal(t, "12gpXQVcCL2qhTNQgyLVdCFG2Qs2px98nV", addresses[0].String())
-	// assert.Equal(t, 1, reqSigs)
-}
+	It("Should visit transaction input", func() {
+		cltz.VisitTransactionInput(*block.MsgBlock().Transactions[0].TxIn[0], nil, &txItem, visitor.Utxo("test"))
+	})
+
+	It("Should visit transaction output", func() {
+		utxo, err := cltz.VisitTransactionOutput(*block.MsgBlock().Transactions[0].TxOut[0], nil, &txItem)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(utxo).ToNot(BeNil())
+		Expect(utxo).To(Equal(visitor.Utxo("1JSW4QekxPokWWU4hcRwrheZbZKSkFz9oc")))
+	})
+
+	// It("Should visit transaction end", func() {
+	// 	cltz.VisitTransactionEnd(txs.Tx{Tx: block.MsgBlock().Transactions[0]}, nil, &txItem)
+	// })
+})

@@ -74,12 +74,12 @@ func GetClusters() (Clusters, error) {
 		c(func: has(set)) {
 			uid
 			size
-			parents (orderasc: pos) {
+			parents (orderasc: pos) (first: 100000) {
 				uid
 				pos
 				parent
 			}
-			ranks (orderasc: pos) {
+			ranks (orderasc: pos) (first: 100000) {
 				uid
 				pos
 				rank
@@ -104,6 +104,8 @@ func GetClusters() (Clusters, error) {
 	if len(r.C) == 0 {
 		return Clusters{}, errors.New("Cluster not found")
 	}
+
+	logger.Debug("Dgraph Cluster", "Retrieving Clusters", logger.Params{"size_parents": len(r.C[0].Clusters.Parents), "size_ranks": len(r.C[0].Clusters.Ranks)})
 	return r.C[0].Clusters, nil
 }
 
@@ -175,28 +177,19 @@ func GetSetUID(set uint32) (string, error) {
 
 // UpdateSet adds an address to a cluster
 func UpdateSet(address string, cluster uint32) error {
-	uid, err := GetClusterUID()
+	setUID, err := GetSetUID(cluster)
 	if err != nil {
 		return err
 	}
-	clusterUID, err := GetSetUID(cluster)
-	if err != nil {
-		return err
-	}
-	c := []Cluster{
-		{
-			UID:     clusterUID,
-			Cluster: cluster,
-			Addresses: []Address{
-				{Address: address},
-			},
+	c := Cluster{
+		UID:     setUID,
+		Cluster: cluster,
+		Addresses: []Address{
+			{Address: address},
 		},
 	}
-	set := Clusters{
-		UID: uid,
-		Set: c,
-	}
-	if err := Store(set); err != nil {
+	logger.Debug("Dgraph Clusters", "Updating set", logger.Params{"set": c})
+	if err := Store(c); err != nil {
 		return err
 	}
 	return nil
@@ -221,6 +214,7 @@ func NewSet(address string, cluster uint32) error {
 		UID: uid,
 		Set: c,
 	}
+	logger.Debug("Dgraph Clusters", "Creating New Set", logger.Params{"set": set})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -290,6 +284,7 @@ func AddParent(pos, parent uint32) error {
 		UID:     uid,
 		Parents: p,
 	}
+	logger.Debug("Dgraph Clusters", "Adding parent", logger.Params{"set": set, "pos": pos, "parent": parent, "p": p})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -298,25 +293,17 @@ func AddParent(pos, parent uint32) error {
 
 // UpdateParent updates the parent tag in parent node based on passed position
 func UpdateParent(pos, parent uint32) error {
-	cuid, err := GetClusterUID()
-	if err != nil {
-		return err
-	}
 	p, err := GetParent(pos)
 	if err != nil {
 		return err
 	}
-	c := Clusters{
-		UID: cuid,
-		Parents: []Parent{
-			{
-				UID:    p.UID,
-				Pos:    pos,
-				Parent: parent,
-			},
-		},
+	logger.Debug("Dgraph Clusters", "Updating parent", logger.Params{"pos": pos, "parent": parent, "uid": p.UID, "prev_parent": p.Parent, "prev_pos": p.Pos})
+	pnt := Parent{
+		UID:    p.UID,
+		Pos:    pos,
+		Parent: parent,
 	}
-	if err := Store(c); err != nil {
+	if err := Store(pnt); err != nil {
 		return err
 	}
 	return nil
@@ -369,6 +356,7 @@ func AddRank(pos, rank uint32) error {
 		UID:   uid,
 		Ranks: r,
 	}
+	logger.Debug("Dgraph Clusters", "Adding Rank", logger.Params{"set": set, "pos": pos, "rank": rank, "r": r})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -377,25 +365,17 @@ func AddRank(pos, rank uint32) error {
 
 // UpdateRank updates the parent tag in parent node based on passed position
 func UpdateRank(pos, rank uint32) error {
-	cuid, err := GetClusterUID()
-	if err != nil {
-		return err
-	}
 	r, err := GetRank(pos)
 	if err != nil {
 		return err
 	}
-	c := Clusters{
-		UID: cuid,
-		Ranks: []Rank{
-			{
-				UID:  r.UID,
-				Pos:  pos,
-				Rank: rank,
-			},
-		},
+	logger.Debug("Dgraph Clusters", "Updating Rank", logger.Params{"pos": pos, "rank": rank, "uid": r.UID, "prev_rank": r.Rank, "prev_pos": r.Pos})
+	rnk := Rank{
+		UID:  r.UID,
+		Pos:  pos,
+		Rank: rank,
 	}
-	if err := Store(c); err != nil {
+	if err := Store(rnk); err != nil {
 		return err
 	}
 	return nil

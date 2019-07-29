@@ -122,7 +122,8 @@ func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]dgraph.Input, error) {
 	txIns := make([]dgraph.Input, len(inputs))
 	var wg sync.WaitGroup
-	alarm := make(chan error)
+	alarm := make(chan error, 1)
+	defer close(alarm)
 	wg.Add(len(inputs))
 	for k := range inputs {
 		j := k
@@ -132,8 +133,8 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 			stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
 			if err != nil {
 				if err.Error() != "output not found" {
-					// return nil, err
 					alarm <- err
+					return
 				}
 			}
 			var wtn []dgraph.TxWitness
@@ -165,7 +166,8 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 	txOuts := make([]dgraph.Output, len(outputs))
 	var wg sync.WaitGroup
-	alarm := make(chan error)
+	alarm := make(chan error, 1)
+	defer close(alarm)
 	wg.Add(len(outputs))
 	for k := range outputs {
 		i := k
@@ -179,6 +181,7 @@ func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 				_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
 				if err != nil {
 					alarm <- err
+					return
 				}
 				// TODO: here should be managemed the multisig (just take all the addr, not just the first)
 				if len(addr) > 0 {

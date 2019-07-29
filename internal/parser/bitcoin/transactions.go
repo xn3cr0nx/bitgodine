@@ -28,14 +28,10 @@ func TxWalk(tx *txs.Tx, b *blocks.Block, v *visitor.BlockchainVisitor, blockItem
 	var utxoLock = sync.RWMutex{}
 	var txItemLock = sync.RWMutex{}
 	wg.Add(2)
-	alarm := make(chan error)
+	alarm := make(chan error, 1)
+	defer close(alarm)
 	go parseTxIn(tx, v, blockItem, utxoSet, &transactionItem, &wg, &utxoLock, &txItemLock)
-	// err := parseTxOut(tx, v, blockItem, utxoSet, &transactionItem)
 	go parseTxOut(tx, v, blockItem, utxoSet, &transactionItem, &wg, &utxoLock, alarm)
-	// if err != nil {
-	// 	logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
-	// 	return txs.Tx{}
-	// }
 	wg.Wait()
 	select {
 	case err := <-alarm:
@@ -54,6 +50,7 @@ func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Bloc
 	defer s.Done()
 	var wg sync.WaitGroup
 	wg.Add(len(tx.MsgTx().TxIn))
+	logger.Debug("Parser Transactions", "Parsing tx inputs", logger.Params{"size": len(tx.MsgTx().TxIn), "hash": tx.Hash().String()})
 	for n := range tx.MsgTx().TxIn {
 		k := n
 		go func(i *wire.TxIn) {
@@ -86,15 +83,15 @@ func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Blo
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	var wg sync.WaitGroup
 	wg.Add(len(tx.MsgTx().TxOut))
-	// alarm := make(chan error)
+	logger.Debug("Parser Transactions", "Parsing tx outputs", logger.Params{"size": len(tx.MsgTx().TxOut), "hash": tx.Hash().String()})
 	for n := range tx.MsgTx().TxOut {
 		k := n
 		go func(o *wire.TxOut, index int) {
 			defer wg.Done()
 			utxo, err := (*v).VisitTransactionOutput(*o, blockItem, transactionItem)
 			if err != nil {
-				// return err
 				alarm <- err
+				return
 			}
 			curUtxoSet[index] = utxo
 		}(tx.MsgTx().TxOut[k], k)

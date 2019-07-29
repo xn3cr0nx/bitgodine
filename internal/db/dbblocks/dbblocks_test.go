@@ -1,77 +1,70 @@
-package dbblocks
+package dbblocks_test
 
 import (
 	"fmt"
 	"path/filepath"
-	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/mitchellh/go-homedir"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
+	database "github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
-	"gopkg.in/go-playground/assert.v1"
 
-	"github.com/stretchr/testify/suite"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-type TestDbBlocksSuite struct {
-	suite.Suite
-	db *DbBlocks
-}
+var _ = Describe("Testing with Ginkgo", func() {
+	var (
+		db *dbblocks.DbBlocks
+	)
 
-func (suite *TestDbBlocksSuite) SetupSuite() {
-	logger.Setup()
+	BeforeEach(func() {
+		logger.Setup()
+		hd, err := homedir.Dir()
+		Expect(err).ToNot(HaveOccurred())
+		conf := &database.Config{
+			Dir: filepath.Join(hd, ".bitgodine", "badger"),
+		}
+		db, err = dbblocks.NewDbBlocks(conf)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(db).ToNot(BeNil())
 
-	hd, err := homedir.Dir()
-	assert.Equal(suite.T(), err, nil)
-	conf := &Config{
-		Dir: filepath.Join(hd, ".bitgodine", "badger"),
-	}
-	suite.db, err = NewDbBlocks(conf)
-	assert.Equal(suite.T(), err, nil)
-	assert.NotEqual(suite.T(), suite.db, nil)
+		if !db.IsStored(chaincfg.MainNetParams.GenesisHash) {
+			block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+			block.SetHeight(int32(0))
+			err := db.StoreBlock(&blocks.Block{Block: *block})
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
 
-	suite.Setup()
-}
-
-func (suite *TestDbBlocksSuite) Setup() {
-	if !suite.db.IsStored(chaincfg.MainNetParams.GenesisHash) {
+	It("Should fail storing a new block", func() {
 		block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 		block.SetHeight(int32(0))
-		err := suite.db.StoreBlock(&blocks.Block{Block: *block})
-		assert.Equal(suite.T(), err, nil)
-	}
-}
+		err := db.StoreBlock(&blocks.Block{Block: *block})	
+		Expect(err.Error()).To(Equal(fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash)))
+	})
 
-func (suite *TestDbBlocksSuite) TearDownSuite() {
-	(*suite.db).Close()
-}
+	It("Should fetch all stored blocks", func() {
+		blocks, err := db.StoredBlocks()
+		Expect(err).ToNot(HaveOccurred())
+		genesis, ok := blocks[0]
+		Expect(ok).To(BeTrue())
+		Expect(genesis).To(Equal(chaincfg.MainNetParams.GenesisHash.String()))
+	})
 
-func (suite *TestDbBlocksSuite) TestStoreBlock() {
-	block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
-	block.SetHeight(int32(0))
-	err := suite.db.StoreBlock(&blocks.Block{Block: *block})
-	// tests that the genesis blocks is already stored (conditions only verified thanks to Setup())
-	assert.Equal(suite.T(), err.Error(), fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash))
-}
+	It("Should fetch a block", func() {
+		block, err := db.GetBlock(chaincfg.MainNetParams.GenesisHash)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(block.Hash().String()).To(Equal(chaincfg.MainNetParams.GenesisHash.String()))
+		Expect(block.Height()).To(Equal(int32(0)))
+		Expect(block.Transactions()).To(HaveLen(1))
+	})
 
-func (suite *TestDbBlocksSuite) TestStoredBlocks() {
-	blocks, err := suite.db.StoredBlocks()
-	assert.Equal(suite.T(), err, nil)
-	genesis, ok := blocks[0]
-	assert.Equal(suite.T(), ok, true)
-	assert.Equal(suite.T(), genesis, chaincfg.MainNetParams.GenesisHash.String())
-}
+	AfterEach(func() {
+		(*db).Close()
+	})
 
-func (suite *TestDbBlocksSuite) TestGetBlock() {
-	block, err := suite.db.GetBlock(chaincfg.MainNetParams.GenesisHash)
-	assert.Equal(suite.T(), err, nil)
-	assert.Equal(suite.T(), block.Hash().IsEqual(chaincfg.MainNetParams.GenesisHash), true)
-	assert.Equal(suite.T(), block.Height(), int32(0))
-	assert.Equal(suite.T(), len(block.Transactions()), 1)
-}
-
-func TestDbBlocks(t *testing.T) {
-	suite.Run(t, new(TestDbBlocksSuite))
-}
+})

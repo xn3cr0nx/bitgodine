@@ -74,12 +74,12 @@ func GetClusters() (Clusters, error) {
 		c(func: has(set)) {
 			uid
 			size
-			parents (orderasc: pos) (first: 100000) {
+			parents (orderasc: pos) (first: 1000000000) {
 				uid
 				pos
 				parent
 			}
-			ranks (orderasc: pos) (first: 100000) {
+			ranks (orderasc: pos) (first: 1000000000) {
 				uid
 				pos
 				rank

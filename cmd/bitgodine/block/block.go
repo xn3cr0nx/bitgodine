@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block/skipped"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
@@ -53,9 +54,8 @@ var BlockCmd = &cobra.Command{
 
 func init() {
 	BlockCmd.AddCommand(lsCmd)
-	BlockCmd.AddCommand(rmCmd)
 	BlockCmd.AddCommand(heightCmd)
-	BlockCmd.AddCommand(skippedCmd)
+	BlockCmd.AddCommand(skipped.SkippedCmd)
 
 	BlockCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Specify verbose output to show all block info")
 	viper.SetDefault("block.verbose", false)

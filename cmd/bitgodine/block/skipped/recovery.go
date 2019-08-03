@@ -1,4 +1,4 @@
-package block
+package skipped
 
 import (
 	"errors"
@@ -19,45 +19,37 @@ import (
 	"github.com/gosuri/uiprogress"
 )
 
-// skippedCmd represents the skipped command
-var skippedCmd = &cobra.Command{
-	Use:   "skipped",
-	Short: "Skipped stored blocks operations",
+// recoveryCmd represents the skipped command
+var recoveryCmd = &cobra.Command{
+	Use:   "recovery",
+	Short: "Recover lost skipped blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			logger.Error("Block skipped", errors.New("Missing command"), logger.Params{})
-			os.Exit(1)
+		skipped := make(map[chainhash.Hash]blocks.Block)
+		skippedBlocksStorage, err := dbblocks.NewDbBlocks(&db.Config{
+			Dir: viper.GetString("dbDir"),
+		})
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		b := blockchain.Instance(chaincfg.MainNetParams)
+		b.Read()
+
+		head, err := b.Head()
+		if err != nil {
+			logger.Error("Block skipped", err, logger.Params{})
+			os.Exit(-1)
 		}
 
-		if args[0] == "recovery" {
-			skipped := make(map[chainhash.Hash]blocks.Block)
-			skippedBlocksStorage, err := dbblocks.NewDbBlocks(&db.Config{
-				Dir: viper.GetString("dbDir"),
-			})
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			b := blockchain.Instance(chaincfg.MainNetParams)
-			b.Read()
-
-			head, err := b.Head()
-			if err != nil {
-				logger.Error("Block skipped", err, logger.Params{})
-				os.Exit(-1)
-			}
-
-			var rawChain [][]uint8
-			for _, ref := range b.Maps {
-				rawChain = append(rawChain, []uint8(ref))
-			}
-			if err := recoverSkipped(&head, skippedBlocksStorage, &rawChain, &skipped); err != nil {
-				logger.Error("Block skipped", err, logger.Params{})
-				os.Exit(-1)
-			}
+		var rawChain [][]uint8
+		for _, ref := range b.Maps {
+			rawChain = append(rawChain, []uint8(ref))
 		}
-
+		if err := recoverSkipped(&head, skippedBlocksStorage, &rawChain, &skipped); err != nil {
+			logger.Error("Block skipped", err, logger.Params{})
+			os.Exit(-1)
+		}
 	},
 }
 
@@ -88,7 +80,7 @@ func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8,
 				return nil
 			}
 			if _, ok := mapping[block.Hash().String()]; !ok {
-				logger.Debug("Block skipped", fmt.Sprintf("Storing block %d - %s", block.Height(), block.Hash()), logger.Params{})
+				logger.Debug("Block skipped", fmt.Sprintf("Storing block %s, with key prevHash %s", block.Hash().String(), block.MsgBlock().Header.PrevBlock.String()), logger.Params{})
 				if err := db.StoreBlockPrevHash(block); err != nil {
 					return err
 				}

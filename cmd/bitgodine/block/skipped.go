@@ -2,20 +2,21 @@ package block
 
 import (
 	"errors"
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
+	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db"
 	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
-	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/gosuri/uiprogress"
 )
 
 // skippedCmd represents the skipped command
@@ -41,7 +42,8 @@ var skippedCmd = &cobra.Command{
 			b := blockchain.Instance(chaincfg.MainNetParams)
 			b.Read()
 
-			if err := restoreSkipped(skippedBlocksStorage, &skipped); err != nil {
+			head, err := b.Head()
+			if err != nil {
 				logger.Error("Block skipped", err, logger.Params{})
 				os.Exit(-1)
 			}
@@ -50,7 +52,7 @@ var skippedCmd = &cobra.Command{
 			for _, ref := range b.Maps {
 				rawChain = append(rawChain, []uint8(ref))
 			}
-			if err := recoverSkipped(skippedBlocksStorage, &rawChain, &skipped); err != nil {
+			if err := recoverSkipped(&head, skippedBlocksStorage, &rawChain, &skipped); err != nil {
 				logger.Error("Block skipped", err, logger.Params{})
 				os.Exit(-1)
 			}
@@ -59,41 +61,41 @@ var skippedCmd = &cobra.Command{
 	},
 }
 
-func recoverSkipped(db *dbblocks.DbBlocks, chain *[][]uint8, skipped *map[chainhash.Hash]blocks.Block) error {
+func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8, skipped *map[chainhash.Hash]blocks.Block) error {
+	fmt.Println("")
+	uiprogress.Start()
+	bar := uiprogress.AddBar(len((*chain)[0])).AppendCompleted().PrependElapsed()
+	bar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Recovering skipped blocks: %v/%v", b.Current(), len((*chain)[0]))
+	})
+
 	for _, slice := range *chain {
 		for len(slice) > 0 {
+			initLen := len(slice)
 			block, err := blocks.Parse(&slice)
 			if err != nil {
 				return err
 			}
-			if _, err = dgraph.GetBlockFromHash(block.Hash().String()); err != nil {
-				if err.Error() == "Block not found" {
-					return nil
-				}
-				return err
+
+			if block.Hash().IsEqual(head.Hash()) {
+				return nil
 			}
 
-			if _, ok := (*skipped)[block.MsgBlock().Header.PrevBlock]; !ok {
-				fmt.Println("Storing missing block", block.Hash().String())
-				(*skipped)[block.MsgBlock().Header.PrevBlock] = *block
-				if err := db.StoreBlockPrevHash(block); err != nil {
+			if _, err = dgraph.GetBlockFromHash(block.Hash().String()); err != nil {
+				if err.Error() == "Block not found" {
+					if err := db.StoreBlockPrevHash(block); err != nil {
+						return err
+					}
+				} else {
 					return err
 				}
 			}
+
+			for i := 0; i < initLen-len(slice); i++ {
+				bar.Incr()
+			}
 		}
 	}
-	return nil
-}
-
-
-func restoreSkipped(db *dbblocks.DbBlocks, skipped *map[chainhash.Hash]blocks.Block) error {
-	cachedSkipped, err := db.GetAll()
-	if err != nil {
-		return err
-	}
-	logger.Info("Blockchain", "Restoring skipped blocks", logger.Params{"n_blocks": len(cachedSkipped)})
-	for _, skip := range cachedSkipped {
-		(*skipped)[skip.MsgBlock().Header.PrevBlock] = skip
-	}
-	return nil
+	uiprogress.Stop()
+	return errors.New("Parsed the entire chain, head not found")
 }

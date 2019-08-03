@@ -110,6 +110,10 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 				// walking the block obtained at the index of goal_prev_hash
 				for {
 					if block, ok := (*skipped)[*goalPrevHash]; ok {
+						if err := p.dbblocks.DeleteBlock(goalPrevHash); err != nil {
+							logger.Error("Blockchain", err, logger.Params{})
+							os.Exit(1)
+						}
 						delete(*skipped, *goalPrevHash)
 						logger.Debug("Blockchain", fmt.Sprintf("(rewind) Block %v - %v -> %v", *height, block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
 						BlockWalk(&block, &p.visitor, height, utxoSet)
@@ -132,7 +136,6 @@ func WalkSlice(p *Parser, slice *[]uint8, goalPrevHash *chainhash.Hash, lastBloc
 			}
 
 			logger.Debug("Blockchain", fmt.Sprintf("Block candidate for height %d - goal_prev_hash = %v, prev_hash = %v, cur_hash = %v", *height, goalPrevHash.String(), block.MsgBlock().Header.PrevBlock.String(), block.Hash().String()), logger.Params{})
-
 
 			// Explanation: parsing the dat files means find a not ordinate sequence of blocks. In most cases parsing the next block means
 			// find a block that it's been added to blockchain many blocks after, so at a higher height. This means that, that block, will

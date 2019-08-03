@@ -69,6 +69,14 @@ func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8,
 		return fmt.Sprintf("Recovering skipped blocks: %v/%v", b.Current(), len((*chain)[0]))
 	})
 
+	stored, err := dgraph.StoredBlocks()
+	if err != nil {
+		return err
+	}
+	mapping := make(map[string]int32)
+	for _, block := range stored {
+		mapping[block.Hash] = block.Height
+	}
 	for _, slice := range *chain {
 		for len(slice) > 0 {
 			initLen := len(slice)
@@ -76,21 +84,15 @@ func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8,
 			if err != nil {
 				return err
 			}
-
 			if block.Hash().IsEqual(head.Hash()) {
 				return nil
 			}
-
-			if _, err = dgraph.GetBlockFromHash(block.Hash().String()); err != nil {
-				if err.Error() == "Block not found" {
-					if err := db.StoreBlockPrevHash(block); err != nil {
-						return err
-					}
-				} else {
+			if _, ok := mapping[block.Hash().String()]; !ok {
+				logger.Debug("Block skipped", fmt.Sprintf("Storing block %d - %s", block.Height(), block.Hash()), logger.Params{})
+				if err := db.StoreBlockPrevHash(block); err != nil {
 					return err
 				}
 			}
-
 			for i := 0; i < initLen-len(slice); i++ {
 				bar.Incr()
 			}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+	"github.com/xn3cr0nx/bitgodine_code/internal/routes/address"
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/block"
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/tx"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
@@ -84,6 +85,7 @@ func (s *Server) Listen() {
 	api := s.router.Group("/api")
 	tx.Routes(api)
 	block.Routes(api)
+	address.Routes(api)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

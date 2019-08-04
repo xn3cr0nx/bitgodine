@@ -170,6 +170,58 @@ func GetBlockFromHeight(height int32) (Block, error) {
 	return r.Blk[0].Block, nil
 }
 
+// GetBlockFromHeightRange returnes the hash of the block retrieving it based on its height
+func GetBlockFromHeightRange(height int32, first int) ([]Block, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		blk(func: eq(height, %d), first: %d) {
+			uid
+			hash
+			height
+			prev_block
+			time
+			version
+			merkle_root
+			bits
+			nonce
+			transactions {
+				uid
+				hash
+				locktime
+				version
+				inputs {
+					uid
+					hash
+					vout
+					signature_script
+					witness
+				}
+				outputs {
+					uid
+					value
+					vout
+					address
+					pk_script
+				}
+			}
+		}
+	}`, height, first))
+	if err != nil {
+		return nil, err
+	}
+	var r BlockResp
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, err
+	}
+	if len(r.Blk) == 0 {
+		return nil, errors.New("Block not found")
+	}
+	var blocks []Block
+	for _, b := range r.Blk {
+		blocks = append(blocks, b.Block)
+	}
+	return blocks, nil
+}
+
 // LastBlockHeight returnes the height of the last block synced by Bitgodine
 func LastBlockHeight() (int32, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), `{

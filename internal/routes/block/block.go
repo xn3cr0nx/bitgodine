@@ -25,7 +25,6 @@ func BlockToModel(b dgraph.Block) models.Block {
 		// Size:              ,
 		// Weight:            ,
 		Previousblockhash: b.PrevBlock,
-		// Proof: ,
 	}
 }
 

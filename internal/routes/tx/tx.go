@@ -26,8 +26,6 @@ func TxToModel(tx dgraph.Transaction, height int32, blockHash string, time time.
 			// Sequence: ,
 			// Witness: ,
 			// Prevout: ,
-			IsPegin: false,
-			// Issuance: ,
 		})
 	}
 	var outputs []models.Output
@@ -38,9 +36,6 @@ func TxToModel(tx dgraph.Transaction, height int32, blockHash string, time time.
 			// ScriptpubkeyType: ,
 			ScriptpubkeyAddress: output.Address,
 			Value:               uint64(output.Value),
-			// Valuecommitment: ,
-			// Asset: ,
-			// Pegout: ,
 		})
 	}
 	return models.Tx{

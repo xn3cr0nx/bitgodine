@@ -15,13 +15,13 @@ type Block struct {
 	Size              uint32    `json:"size,omitempty"`
 	Weight            uint32    `json:"weight,omitempty"`
 	Previousblockhash string    `json:"previousblockhash,omitempty"`
-	Proof             Proof     `json:"proof,omitempty"`
+	// Proof             Proof     `json:"proof,omitempty"`
 }
 
-// Proof model part of Block
-type Proof struct {
-	Challenge    string `json:"challenge,omitempty"`
-	ChallengeAsm string `json:"challenge_asm,omitempty"`
-	Solution     string `json:"solution,omitempty"`
-	SolutionAsm  string `json:"solution_asm,omitempty"`
-}
+// // (Elements models) Proof model part of Block
+// type Proof struct {
+// 	Challenge    string `json:"challenge,omitempty"`
+// 	ChallengeAsm string `json:"challenge_asm,omitempty"`
+// 	Solution     string `json:"solution,omitempty"`
+// 	SolutionAsm  string `json:"solution_asm,omitempty"`
+// }

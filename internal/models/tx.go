@@ -27,20 +27,20 @@ type Input struct {
 	Sequence              uint32
 	Witness               []string
 	Prevout               uint32
-	IsPegin               bool
-	Issuance              Issuance
+	// IsPegin               bool
+	// Issuance              Issuance
 }
 
-// Issuance model part of Input
-type Issuance struct {
-	AssetID            string  `json:"asset_id,omitempty"`
-	IsReissuance       bool    `json:"is_reissuance,omitempty"`
-	AssetBlindingNonce string  `json:"asset_blinding_nonce,omitempty"`
-	AssetEntropy       string  `json:"asset_entropy,omitempty"`
-	ContractHash       string  `json:"contract_hash,omitempty"`
-	Assetamount        float32 `json:"assetamount,omitempty"`
-	Tokenamount        float32 `json:"tokenamount,omitempty"`
-}
+// // (Elements only) Issuance model part of Input
+// type Issuance struct {
+// 	AssetID            string  `json:"asset_id,omitempty"`
+// 	IsReissuance       bool    `json:"is_reissuance,omitempty"`
+// 	AssetBlindingNonce string  `json:"asset_blinding_nonce,omitempty"`
+// 	AssetEntropy       string  `json:"asset_entropy,omitempty"`
+// 	ContractHash       string  `json:"contract_hash,omitempty"`
+// 	Assetamount        float32 `json:"assetamount,omitempty"`
+// 	Tokenamount        float32 `json:"tokenamount,omitempty"`
+// }
 
 // Output model part of Tx
 type Output struct {
@@ -49,18 +49,18 @@ type Output struct {
 	ScriptpubkeyType    string `json:"scriptpubkey_type,omitempty"`
 	ScriptpubkeyAddress string `json:"scriptpubkey_address,omitempty"`
 	Value               uint64 `json:"value,omitempty"`
-	Valuecommitment     uint64 `json:"valuecommitment,omitempty"`
-	Asset               string `json:"asset,omitempty"`
-	Pegout              Pegout `json:"pegout,omitempty"`
+	// Valuecommitment     uint64 `json:"valuecommitment,omitempty"`
+	// Asset               string `json:"asset,omitempty"`
+	// Pegout              Pegout `json:"pegout,omitempty"`
 }
 
-// Pegout model part of Output
-type Pegout struct {
-	GenesisHash         string `json:"genesis_hash,omitempty"`
-	Scriptpubkey        string `json:"scriptpubkey,omitempty"`
-	ScriptpubkeyAsm     string `json:"scriptpubkey_asm,omitempty"`
-	ScriptpubkeyAddress string `json:"scriptpubkey_address,omitempty"`
-}
+// // (Elements only) Pegout model part of Output
+// type Pegout struct {
+// 	GenesisHash         string `json:"genesis_hash,omitempty"`
+// 	Scriptpubkey        string `json:"scriptpubkey,omitempty"`
+// 	ScriptpubkeyAsm     string `json:"scriptpubkey_asm,omitempty"`
+// 	ScriptpubkeyAddress string `json:"scriptpubkey_address,omitempty"`
+// }
 
 // Status model part of Tx
 type Status struct {

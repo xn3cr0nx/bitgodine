@@ -50,7 +50,6 @@ func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Bloc
 	defer s.Done()
 	var wg sync.WaitGroup
 	wg.Add(len(tx.MsgTx().TxIn))
-	logger.Debug("Parser Transactions", "Parsing tx inputs", logger.Params{"size": len(tx.MsgTx().TxIn), "hash": tx.Hash().String()})
 	for n := range tx.MsgTx().TxIn {
 		k := n
 		go func(i *wire.TxIn) {
@@ -83,7 +82,6 @@ func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Blo
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	var wg sync.WaitGroup
 	wg.Add(len(tx.MsgTx().TxOut))
-	logger.Debug("Parser Transactions", "Parsing tx outputs", logger.Params{"size": len(tx.MsgTx().TxOut), "hash": tx.Hash().String()})
 	for n := range tx.MsgTx().TxOut {
 		k := n
 		go func(o *wire.TxOut, index int) {

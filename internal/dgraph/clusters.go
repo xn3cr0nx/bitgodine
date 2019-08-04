@@ -188,7 +188,6 @@ func UpdateSet(address string, cluster uint32) error {
 			{Address: address},
 		},
 	}
-	logger.Debug("Dgraph Clusters", "Updating set", logger.Params{"set": c})
 	if err := Store(c); err != nil {
 		return err
 	}
@@ -214,7 +213,6 @@ func NewSet(address string, cluster uint32) error {
 		UID: uid,
 		Set: c,
 	}
-	logger.Debug("Dgraph Clusters", "Creating New Set", logger.Params{"set": set})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -284,7 +282,6 @@ func AddParent(pos, parent uint32) error {
 		UID:     uid,
 		Parents: p,
 	}
-	logger.Debug("Dgraph Clusters", "Adding parent", logger.Params{"set": set, "pos": pos, "parent": parent, "p": p})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -297,7 +294,6 @@ func UpdateParent(pos, parent uint32) error {
 	if err != nil {
 		return err
 	}
-	logger.Debug("Dgraph Clusters", "Updating parent", logger.Params{"pos": pos, "parent": parent, "uid": p.UID, "prev_parent": p.Parent, "prev_pos": p.Pos})
 	pnt := Parent{
 		UID:    p.UID,
 		Pos:    pos,
@@ -356,7 +352,6 @@ func AddRank(pos, rank uint32) error {
 		UID:   uid,
 		Ranks: r,
 	}
-	logger.Debug("Dgraph Clusters", "Adding Rank", logger.Params{"set": set, "pos": pos, "rank": rank, "r": r})
 	if err := Store(set); err != nil {
 		return err
 	}
@@ -369,7 +364,6 @@ func UpdateRank(pos, rank uint32) error {
 	if err != nil {
 		return err
 	}
-	logger.Debug("Dgraph Clusters", "Updating Rank", logger.Params{"pos": pos, "rank": rank, "uid": r.UID, "prev_rank": r.Rank, "prev_pos": r.Pos})
 	rnk := Rank{
 		UID:  r.UID,
 		Pos:  pos,

@@ -19,13 +19,13 @@ func BlockWalk(b *blocks.Block, v *visitor.BlockchainVisitor, height *int32, utx
 	if *height%100 == 0 {
 		logger.Info("Parser Blocks", fmt.Sprintf("Block %d", b.Height()), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
-	logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
+	// logger.Debug("Parser Blocks", "storing block", logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 
-	logger.Debug("Blocks", fmt.Sprintf("Dispatching %d threads to parse transactions", len(b.Transactions())), logger.Params{})
 	for _, tx := range b.Transactions() {
 		TxWalk(&txs.Tx{Tx: *tx}, b, v, &blockItem, utxoSet)
 	}
 
+	logger.Debug("Parser Blocks", fmt.Sprintf("Storing block %v", *height), logger.Params{})
 	if err := b.Store(); err != nil {
 		logger.Panic("Block Parser", err, logger.Params{})
 	}

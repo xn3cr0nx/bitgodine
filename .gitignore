@@ -3,3 +3,4 @@ clusters.csv
 build/
 .env
 *.html
+profiling

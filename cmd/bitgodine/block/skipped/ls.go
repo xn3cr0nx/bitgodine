@@ -31,7 +31,7 @@ var lsCmd = &cobra.Command{
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Block Hash"})
+		table.SetHeader([]string{"Prev Block Hash"})
 		for _, block := range stored {
 			table.Append([]string{block})
 		}

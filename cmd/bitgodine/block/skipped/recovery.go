@@ -54,11 +54,10 @@ var recoveryCmd = &cobra.Command{
 }
 
 func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8, skipped *map[chainhash.Hash]blocks.Block) error {
-	fmt.Println("")
 	uiprogress.Start()
 	bar := uiprogress.AddBar(len((*chain)[0])).AppendCompleted().PrependElapsed()
 	bar.PrependFunc(func(b *uiprogress.Bar) string {
-		return fmt.Sprintf("Recovering skipped blocks: %v/%v", b.Current(), len((*chain)[0]))
+		return fmt.Sprintf("\nRecovering skipped blocks: %v/%v", b.Current(), len((*chain)[0]))
 	})
 
 	stored, err := dgraph.StoredBlocks()

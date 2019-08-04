@@ -87,8 +87,6 @@ data representation to analyze the blockchain.`,
 }
 
 func init() {
-	rootCmd.AddCommand(startCmd)
-
 	startCmd.PersistentFlags().BoolVar(&csv, "csv", false, "Creates output csv file with cluster when program ends")
 	viper.SetDefault("sync.csv", false)
 	viper.BindPFlag("sync.csv", startCmd.PersistentFlags().Lookup("csv"))

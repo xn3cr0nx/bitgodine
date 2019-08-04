@@ -16,11 +16,14 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3 // indirect
 	github.com/dgraph-io/badger v1.5.4
 	github.com/dgraph-io/dgo v0.0.0-20190201214300-d5a1729ba705
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/fatih/color v1.7.0
+	github.com/go-playground/locales v0.12.1 // indirect
+	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gobuffalo/packr v1.24.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -37,15 +40,17 @@ require (
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/khaiql/dbcleaner v2.2.1+incompatible // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
+	github.com/labstack/echo/v4 v4.1.7
+	github.com/labstack/gommon v0.2.9
+	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.1.1 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
+	github.com/pkg/profile v1.3.0
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/afero v1.2.0 // indirect
@@ -56,5 +61,6 @@ require (
 	golang.org/x/arch v0.0.0-20181203225421-5a4828bb7045 // indirect
 	google.golang.org/grpc v1.19.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
+	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/khaiql/dbcleaner.v2 v2.2.1
 )

@@ -327,6 +327,35 @@ func GetTxBlockHeight(hash string) (int32, error) {
 	return r.Block[0].Height, nil
 }
 
+// GetTxBlock returnes the block containing the transaction
+func GetTxBlock(hash string) (Block, error) {
+	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+		block(func: has(prev_block)) @cascade {
+			uid
+			hash
+			height
+			prev_block
+			time
+			version
+			merkle_root
+			bits
+			nonce
+			transactions @filter(eq(hash, "%s"))
+		}
+	}`, hash))
+	if err != nil {
+		return Block{}, err
+	}
+	var r struct{ Block []struct{ Block } }
+	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return Block{}, err
+	}
+	if len(r.Block) == 0 {
+		return Block{}, errors.New("Block not found")
+	}
+	return r.Block[0].Block, nil
+}
+
 // GetTransactionsHeightRange returnes the list of transaction contained between height boundaries passed as arguments
 func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{

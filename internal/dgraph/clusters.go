@@ -374,3 +374,39 @@ func UpdateRank(pos, rank uint32) error {
 	}
 	return nil
 }
+
+// BulkMakeSet take together single update operations and update clusters with a single request
+func BulkMakeSet(address string, size, parentPos, rankPos uint32) error {
+	uid, err := GetClusterUID()
+	if err != nil {
+		return err
+	}
+	set := Clusters{
+		UID:  uid,
+		Size: size+1,
+		Set: []Cluster{
+			{
+				Cluster: size,
+				Addresses: []Address{
+					{Address: address},
+				},
+			},
+		},
+		Parents: []Parent{
+			{
+				Pos:    parentPos,
+				Parent: size,
+			},
+		},
+		Ranks: []Rank{
+			{
+				Pos:  rankPos,
+				Rank: 0,
+			},
+		},
+	}
+	if err := Store(set); err != nil {
+		return err
+	}
+	return nil
+}

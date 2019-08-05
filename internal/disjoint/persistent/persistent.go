@@ -218,38 +218,14 @@ func (d *DisjointSet) MakeSet(x interface{}) {
 	if _, ok := d.HashMap[x]; ok {
 		return
 	}
-
 	d.HashMap[x] = d.SetSize
-	// persistence
-	if err := dgraph.NewSet(string(x.(visitor.Utxo)), d.SetSize); err != nil {
-		logger.Error("Persistent Disjoint Set", err, logger.Params{})
-		os.Exit(-1)
-	}
-	//
-
 	d.Parent = append(d.Parent, d.SetSize)
-	// persistence
-	if err := dgraph.AddParent(uint32(len(d.Parent)-1), d.SetSize); err != nil {
-		logger.Error("Persistent Disjoint Set", err, logger.Params{})
-		os.Exit(-1)
-	}
-	//
-
 	d.Rank = append(d.Rank, 0)
-	// persistence
-	if err := dgraph.AddRank(uint32(len(d.Rank)-1), 0); err != nil {
+	if err := dgraph.BulkMakeSet(string(x.(visitor.Utxo)), d.SetSize, uint32(len(d.Parent)-1), uint32(len(d.Rank)-1)); err != nil {
 		logger.Error("Persistent Disjoint Set", err, logger.Params{})
 		os.Exit(-1)
 	}
-	//
-
 	d.SetSize = d.SetSize + 1
-	// persistence
-	if err := dgraph.UpdateSize(d.SetSize); err != nil {
-		logger.Error("Persistent Disjoint Set", err, logger.Params{})
-		os.Exit(-1)
-	}
-	//
 }
 
 // Find returnes the value of the set required as argument to the function

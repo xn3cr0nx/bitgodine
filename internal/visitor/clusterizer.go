@@ -72,7 +72,7 @@ func (c Clusterizer) VisitTransactionEnd(tx txs.Tx, blockItem *BlockItem, txItem
 	if (*txItem).Size() > 1 && !tx.IsCoinjoin() {
 		txInputs := (*txItem).Values()
 		lastAddress := txInputs[0].(Utxo)
-		logger.Debug("Clusterizer", "Enhancing disjoint set", logger.Params{"last_address": lastAddress})
+		logger.Debug("Clusterizer", "Enhancing disjoint set", logger.Params{"last_address": lastAddress, "size": c.Clusters.Size()})
 		c.Clusters.MakeSet(lastAddress)
 		for _, address := range txInputs {
 			c.Clusters.MakeSet(address.(Utxo))

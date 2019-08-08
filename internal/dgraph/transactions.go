@@ -221,6 +221,25 @@ func GetTxOutputs(hash *string) ([]Output, error) {
 
 // GetSpentTxOutput returnes the output spent (the vout) of the corresponding tx
 func GetSpentTxOutput(hash *string, vout *uint32) (Output, error) {
+	c, err := cache.Instance(bigcache.Config{})
+	if err != nil {
+		return Output{}, err
+	}
+	cached, err := c.Get(fmt.Sprintf("%s_%d", *hash, *vout))
+	if len(cached) != 0 {
+		var r Output
+		if err := json.Unmarshal(cached, &r); err == nil {
+			return r, nil
+		}
+	}
+	cached, err = c.Get(*hash)
+	if len(cached) != 0 {
+		var r Transaction
+		if err := json.Unmarshal(cached, &r); err == nil {
+			return r.Outputs[*vout], nil
+		}
+	}
+
 	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
 		transactions(func: allofterms(hash, %s)) {
 			outputs @filter(eq(vout, %d)) {
@@ -242,6 +261,14 @@ func GetSpentTxOutput(hash *string, vout *uint32) (Output, error) {
 	if len(r.Transactions) == 0 {
 		return Output{}, errors.New("output not found")
 	}
+
+	bytes, err := json.Marshal(r.Transactions[0].Outputs[0].Output)
+	if err == nil {
+		if err := c.Set(fmt.Sprintf("%s_%d", *hash, *vout), bytes); err != nil {
+			logger.Error("Cache", err, logger.Params{})
+		}
+	}
+
 	return r.Transactions[0].Outputs[0].Output, nil
 }
 

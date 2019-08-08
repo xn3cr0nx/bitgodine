@@ -59,36 +59,36 @@ func Get(hash *chainhash.Hash) (Tx, error) {
 	return transaction, nil
 }
 
-// Store prepares the dgraph transaction struct and and call StoreTx to store it in dgraph
-func (tx *Tx) Store() error {
-	// check if tx is already stored
-	hash := tx.Hash().String()
-	if _, err := dgraph.GetTxUID(&hash); err == nil {
-		logger.Debug("Dgraph", "already stored transaction", logger.Params{"hash": hash})
-		return nil
-	}
+// // Store prepares the dgraph transaction struct and and call StoreTx to store it in dgraph
+// func (tx *Tx) Store() error {
+// 	// check if tx is already stored
+// 	hash := tx.Hash().String()
+// 	if _, err := dgraph.GetTxUID(&hash); err == nil {
+// 		logger.Debug("Dgraph", "already stored transaction", logger.Params{"hash": hash})
+// 		return nil
+// 	}
 
-	txIns, err := prepareInputs(tx.MsgTx().TxIn, nil)
-	if err != nil {
-		return err
-	}
-	txOuts, err := prepareOutputs(tx.MsgTx().TxOut)
-	if err != nil {
-		return err
-	}
+// 	txIns, err := prepareInputs(tx.MsgTx().TxIn, nil)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	txOuts, err := prepareOutputs(tx.MsgTx().TxOut)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	transaction := dgraph.Transaction{
-		Hash:     hash,
-		Locktime: tx.MsgTx().LockTime,
-		Version:  tx.MsgTx().Version,
-		Inputs:   txIns,
-		Outputs:  txOuts,
-	}
-	if err := dgraph.Store(&transaction); err != nil {
-		return err
-	}
-	return nil
-}
+// 	transaction := dgraph.Transaction{
+// 		Hash:     hash,
+// 		Locktime: tx.MsgTx().LockTime,
+// 		Version:  tx.MsgTx().Version,
+// 		Inputs:   txIns,
+// 		Outputs:  txOuts,
+// 	}
+// 	if err := dgraph.Store(&transaction); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 // PrepareTransactions parses the btcutil.TX array of structs and convert them in Transaction object compatible with dgraph schema
 // TODO: here I have to provide a solution in case the parsed block contains transactions which spend each other, e.g a transaction
@@ -99,41 +99,83 @@ func (tx *Tx) Store() error {
 func PrepareTransactions(txs []*btcutil.Tx) ([]dgraph.Transaction, error) {
 	var transactions []dgraph.Transaction
 	for _, tx := range txs {
-		inputs, err := prepareInputs(tx.MsgTx().TxIn, &transactions)
-		if err != nil {
-			return nil, err
+		var wg sync.WaitGroup
+		wg.Add(2)
+		alarm := make(chan error, 1)
+		defer close(alarm)
+		inputs := make(chan dgraph.Input, len(tx.MsgTx().TxIn))
+		defer close(inputs)
+		outputs := make(chan dgraph.Output, len(tx.MsgTx().TxOut))
+		defer close(outputs)
+
+		go prepareInputs(tx.MsgTx().TxIn, &transactions, &wg, inputs, alarm)
+		go prepareOutputs(tx.MsgTx().TxOut, &wg, outputs, alarm)
+
+		wg.Wait()
+		select {
+		case err := <-alarm:
+			{
+				logger.Error("Transactions", err, logger.Params{"tx": tx.Hash().String()})
+				return nil, err
+			}
+		default:
 		}
-		outputs, err := prepareOutputs(tx.MsgTx().TxOut)
-		if err != nil {
-			return nil, err
-		}
+
+		var inputsResult []dgraph.Input
+		var outputsResult []dgraph.Output
+		var wg2 sync.WaitGroup
+		wg2.Add(2)
+		go func() {
+			defer wg2.Done()
+			for i := range inputs {
+				inputsResult = append(inputsResult, i)
+				if len(inputs) == 0 {
+					break
+				}
+			}
+		}()
+		go func() {
+			defer wg2.Done()
+			for o := range outputs {
+				outputsResult = append(outputsResult, o)
+				if len(outputs) == 0 {
+					break
+				}
+			}
+		}()
+		wg2.Wait()
+
 		transactions = append(transactions, dgraph.Transaction{
 			Hash:     tx.Hash().String(),
 			Locktime: tx.MsgTx().LockTime,
 			Version:  tx.MsgTx().Version,
-			Inputs:   inputs,
-			Outputs:  outputs,
+			Inputs:   inputsResult,
+			Outputs:  outputsResult,
 		})
 	}
 
 	return transactions, nil
 }
 
-func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]dgraph.Input, error) {
-	txIns := make([]dgraph.Input, len(inputs))
+func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction, s *sync.WaitGroup, inputsChannel chan<- dgraph.Input, inputsAlarm chan<- error) {
+	defer s.Done()
 	var wg sync.WaitGroup
-	alarm := make(chan error, 1)
-	defer close(alarm)
 	wg.Add(len(inputs))
+	var lock = sync.RWMutex{}
 	for k := range inputs {
 		j := k
 		go func(index int, in *wire.TxIn) {
 			defer wg.Done()
 			h := in.PreviousOutPoint.Hash.String()
+			lock.Lock()
 			stxo, err := dgraph.GetSpentTxOutput(&h, &in.PreviousOutPoint.Index)
+			lock.Unlock()
 			if err != nil {
 				if err.Error() != "output not found" {
-					alarm <- err
+					if len(inputsAlarm) == 1 {
+						return
+					}
+					inputsAlarm <- err
 					return
 				}
 			}
@@ -151,23 +193,15 @@ func prepareInputs(inputs []*wire.TxIn, transactions *[]dgraph.Transaction) ([]d
 					}
 				}
 			}
-			txIns[index] = input
+			inputsChannel <- input
 		}(j, inputs[j])
 	}
 	wg.Wait()
-	select {
-	case err := <-alarm:
-		return nil, err
-	default:
-	}
-	return txIns, nil
 }
 
-func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
-	txOuts := make([]dgraph.Output, len(outputs))
+func prepareOutputs(outputs []*wire.TxOut, s *sync.WaitGroup, outputsChannel chan<- dgraph.Output, outputsAlarm chan<- error) {
+	defer s.Done()
 	var wg sync.WaitGroup
-	alarm := make(chan error, 1)
-	defer close(alarm)
 	wg.Add(len(outputs))
 	for k := range outputs {
 		i := k
@@ -175,30 +209,26 @@ func prepareOutputs(outputs []*wire.TxOut) ([]dgraph.Output, error) {
 			defer wg.Done()
 			if out.PkScript == nil {
 				// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value})
-				txOuts = append(txOuts, dgraph.Output{Value: out.Value})
+				outputsChannel <- dgraph.Output{Value: out.Value}
 			} else {
-				// txOuts = append(txOuts, Output{UID: "_:output", Value: out.Value, Vout: uint32(k)})
 				_, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
 				if err != nil {
-					alarm <- err
+					if len(outputsAlarm) == 1 {
+						return
+					}
+					outputsAlarm <- err
 					return
 				}
 				// TODO: here should be managemed the multisig (just take all the addr, not just the first)
 				if len(addr) > 0 {
-					txOuts[i] = dgraph.Output{Value: out.Value, Vout: uint32(i), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)}
+					outputsChannel <- dgraph.Output{Value: out.Value, Vout: uint32(i), Address: addr[0].EncodeAddress(), PkScript: fmt.Sprintf("%X", out.PkScript)}
 				} else {
-					txOuts[i] = dgraph.Output{Value: out.Value, Vout: uint32(i), PkScript: fmt.Sprintf("%X", out.PkScript)}
+					outputsChannel <- dgraph.Output{Value: out.Value, Vout: uint32(i), PkScript: fmt.Sprintf("%X", out.PkScript)}
 				}
 			}
 		}(i, outputs[k])
 	}
 	wg.Wait()
-	select {
-	case err := <-alarm:
-		return nil, err
-	default:
-	}
-	return txOuts, nil
 }
 
 // IsCoinbase returnes true if the transaction is a coinbase transaction

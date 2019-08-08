@@ -77,7 +77,7 @@ func parseTxIn(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Bloc
 }
 
 // Creates a new set of utxo to append to the global utxo set (utxoSet)
-func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, s *sync.WaitGroup, utxoLock *sync.RWMutex, alarm chan error) {
+func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.BlockItem, utxoSet *map[chainhash.Hash][]visitor.Utxo, transactionItem *visitor.TransactionItem, s *sync.WaitGroup, utxoLock *sync.RWMutex, alarm chan<- error) {
 	defer s.Done()
 	curUtxoSet := make([]visitor.Utxo, len(tx.MsgTx().TxOut))
 	var wg sync.WaitGroup
@@ -88,6 +88,9 @@ func parseTxOut(tx *txs.Tx, v *visitor.BlockchainVisitor, blockItem *visitor.Blo
 			defer wg.Done()
 			utxo, err := (*v).VisitTransactionOutput(*o, blockItem, transactionItem)
 			if err != nil {
+				if len(alarm) == 1 {
+					return
+				}
 				alarm <- err
 				return
 			}

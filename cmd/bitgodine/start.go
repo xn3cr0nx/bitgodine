@@ -6,18 +6,21 @@ import (
 	"os/signal"
 	"time"
 
+	// "github.com/pkg/profile"
+
 	"github.com/allegro/bigcache"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/disjoint/persistent"
 	"github.com/xn3cr0nx/bitgodine_code/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine_code/internal/visitor"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger/skipped"
 )
 
 var (
@@ -26,8 +29,8 @@ var (
 )
 
 // BadgerConf exports the Config object to initialize indexing dgraph
-func BadgerConf() *db.Config {
-	return &db.Config{
+func BadgerConf() *badger.Config {
+	return &badger.Config{
 		Dir: viper.GetString("dbDir"),
 	}
 }
@@ -41,9 +44,12 @@ if the synced is being previously performed.
 The parsing stores blocks and transaction and creates clusters to provide
 data representation to analyze the blockchain.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// defer profile.Start().Stop()
+		// defer profile.Start(profile.MemProfile).Stop()
+
 		logger.Info("Start", "Start called", logger.Params{})
 
-		skippedBlocksStorage, err := dbblocks.NewDbBlocks(BadgerConf())
+		skippedBlocksStorage, err := skipped.NewSkipped(BadgerConf(), true)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)

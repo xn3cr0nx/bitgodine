@@ -1,4 +1,4 @@
-package dbblocks
+package skipped
 
 import (
 	"errors"
@@ -8,57 +8,67 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/badger"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
+	bdg "github.com/xn3cr0nx/bitgodine_code/internal/db/badger"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
-// DbBlocks instance of key value store designed to treat block structs
-type DbBlocks struct {
-	*badger.DB
+// Skipped instance of key value store designed to treat block structs
+type Skipped struct {
+	DB     *badger.DB
+	Blocks map[chainhash.Hash]blocks.Block
+	memory bool
 }
 
-// NewDbBlocks creates a new instance of DbBlocks
-func NewDbBlocks(conf *db.Config) (*DbBlocks, error) {
+// NewSkipped creates a new instance of Skipped
+func NewSkipped(conf *bdg.Config, memory bool) (*Skipped, error) {
 	opts := badger.DefaultOptions
 	opts.Dir, opts.ValueDir = conf.Dir, conf.Dir
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
-	return &DbBlocks{db}, nil
+	b := make(map[chainhash.Hash]blocks.Block, 0)
+	return &Skipped{DB: db, Blocks: b, memory: memory}, nil
 }
 
 // StoreBlock inserts in the db the block as []byte passed
-func (db *DbBlocks) StoreBlock(b *blocks.Block) error {
+func (s *Skipped) StoreBlock(b *blocks.Block) error {
 	// block validation
-	if db.IsStored(b.Hash()) {
+	if s.IsStored(b.Hash()) {
 		return errors.New(fmt.Sprintf("block %s already exists", b.Hash().String()))
 	}
-	err := db.Update(func(txn *badger.Txn) error {
+	err := s.DB.Update(func(txn *badger.Txn) error {
 		bytes, err := b.Bytes()
 		if err != nil {
 			return err
 		}
 		return txn.Set(b.Hash().CloneBytes(), bytes)
 	})
+	if s.memory {
+		s.Blocks[*b.Hash()] = *b
+	}
 	return err
 }
 
 // StoreBlockPrevHash inserts in the db the block as []byte passed, using the previous hash as key
-func (db *DbBlocks) StoreBlockPrevHash(b *blocks.Block) error {
-	return db.Update(func(txn *badger.Txn) error {
+func (s *Skipped) StoreBlockPrevHash(b *blocks.Block) error {
+	err := s.DB.Update(func(txn *badger.Txn) error {
 		bytes, err := b.Bytes()
 		if err != nil {
 			return err
 		}
 		return txn.Set(b.MsgBlock().Header.PrevBlock.CloneBytes(), bytes)
 	})
+	if s.memory {
+		s.Blocks[b.MsgBlock().Header.PrevBlock] = *b
+	}
+	return err
 }
 
 // GetBlock returnes a *Block looking for the block corresponding to the hash passed
-func (db *DbBlocks) GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
+func (s *Skipped) GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 	var loadedBlockBytes []byte
-	err := db.View(func(txn *badger.Txn) error {
+	err := s.DB.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(hash.CloneBytes())
 		if err != nil {
 			logger.Debug("DB", fmt.Sprintf("GetBlock %s", err.Error()), logger.Params{})
@@ -83,8 +93,8 @@ func (db *DbBlocks) GetBlock(hash *chainhash.Hash) (*blocks.Block, error) {
 }
 
 // IsStored returns true if the block corresponding to passed hash is stored in db
-func (db *DbBlocks) IsStored(hash *chainhash.Hash) bool {
-	err := db.View(func(txn *badger.Txn) error {
+func (s *Skipped) IsStored(hash *chainhash.Hash) bool {
+	err := s.DB.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(hash.CloneBytes())
 		if err != nil {
 			return err
@@ -95,9 +105,9 @@ func (db *DbBlocks) IsStored(hash *chainhash.Hash) bool {
 }
 
 // StoredBlocks is an utility functions that returnes the list of stored blocks hash
-func (db *DbBlocks) StoredBlocks() ([]string, error) {
+func (s *Skipped) StoredBlocks() ([]string, error) {
 	var blocks []string
-	err := db.View(func(txn *badger.Txn) error {
+	err := s.DB.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
@@ -121,9 +131,9 @@ func (db *DbBlocks) StoredBlocks() ([]string, error) {
 }
 
 // GetAll returnes all the blocks stored in badger
-func (db *DbBlocks) GetAll() ([]blocks.Block, error) {
+func (s *Skipped) GetAll() ([]blocks.Block, error) {
 	var storedBlocks []blocks.Block
-	err := db.View(func(txn *badger.Txn) error {
+	err := s.DB.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
@@ -145,13 +155,21 @@ func (db *DbBlocks) GetAll() ([]blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	if s.memory {
+		for _, block := range storedBlocks {
+			s.Blocks[block.MsgBlock().Header.PrevBlock] = block
+		}
+	}
 	return storedBlocks, nil
 }
 
 // DeleteBlock inserts in the db the block as []byte passed
-func (db *DbBlocks) DeleteBlock(hash *chainhash.Hash) error {
-	err := db.Update(func(txn *badger.Txn) error {
+func (s *Skipped) DeleteBlock(hash *chainhash.Hash) error {
+	err := s.DB.Update(func(txn *badger.Txn) error {
 		return txn.Delete(hash.CloneBytes())
 	})
+	if s.memory {
+		delete(s.Blocks, *hash)
+	}
 	return err
 }

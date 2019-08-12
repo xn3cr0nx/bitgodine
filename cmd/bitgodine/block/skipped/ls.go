@@ -6,8 +6,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger/skipped"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
@@ -17,14 +17,14 @@ var lsCmd = &cobra.Command{
 	Short: "Show list of stored blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		skippedBlocksStorage, err := dbblocks.NewDbBlocks(&db.Config{
+		s, err := skipped.NewSkipped(&badger.Config{
 			Dir: viper.GetString("dbDir"),
-		})
+		}, false)
 		if err != nil {
 			logger.Error("Block skipped ls", err, logger.Params{})
 			os.Exit(-1)
 		}
-		stored, err := skippedBlocksStorage.StoredBlocks()
+		stored, err := s.StoredBlocks()
 		if err != nil {
 			logger.Error("Block skipped ls", err, logger.Params{})
 			os.Exit(-1)

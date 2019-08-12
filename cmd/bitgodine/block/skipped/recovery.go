@@ -9,13 +9,12 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine_code/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db"
-	"github.com/xn3cr0nx/bitgodine_code/internal/db/dbblocks"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger"
+	"github.com/xn3cr0nx/bitgodine_code/internal/db/badger/skipped"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/gosuri/uiprogress"
 )
 
@@ -25,10 +24,9 @@ var recoveryCmd = &cobra.Command{
 	Short: "Recover lost skipped blocks",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		skipped := make(map[chainhash.Hash]blocks.Block)
-		skippedBlocksStorage, err := dbblocks.NewDbBlocks(&db.Config{
+		s, err := skipped.NewSkipped(&badger.Config{
 			Dir: viper.GetString("dbDir"),
-		})
+		}, false)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
@@ -46,14 +44,14 @@ var recoveryCmd = &cobra.Command{
 		for _, ref := range b.Maps {
 			rawChain = append(rawChain, []uint8(ref))
 		}
-		if err := recoverSkipped(&head, skippedBlocksStorage, &rawChain, &skipped); err != nil {
+		if err := recoverSkipped(s, &head, &rawChain); err != nil {
 			logger.Error("Block skipped", err, logger.Params{})
 			os.Exit(-1)
 		}
 	},
 }
 
-func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8, skipped *map[chainhash.Hash]blocks.Block) error {
+func recoverSkipped(s *skipped.Skipped, head *blocks.Block, chain *[][]uint8) error {
 	uiprogress.Start()
 	bar := uiprogress.AddBar(len((*chain)[0])).AppendCompleted().PrependElapsed()
 	bar.PrependFunc(func(b *uiprogress.Bar) string {
@@ -80,7 +78,7 @@ func recoverSkipped(head *blocks.Block, db *dbblocks.DbBlocks, chain *[][]uint8,
 			}
 			if _, ok := mapping[block.Hash().String()]; !ok {
 				logger.Debug("Block skipped", fmt.Sprintf("Storing block %s, with key prevHash %s", block.Hash().String(), block.MsgBlock().Header.PrevBlock.String()), logger.Params{})
-				if err := db.StoreBlockPrevHash(block); err != nil {
+				if err := s.StoreBlockPrevHash(block); err != nil {
 					return err
 				}
 			}

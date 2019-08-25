@@ -1,13 +1,19 @@
 package dgraph
 
 import (
-	"testing"
-
 	"github.com/dgraph-io/dgo"
 	assert "gopkg.in/go-playground/assert.v1"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/suite"
 )
+
+var _ = Describe("Testing with Ginkgo", func() {
+	It("dgraph clusters", func() {
+
+		suite.Run(GinkgoT(), new(TestDgraphClustersSuite))
+	})
+})
 
 type TestDgraphClustersSuite struct {
 	suite.Suite
@@ -128,8 +134,4 @@ func (suite *TestDgraphClustersSuite) TestUpdateSize() {
 	c, err := GetClusters()
 	assert.Equal(suite.T(), err, nil)
 	assert.Equal(suite.T(), c.Size, suite.cluster.Size)
-}
-
-func TestDgraphClusters(t *testing.T) {
-	suite.Run(t, new(TestDgraphClustersSuite))
 }

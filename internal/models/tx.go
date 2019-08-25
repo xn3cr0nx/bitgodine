@@ -4,31 +4,47 @@ import "time"
 
 // Tx model defined by standard
 type Tx struct {
+	UID      string   `json:"uid,omitempty"` // dgraph id
 	TxID     string   `json:"txid,omitempty"`
-	Version  uint8    `json:"version,omitempty"`
-	Locktime uint32   `json:"locktime,omitempty"`
-	Size     float32  `json:"size,omitempty"`
-	Weight   float32  `json:"weight,omitempty"`
-	Fee      float32  `json:"fee,omitempty"`
-	Vin      []Input  `json:"vin,omitempty"`
-	Vout     []Output `json:"vout,omitempty"`
+	Version  int32    `json:"version"`
+	Locktime uint32   `json:"locktime"`
+	Size     float32  `json:"size"`
+	Weight   float32  `json:"weight"`
+	Fee      float32  `json:"fee"`
+	Vin      []Input  `json:"input,omitempty"`
+	Vout     []Output `json:"output,omitempty"`
 	Status   Status   `json:"status,omitempty"`
 }
 
 // Input model part of Tx
 type Input struct {
-	TxID                  string
-	Vout                  uint32
-	IsCoinbase            bool
-	Scriptsig             string
-	ScriptsigAsm          string
-	InnerRedeemscriptAsm  string
-	InnerWitnessscriptAsm string
-	Sequence              uint32
-	Witness               []string
-	Prevout               uint32
+	UID                   string   `json:"uid,omitempty"` // dgraph id
+	TxID                  string   `json:"txid,omitempty"`
+	Vout                  uint32   `json:"vout"`
+	IsCoinbase            bool     `json:"is_coinbase"`
+	Scriptsig             string   `json:"scriptsig"`
+	ScriptsigAsm          string   `json:"scriptsig_asm"`
+	InnerRedeemscriptAsm  string   `json:"inner_redeemscript_asm"`
+	InnerWitnessscriptAsm string   `json:"inner_witnessscript_asm"`
+	Sequence              uint32   `json:"sequence"`
+	Witness               []string `json:"witness"`
+	Prevout               uint32   `json:"prevout"`
 	// IsPegin               bool
 	// Issuance              Issuance
+}
+
+// Output model part of Tx
+type Output struct {
+	UID                 string `json:"uid,omitempty"` // dgraph id
+	Scriptpubkey        string `json:"scriptpubkey"`
+	ScriptpubkeyAsm     string `json:"scriptpubkey_asm"`
+	ScriptpubkeyType    string `json:"scriptpubkey_type"`
+	ScriptpubkeyAddress string `json:"scriptpubkey_address"`
+	Value               int64  `json:"value"`
+	Index               uint32 `json:"index"` // this shoudln't be here, useful for dgraph
+	// Valuecommitment     uint64 `json:"valuecommitment,omitempty"`
+	// Asset               string `json:"asset,omitempty"`
+	// Pegout              Pegout `json:"pegout,omitempty"`
 }
 
 // // (Elements only) Issuance model part of Input
@@ -42,18 +58,6 @@ type Input struct {
 // 	Tokenamount        float32 `json:"tokenamount,omitempty"`
 // }
 
-// Output model part of Tx
-type Output struct {
-	Scriptpubkey        string `json:"scriptpubkey,omitempty"`
-	ScriptpubkeyAsm     string `json:"scriptpubkey_asm,omitempty"`
-	ScriptpubkeyType    string `json:"scriptpubkey_type,omitempty"`
-	ScriptpubkeyAddress string `json:"scriptpubkey_address,omitempty"`
-	Value               uint64 `json:"value,omitempty"`
-	// Valuecommitment     uint64 `json:"valuecommitment,omitempty"`
-	// Asset               string `json:"asset,omitempty"`
-	// Pegout              Pegout `json:"pegout,omitempty"`
-}
-
 // // (Elements only) Pegout model part of Output
 // type Pegout struct {
 // 	GenesisHash         string `json:"genesis_hash,omitempty"`
@@ -64,8 +68,9 @@ type Output struct {
 
 // Status model part of Tx
 type Status struct {
-	Confirmed   bool      `json:"confirmed,omitempty"`
-	BlockHeight uint32    `json:"block_height,omitempty"`
-	BlockHash   string    `json:"block_hash,omitempty"`
-	BlockTime   time.Time `json:"block_time,omitempty"`
+	UID         string    `json:"uid,omitempty"` // dgraph id
+	Confirmed   bool      `json:"confirmed"`
+	BlockHeight uint32    `json:"block_height"`
+	BlockHash   string    `json:"block_hash"`
+	BlockTime   time.Time `json:"block_time"`
 }

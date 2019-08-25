@@ -1,2 +1,0 @@
-- I used extractPkScript functions that returnes an array of addresses but always take the first. This wil give a bug, for sure
-- StoreBlock and StoreTx are two different operations executed in two different points of the code (parser/blocks and parser/transactions). This should be almost an "atomic" operation. A receiver on blocks.Block that calls the db module to store the block and dgraph module to store each transaction in the block

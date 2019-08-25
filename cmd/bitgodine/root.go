@@ -8,12 +8,6 @@ import (
 	"time"
 
 	"github.com/allegro/bigcache"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/address"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/analysis"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/block"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/cluster"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/tag"
-	"github.com/xn3cr0nx/bitgodine_code/cmd/bitgodine/transaction"
 	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 
@@ -25,10 +19,10 @@ import (
 )
 
 var (
-	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost string
-	dgPort                                                   int
-	debug                                                    bool
-	BitcoinNet                                               chaincfg.Params
+	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost, output string
+	dgPort                                                           int
+	debug                                                            bool
+	BitcoinNet                                                       chaincfg.Params
 )
 
 // DGraphConf exports the Config object to initialize indexing dgraph
@@ -47,10 +41,18 @@ var rootCmd = &cobra.Command{
 		logger.Setup()
 
 		dg := dgraph.Instance(DGraphConf())
-		if err := dgraph.Setup(dg); err != nil {
+		for counter := 0; ; counter++ {
+			if counter == 5 {
+				logger.Error("Bitgodine", errors.New("Cannot connect to Dgraph"), logger.Params{})
+				os.Exit(-1)
+			}
+			err := dgraph.Setup(dg); 
+			if err == nil {
+				break
+			}
 			logger.Error("Bitgodine", err, logger.Params{})
-			logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
-			os.Exit(-1)
+			logger.Info("Bitgodine", "Waiting for dgraph", logger.Params{})
+			time.Sleep(30 * time.Second)
 		}
 
 		_, err := cache.Instance(bigcache.DefaultConfig(2 * time.Minute))
@@ -85,15 +87,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(serveCmd)
-	// Adds subdirectories command
-	rootCmd.AddCommand(block.BlockCmd)
-	rootCmd.AddCommand(transaction.TransactionCmd)
-	rootCmd.AddCommand(address.AddressCmd)
-	rootCmd.AddCommand(cluster.ClusterCmd)
-	rootCmd.AddCommand(analysis.AnalysisCmd)
-	rootCmd.AddCommand(tag.TagCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")

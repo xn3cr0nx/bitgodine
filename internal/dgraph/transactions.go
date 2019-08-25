@@ -7,89 +7,59 @@ import (
 	"fmt"
 	"strings"
 
-	// "github.com/btcsuite/btcd/chaincfg"
-	// "github.com/btcsuite/btcd/txscript"
-	// "github.com/btcsuite/btcd/wire"
-	// "github.com/btcsuite/btcutil"
-	// "github.com/dgraph-io/dgo/protos/api"
 	"github.com/allegro/bigcache"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
-	"github.com/xn3cr0nx/bitgodine_code/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine_code/internal/models"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
-// Transaction represents the tx node structure in dgraph
-type Transaction struct {
-	UID             string          `json:"uid,omitempty"`
-	Hash            string          `json:"hash,omitempty"`
-	Locktime        uint32          `json:"locktime,omitempty"`
-	Version         int32           `json:"version,omitempty"`
-	Inputs          []Input         `json:"inputs,omitempty"`
-	Outputs         []Output        `json:"outputs,omitempty"`
-	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
-}
-
-// Input represent input transaction, e.g. the link to a previous spent tx hash
-type Input struct {
-	UID             string      `json:"uid,omitempty"`
-	Hash            string      `json:"hash,omitempty"`
-	Vout            uint32      `json:"vout,omitempty"`
-	SignatureScript string      `json:"signature_script,omitempty"`
-	Witness         []TxWitness `json:"witness,omitempty"`
-}
-
-// TxWitness encodes witness slice into a string
-type TxWitness string
-
-// Output represent output transaction, e.g. the value that can be spent as input
-type Output struct {
-	UID      string `json:"uid,omitempty"`
-	Value    int64  `json:"value,omitempty"`
-	Vout     uint32 `json:"vout"`
-	Address  string `json:"address,omitempty"`
-	PkScript string `json:"pk_script,omitempty"`
-}
-
 // TxResp represent the resp from a dgraph query returning a transaction node
 type TxResp struct {
-	Txs []struct{ Transaction }
+	Txs []struct{ Tx models.Tx }
 }
 
 // OutputsResp represent the resp from a dgraph query returning an array of output nodes
 type OutputsResp struct {
 	Transactions []struct {
-		Outputs []struct{ Output }
+		Output []struct{ Output models.Output }
 	}
 }
 
-// Vulnerability node represent heuristics
-type Vulnerability struct {
-	UID       string `json:"uid,omitempty"`
-	Heuristic int    `json:"heuristic"`
+// Coinbase returnes whether an input is refers to coinbase output
+func Coinbase(in *models.Input) bool {
+	zeroHash, _ := chainhash.NewHash(make([]byte, 32))
+	return in.TxID == zeroHash.String()
 }
 
 // StoreCoinbase prepare coinbase output to be used as input for coinbase transactions
 func StoreCoinbase() error {
-	t := Transaction{
-		Hash: strings.Repeat("0", 64),
-		Outputs: []Output{
-			Output{
-				Value:    int64(5000000000),
-				Address:  strings.Repeat("0", 64),
-				Vout:     0,
-				PkScript: "",
+	t := models.Tx{
+		TxID: strings.Repeat("0", 64),
+		Vout: []models.Output{
+			models.Output{
+				Scriptpubkey:        "",
+				ScriptpubkeyAsm:     "",
+				ScriptpubkeyType:    "",
+				ScriptpubkeyAddress: strings.Repeat("0", 64),
+				Value:               int64(5000000000),
+				Index:               0,
 			},
-			Output{
-				Value:    int64(2500000000),
-				Address:  strings.Repeat("0", 64),
-				Vout:     0,
-				PkScript: "",
+			models.Output{
+				Scriptpubkey:        "",
+				ScriptpubkeyAsm:     "",
+				ScriptpubkeyType:    "",
+				ScriptpubkeyAddress: strings.Repeat("0", 64),
+				Value:               int64(2500000000),
+				Index:               0,
 			},
-			Output{
-				Value:    int64(1250000000),
-				Address:  strings.Repeat("0", 64),
-				Vout:     0,
-				PkScript: "",
+			models.Output{
+				Scriptpubkey:        "",
+				ScriptpubkeyAsm:     "",
+				ScriptpubkeyType:    "",
+				ScriptpubkeyAddress: strings.Repeat("0", 64),
+				Value:               int64(1250000000),
+				Index:               0,
 			},
 		},
 	}
@@ -97,79 +67,93 @@ func StoreCoinbase() error {
 }
 
 // GetTx returnes the node from the query queried
-// TODO: orderasc on inputs, outputs, vulnerabilities, check whether they can have more than 1000 elments (1000 dgraph limit fetch)
-func GetTx(hash string) (Transaction, error) {
+// TODO: orderasc on inputs, outputs, check whether they can have more than 1000 elments (1000 dgraph limit fetch)
+func GetTx(hash string) (models.Tx, error) {
 	c, err := cache.Instance(bigcache.Config{})
 	if err != nil {
-		return Transaction{}, err
+		return models.Tx{}, err
 	}
 	cached, err := c.Get(hash)
 	if len(cached) != 0 {
-		var r Transaction
+		var r models.Tx
 		if err := json.Unmarshal(cached, &r); err == nil {
 			return r, nil
 		}
 	}
 
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		txs(func: eq(hash, "%s")) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		txs(func: eq(txid, "%s")) {
 			uid
-			hash
-			locktime
+			txid
 			version
-			inputs (orderasc: vout) {
+			locktime
+			size
+			weight
+			fee
+			input (orderasc: vout) {
 				uid
-				hash
+				txid
 				vout
-				signature_script
+				is_coinbase
+				scriptsig
+				scriptsig_asm
+				inner_redeemscript_asm
+				inner_witnessscript_asm
+				sequence
 				witness
+				prevout
 			}
-			outputs (orderasc: vout) {
+			output (orderasc: index) {
 				uid
+				scriptpubkey
+				scriptpubkey_asm
+				scriptpubkey_type
+				scriptpubkey_address
 				value
-				vout
-				address
-				pk_script
+				index
 			}
-			vulnerabilities (orderasc: heuristic) {
+			status {
 				uid
-				heuristic
+				confirmed
+				block_height
+				block_hash
+				block_time
 			}
 		}
 	}`, hash))
 	if err != nil {
-		return Transaction{}, err
+		return models.Tx{}, err
 	}
 	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return Transaction{}, err
+		return models.Tx{}, err
 	}
 	if len(r.Txs) == 0 {
-		return Transaction{}, errors.New("transaction not found")
+		return models.Tx{}, errors.New("transaction not found")
 	}
 	for _, tx := range r.Txs {
-		if len(tx.Transaction.Outputs) > 0 {
+		if len(tx.Tx.Vout) > 0 {
 
-			bytes, err := json.Marshal(tx.Transaction)
+			bytes, err := json.Marshal(tx.Tx)
 			if err == nil {
-				if err := c.Set(tx.Transaction.Hash, bytes); err != nil {
+				if err := c.Set(tx.Tx.TxID, bytes); err != nil {
 					logger.Error("Cache", err, logger.Params{})
 				}
 			}
 
-			return tx.Transaction, nil
+			return tx.Tx, nil
 		}
 	}
 
-	return Transaction{}, errors.New("transaction not found")
+	return models.Tx{}, errors.New("transaction not found")
 }
 
 // GetTxUID returnes the uid of the queried tx by hash
 func GetTxUID(hash *string) (string, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-			txs(func: allofterms(hash, %s)) @cascade {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+			txs(func: allofterms(txid, %s)) @cascade {
 				uid
-				outputs {
+				output {
 					uid
 				}
 			}
@@ -184,35 +168,37 @@ func GetTxUID(hash *string) (string, error) {
 	if len(r.Txs) == 0 {
 		return "", errors.New("transaction not found")
 	}
-	return r.Txs[0].UID, nil
+	return r.Txs[0].Tx.UID, nil
 }
 
 // GetTxOutputs returnes the outputs of the queried tx by hash
 // TODO: rememeber orderasc fetches no more than 1000 elements
-func GetTxOutputs(hash *string) ([]Output, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		transactions(func: allofterms(hash, %s)) {
-			outputs (orderasc: vout) {
+func GetTxOutputs(hash *string) ([]models.Output, error) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		transactions(func: allofterms(txid, %s)) {
+			output (orderasc: index) {
 				uid
-        value
-        vout
-        address
-        pk_script
+				scriptpubkey
+				scriptpubkey_asm
+				scriptpubkey_type
+				scriptpubkey_address
+				value
+				index
       }
 		}
 	}`, *hash))
 	if err != nil {
-		return []Output{}, err
+		return []models.Output{}, err
 	}
 	var r OutputsResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return []Output{}, err
+		return []models.Output{}, err
 	}
-	if len(r.Transactions[0].Outputs) == 0 {
-		return []Output{}, errors.New("outputs not found")
+	if len(r.Transactions[0].Output) == 0 {
+		return []models.Output{}, errors.New("outputs not found")
 	}
-	var outputs []Output
-	for _, o := range r.Transactions[0].Outputs {
+	var outputs []models.Output
+	for _, o := range r.Transactions[0].Output {
 		outputs = append(outputs, o.Output)
 	}
 
@@ -220,100 +206,97 @@ func GetTxOutputs(hash *string) ([]Output, error) {
 }
 
 // GetSpentTxOutput returnes the output spent (the vout) of the corresponding tx
-func GetSpentTxOutput(hash *string, vout *uint32) (Output, error) {
+func GetSpentTxOutput(hash *string, vout *uint32) (models.Output, error) {
 	c, err := cache.Instance(bigcache.Config{})
 	if err != nil {
-		return Output{}, err
+		return models.Output{}, err
 	}
 	cached, err := c.Get(fmt.Sprintf("%s_%d", *hash, *vout))
 	if len(cached) != 0 {
-		var r Output
+		var r models.Output
 		if err := json.Unmarshal(cached, &r); err == nil {
 			return r, nil
 		}
 	}
 	cached, err = c.Get(*hash)
 	if len(cached) != 0 {
-		var r Transaction
+		var r models.Tx
 		if err := json.Unmarshal(cached, &r); err == nil {
-			return r.Outputs[*vout], nil
+			return r.Vout[*vout], nil
 		}
 	}
 
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		transactions(func: allofterms(hash, %s)) {
-			outputs @filter(eq(vout, %d)) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		transactions(func: allofterms(txid, %s)) {
+			output @filter(eq(index, %d)) {
 				uid
-        value
-        vout
-        address
-        pk_script
+				scriptpubkey
+				scriptpubkey_asm
+				scriptpubkey_type
+				scriptpubkey_address
+				value
+				index
       }
 		}
 	}`, *hash, *vout))
 	if err != nil {
-		return Output{}, err
+		return models.Output{}, err
 	}
 	var r OutputsResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return Output{}, err
+		return models.Output{}, err
 	}
 	if len(r.Transactions) == 0 {
-		return Output{}, errors.New("output not found")
+		return models.Output{}, errors.New("output not found")
 	}
 
-	bytes, err := json.Marshal(r.Transactions[0].Outputs[0].Output)
+	bytes, err := json.Marshal(r.Transactions[0].Output[0].Output)
 	if err == nil {
 		if err := c.Set(fmt.Sprintf("%s_%d", *hash, *vout), bytes); err != nil {
 			logger.Error("Cache", err, logger.Params{})
 		}
 	}
 
-	return r.Transactions[0].Outputs[0].Output, nil
+	return r.Transactions[0].Output[0].Output, nil
 }
 
 // GetFollowingTx returns the transaction spending the output (vout) of
 // the transaction passed as input to the function
 // TODO: rememeber orderasc fetches no more than 1000 elements
-func GetFollowingTx(hash *string, vout *uint32) (Transaction, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		txs(func: has(inputs)) @cascade {
+func GetFollowingTx(hash *string, vout *uint32) (models.Tx, error) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		txs(func: has(input)) @cascade {
 			uid
-			block
-			hash
-			inputs @filter(eq(hash, %s) AND eq(vout, %d)){
-				hash
+			txid
+			input @filter(eq(txid, %s) AND eq(vout, %d)){
+				txid
 				vout
 			}
-			outputs (orderasc: vout) {
+			output (orderasc: index) {
 				value
-				vout
-			}
-			vulnerabilities (orderasc: heuristic) {
-				uid
-				heuristic
+				index
 			}
 		}
 	}`, *hash, *vout))
 	if err != nil {
-		return Transaction{}, err
+		return models.Tx{}, err
 	}
 	var r TxResp
 	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return Transaction{}, err
+		return models.Tx{}, err
 	}
 	if len(r.Txs) == 0 {
-		return Transaction{}, errors.New("transaction not found")
+		return models.Tx{}, errors.New("transaction not found")
 	}
-	node := r.Txs[0].Transaction
+	node := r.Txs[0].Tx
 	return node, nil
 }
 
 // GetStoredTxs returnes all the stored transactions hashes
 func GetStoredTxs() ([]string, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
-			tx(func: has(inputs)) {
-				hash
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), `{
+			tx(func: has(input)) {
+				txid
 			}
 		}`)
 	if err != nil {
@@ -328,17 +311,17 @@ func GetStoredTxs() ([]string, error) {
 	}
 	var transactions []string
 	for _, tx := range r.Txs {
-		transactions = append(transactions, tx.Hash)
+		transactions = append(transactions, tx.Tx.TxID)
 	}
 	return transactions, nil
 }
 
 // GetTxBlockHeight returnes the height of the block based on its hash
 func GetTxBlockHeight(hash string) (int32, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		block(func: has(prev_block)) @cascade {
 			height
-			transactions @filter(eq(hash, "%s"))
+			transactions @filter(eq(txid, "%s"))
 		}
 	}`, hash))
 	if err != nil {
@@ -356,10 +339,10 @@ func GetTxBlockHeight(hash string) (int32, error) {
 
 // GetTxBlock returnes the block containing the transaction
 func GetTxBlock(hash string) (Block, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		block(func: has(prev_block)) @cascade {
 			uid
-			hash
+			txid
 			height
 			prev_block
 			time
@@ -367,7 +350,7 @@ func GetTxBlock(hash string) (Block, error) {
 			merkle_root
 			bits
 			nonce
-			transactions @filter(eq(hash, "%s"))
+			transactions @filter(eq(txid, "%s"))
 		}
 	}`, hash))
 	if err != nil {
@@ -384,10 +367,10 @@ func GetTxBlock(hash string) (Block, error) {
 }
 
 // GetTransactionsHeightRange returnes the list of transaction contained between height boundaries passed as arguments
-func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+func GetTransactionsHeightRange(from, to *int32) ([]models.Tx, error) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		txs(func: ge(height, %d), first: %d)  {
-			transactions @filter(gt(count(outputs), 1)) {
+			transactions @filter(gt(count(output), 1)) {
         expand(_all_) {
           expand(_all_)
         }
@@ -400,7 +383,7 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 	var r struct {
 		Txs []struct {
 			Transactions []struct {
-				Transaction
+				Tx models.Tx
 			}
 		}
 	}
@@ -414,10 +397,10 @@ func GetTransactionsHeightRange(from, to *int32) ([]Transaction, error) {
 		return nil, errors.New("No transaction found in the block height range")
 	}
 
-	var txs []Transaction
+	var txs []models.Tx
 	for _, block := range r.Txs {
 		for _, tx := range block.Transactions {
-			txs = append(txs, tx.Transaction)
+			txs = append(txs, tx.Tx)
 		}
 	}
 	return txs, nil
@@ -435,94 +418,4 @@ func IsSpent(tx string, index uint32) bool {
 		return false
 	}
 	return true
-}
-
-// UpdateVulnerabilities update heuristics array in transaction node
-func UpdateVulnerabilities(hash string, heuristics []bool) error {
-	uid, err := GetTxUID(&hash)
-	if err != nil {
-		return err
-	}
-	var vuln []Vulnerability
-	for i, vulnerability := range heuristics {
-		if vulnerability {
-			heuristicUID, err := GetHeuristicUID(i)
-			if err != nil {
-				return err
-			}
-			v := Vulnerability{
-				UID:       heuristicUID,
-				Heuristic: i,
-			}
-			vuln = append(vuln, v)
-		}
-	}
-	tx := []Transaction{
-		{
-			UID:             uid,
-			Vulnerabilities: vuln,
-		},
-	}
-	if err := Store(tx); err != nil {
-		return err
-	}
-	return nil
-}
-
-// GetHeuristicUID returnes the uid of the heuristic stored in draph of the corresponding heuristic
-func GetHeuristicUID(heuristic int) (string, error) {
-	c, err := cache.Instance(bigcache.Config{})
-	if err != nil {
-		return "", err
-	}
-	uid, err := c.Get(fmt.Sprintf("heuristic%d", heuristic))
-	if err == nil {
-		return string(uid), nil
-	}
-
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-	  vulnerability(func: has(heuristic)) @filter(eq(heuristic, %d)) {
-			uid
-		}
-	}`, heuristic))
-	if err != nil {
-		return "", err
-	}
-
-	var r struct{ Vulnerability []struct{ UID string } }
-	if err := json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return "", err
-	}
-
-	if len(r.Vulnerability) == 0 {
-		return "", errors.New("Vulnerability not found")
-	}
-
-	if err := c.Set(fmt.Sprintf("heuristic%d", heuristic), []byte(r.Vulnerability[0].UID)); err != nil {
-		logger.Error("Cache", err, logger.Params{})
-	}
-
-	return r.Vulnerability[0].UID, nil
-}
-
-// StoreHeuristics saves heuristics node in dgraph to be referred from transactions' vulnerabilities
-func StoreHeuristics() error {
-	var h []Vulnerability
-	for i := 0; i < heuristics.SetCardinality(); i++ {
-		h = append(h, Vulnerability{
-			Heuristic: i,
-		})
-	}
-	if err := Store(&h); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *Input) GetAddress() (string, error) {
-	tx, err := GetTx(i.Hash)
-	if err != nil {
-		return "", err
-	}
-	return tx.Outputs[i.Vout].Address, nil
 }

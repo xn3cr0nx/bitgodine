@@ -1,4 +1,4 @@
-package blockchain_test
+package dgraph_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestBlockchain(t *testing.T) {
+func TestDgraph(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Blockchain Suite")
+	RunSpecs(t, "Dgraph Suite")
 }

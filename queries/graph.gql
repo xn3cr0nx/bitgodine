@@ -1,9 +1,0 @@
-{
-	block(func: has(prev_block)) {
-    expand(_all_) {
-      expand(_all_) {
-        expand(_all_)
-      }
-    }
-	}
-}

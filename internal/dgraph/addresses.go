@@ -11,16 +11,18 @@ import (
 
 // GetAddressOccurences returnes an array containing the transactions where the address appears in the blockchain
 func GetAddressOccurences(address *btcutil.Address) ([]string, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		txs(func: has(outputs)) @cascade {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		txs(func: has(output)) @cascade {
 			uid
-			hash
-			outputs @filter(allofterms(address, "%s")) {
+			txid
+			output @filter(allofterms(scriptpubkey_address, "%s")) {
 				uid
-				address
+				scriptpubkey
+				scriptpubkey_asm
+				scriptpubkey_type
+				scriptpubkey_address
 				value
-				vout
-				pk_script
+				index
 			}
 		}
 		}`, (*address).String()))
@@ -36,19 +38,19 @@ func GetAddressOccurences(address *btcutil.Address) ([]string, error) {
 	}
 	var occurences []string
 	for _, tx := range r.Txs {
-		occurences = append(occurences, tx.Transaction.Hash)
+		occurences = append(occurences, tx.Tx.TxID)
 	}
 	return occurences, nil
 }
 
 // GetAddressFirstOccurenceHeight returnes the height of the block in which the address appeared for the first time
 func GetAddressFirstOccurenceHeight(address *btcutil.Address) (int32, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(fmt.Sprintf(`{    
-			bl as var(func: has(prev_block)) @cascade {
-				uid
-				transactions {
-					outputs @filter(allofterms(address, "%s")) 
-					}		
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(fmt.Sprintf(`{    
+		bl as var(func: has(prev_block)) @cascade {
+			uid
+			transactions {
+				output @filter(allofterms(scriptpubkey_address, "%s")) 
+				}		
 		}   
 		var(func: uid(bl)) {
 			uid

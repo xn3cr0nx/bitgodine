@@ -1,9 +1,0 @@
-{
-  block(func: ge(height, 540), first: 10)  {
-    expand(_all_) {
-      expand(_all_) {
-        expand(_all_)
-      }
-    }
-  }
-}

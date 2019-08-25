@@ -2,59 +2,12 @@ package tx
 
 import (
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
-	"github.com/xn3cr0nx/bitgodine_code/internal/models"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
 
 	"github.com/labstack/echo/v4"
 )
-
-func TxToModel(tx dgraph.Transaction, height int32, blockHash string, time time.Time) models.Tx {
-	var inputs []models.Input
-	for _, input := range tx.Inputs {
-		inputs = append(inputs, models.Input{
-			TxID:       input.Hash,
-			Vout:       input.Vout,
-			IsCoinbase: input.Hash != strings.Repeat("0", 64),
-			Scriptsig:  input.SignatureScript,
-			// ScriptsigAsm: ,
-			// InnerRedeemscriptAsm: ,
-			// InnerWitnessscriptAsm: ,
-			// Sequence: ,
-			// Witness: ,
-			// Prevout: ,
-		})
-	}
-	var outputs []models.Output
-	for _, output := range tx.Outputs {
-		outputs = append(outputs, models.Output{
-			Scriptpubkey: output.PkScript,
-			// ScriptpubkeyAsm: ,
-			// ScriptpubkeyType: ,
-			ScriptpubkeyAddress: output.Address,
-			Value:               uint64(output.Value),
-		})
-	}
-	return models.Tx{
-		TxID:     tx.Hash,
-		Version:  uint8(tx.Version),
-		Locktime: tx.Locktime,
-		Size:     -1,
-		Weight:   -1,
-		Fee:      -1,
-		Vin:      inputs,
-		Vout:     outputs,
-		Status: models.Status{
-			Confirmed:   true,
-			BlockHeight: uint32(height),
-			BlockHash:   blockHash,
-			BlockTime:   time,
-		},
-	}
-}
 
 // Routes mounts all /tx based routes on the main group
 func Routes(g *echo.Group) *echo.Group {
@@ -72,15 +25,7 @@ func Routes(g *echo.Group) *echo.Group {
 			}
 			return err
 		}
-		block, err := dgraph.GetTxBlock(txid)
-		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
-			return err
-		}
-		res := TxToModel(t, block.Height, block.Hash, block.Time)
-		return c.JSON(http.StatusOK, res)
+		return c.JSON(http.StatusOK, t)
 	})
 
 	r.GET("/:txid/status", func(c echo.Context) error {
@@ -95,18 +40,10 @@ func Routes(g *echo.Group) *echo.Group {
 			}
 			return err
 		}
-		block, err := dgraph.GetTxBlock(txid)
-		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
-			return err
-		}
-		res := TxToModel(t, block.Height, block.Hash, block.Time)
-		return c.JSON(http.StatusOK, res.Status)
+		return c.JSON(http.StatusOK, t.Status)
 	})
 
-	// TODO: generate btcutil block nad return hex conversion
+	// TODO: generate btcutil block and return hex conversion
 	// r.GET("/:txid/hex", func(c echo.Context) error {
 	// 	txid := c.Param("txid")
 	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {

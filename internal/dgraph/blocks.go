@@ -9,28 +9,27 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/btcsuite/btcd/chaincfg/chainhash"
-	// "github.com/btcsuite/btcd/wire"
-	// "github.com/btcsuite/btcutil"
-	// "github.com/dgraph-io/dgo/protos/api"
-
 	"github.com/allegro/bigcache"
 	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
+	"github.com/xn3cr0nx/bitgodine_code/internal/models"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
 )
 
 // Block represent the dgraph node containing essential block info
 type Block struct {
-	UID          string        `json:"uid,omitempty"`
-	Hash         string        `json:"hash,omitempty"`
-	Height       int32         `json:"height"`
-	PrevBlock    string        `json:"prev_block,omitempty"`
-	Time         time.Time     `json:"time,omitempty"`
-	Transactions []Transaction `json:"transactions,omitempty"`
-	Version      int32         `json:"version,omitempty"`
-	MerkleRoot   string        `json:"merkle_root,omitempty"`
-	Bits         uint32        `json:"bits,omitempty"`
-	Nonce        uint32        `json:"nonce,omitempty"`
+	UID          string      `json:"uid,omitempty"`
+	ID           string      `json:"id,omitempty"`
+	Height       int32       `json:"height,omitempty"`
+	Version      int32       `json:"version,omitempty"`
+	Timestamp    time.Time   `json:"timestamp,omitempty"`
+	Bits         uint32      `json:"bits,omitempty"`
+	Nonce        uint32      `json:"nonce,omitempty"`
+	MerkleRoot   string      `json:"merkle_root,omitempty"`
+	Transactions []models.Tx `json:"transactions,omitempty"`
+	TxCount      int         `json:"tx_count,omitempty"`
+	Size         int         `json:"size,omitempty"`
+	Weight       int         `json:"weight,omitempty"`
+	PrevBlock    string      `json:"prev_block,omitempty"`
 }
 
 // BlockResp represent the resp from a dgraph query returning a transaction node
@@ -52,35 +51,53 @@ func GetBlockFromHash(hash string) (Block, error) {
 		}
 	}
 
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
-		blk(func: eq(hash, %s)) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
+		blk(func: eq(id, %s)) {
 			uid
-			hash
+			id
 			height
-			prev_block
-			time
 			version
+			prev_block
+			timestamp
 			merkle_root
 			bits
 			nonce
 			transactions {
 				uid
-				hash
-				locktime
+				txid
 				version
-				inputs {
+				locktime
+				size
+				weight
+				fee
+				input (orderasc: vout) {
 					uid
-					hash
+					txid
 					vout
-					signature_script
+					is_coinbase
+					scriptsig
+					scriptsig_asm
+					inner_redeemscript_asm
+					inner_witnessscript_asm
+					sequence
 					witness
+					prevout
 				}
-				outputs {
+				output (orderasc: index) {
 					uid
+					scriptpubkey
+					scriptpubkey_asm
+					scriptpubkey_type
+					scriptpubkey_address
 					value
-					vout
-					address
-					pk_script
+					index
+				}
+				status {
+					uid
+					confirmed
+					block_height
+					block_hash
+					block_time
 				}
 			}
 		}
@@ -97,7 +114,7 @@ func GetBlockFromHash(hash string) (Block, error) {
 	}
 	bytes, err := json.Marshal(r.Blk[0].Block)
 	if err == nil {
-		if err := c.Set(r.Blk[0].Block.Hash, bytes); err != nil {
+		if err := c.Set(r.Blk[0].Block.ID, bytes); err != nil {
 			logger.Error("Cache", err, logger.Params{})
 		}
 	}
@@ -118,35 +135,53 @@ func GetBlockFromHeight(height int32) (Block, error) {
 		}
 	}
 
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		blk(func: eq(height, %d), first: 1) {
 			uid
-			hash
+			id
 			height
-			prev_block
-			time
 			version
+			prev_block
+			timestamp
 			merkle_root
 			bits
 			nonce
 			transactions {
 				uid
-				hash
-				locktime
+				txid
 				version
-				inputs {
+				locktime
+				size
+				weight
+				fee
+				input (orderasc: vout) {
 					uid
-					hash
+					txid
 					vout
-					signature_script
+					is_coinbase
+					scriptsig
+					scriptsig_asm
+					inner_redeemscript_asm
+					inner_witnessscript_asm
+					sequence
 					witness
+					prevout
 				}
-				outputs {
+				output (orderasc: index) {
 					uid
+					scriptpubkey
+					scriptpubkey_asm
+					scriptpubkey_type
+					scriptpubkey_address
 					value
-					vout
-					address
-					pk_script
+					index
+				}
+				status {
+					uid
+					confirmed
+					block_height
+					block_hash
+					block_time
 				}
 			}
 		}
@@ -172,35 +207,53 @@ func GetBlockFromHeight(height int32) (Block, error) {
 
 // GetBlockFromHeightRange returnes the hash of the block retrieving it based on its height
 func GetBlockFromHeightRange(height int32, first int) ([]Block, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		blk(func: eq(height, %d), first: %d) {
 			uid
-			hash
+			id
 			height
-			prev_block
-			time
 			version
+			prev_block
+			timestamp
 			merkle_root
 			bits
 			nonce
 			transactions {
 				uid
-				hash
-				locktime
+				txid
 				version
-				inputs {
+				locktime
+				size
+				weight
+				fee
+				input (orderasc: vout) {
 					uid
-					hash
+					txid
 					vout
-					signature_script
+					is_coinbase
+					scriptsig
+					scriptsig_asm
+					inner_redeemscript_asm
+					inner_witnessscript_asm
+					sequence
 					witness
+					prevout
 				}
-				outputs {
+				output (orderasc: index) {
 					uid
+					scriptpubkey
+					scriptpubkey_asm
+					scriptpubkey_type
+					scriptpubkey_address
 					value
-					vout
-					address
-					pk_script
+					index
+				}
+				status {
+					uid
+					confirmed
+					block_height
+					block_hash
+					block_time
 				}
 			}
 		}
@@ -224,8 +277,8 @@ func GetBlockFromHeightRange(height int32, first int) ([]Block, error) {
 
 // LastBlockHeight returnes the height of the last block synced by Bitgodine
 func LastBlockHeight() (int32, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
-		var(func: has(hash)) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), `{
+		var(func: has(prev_block)) {
 			blocks_height as height
 		}
 		h() {
@@ -259,8 +312,8 @@ func LastBlockHeight() (int32, error) {
 
 // LastBlock returnes the last block synced by Bitgodine
 func LastBlock() (Block, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
-		var(func: has(hash)) {
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), `{
+		var(func: has(prev_block)) {
 			blocks_height as height
 		}
 		var() {
@@ -268,12 +321,12 @@ func LastBlock() (Block, error) {
 		}
     b(func: eq(height, val(h))) {
 			uid
-      hash
-      height
-      version
+      id
+			height
+			version
 			prev_block
 			merkle_root
-      time
+      timestamp
       bits
       nonce
     }
@@ -295,10 +348,10 @@ func LastBlock() (Block, error) {
 
 // StoredBlocks returns an array containing all blocks stored on dgraph
 func StoredBlocks() ([]Block, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), `{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), `{
 		blocks(func: has(prev_block)) {
 			height
-			hash
+			id
 		}
 	}`)
 	if err != nil {
@@ -324,7 +377,7 @@ func RemoveBlock(block *Block) error {
 
 // GetBlockUIDFromHeight returnes the dgraph uid of the block stored at the passed height
 func GetBlockUIDFromHeight(height int32) ([]string, error) {
-	resp, err := instance.NewTxn().Query(context.Background(), fmt.Sprintf(`{
+	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), fmt.Sprintf(`{
 		block(func: eq(height, %d)) {
 			uid
 		}

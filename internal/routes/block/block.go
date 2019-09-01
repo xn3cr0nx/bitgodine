@@ -6,7 +6,6 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/models"
-	"github.com/xn3cr0nx/bitgodine_code/internal/routes/tx"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -14,10 +13,10 @@ import (
 
 func BlockToModel(b dgraph.Block) models.Block {
 	return models.Block{
-		ID:         b.Hash,
+		ID:         b.ID,
 		Height:     uint32(b.Height),
 		Version:    uint8(b.Version),
-		Timestamp:  b.Time,
+		Timestamp:  b.Timestamp,
 		Bits:       b.Bits,
 		Nonce:      b.Nonce,
 		MerkleRoot: b.MerkleRoot,
@@ -45,7 +44,7 @@ func Routes(g *echo.Group) *echo.Group {
 			}
 			return err
 		}
-		return c.JSON(http.StatusOK, b.Hash)
+		return c.JSON(http.StatusOK, b.ID)
 	})
 
 	r := g.Group("/block")
@@ -107,7 +106,8 @@ func Routes(g *echo.Group) *echo.Group {
 			if i > len(b.Transactions)-1 {
 				break
 			}
-			txs = append(txs, tx.TxToModel(b.Transactions[i], b.Height, b.Hash, b.Time))
+			// txs = append(txs, tx.TxToModel(b.Transactions[i], b.Height, b.ID, b.Timestamp))
+			txs = append(txs, b.Transactions[i])
 		}
 		return c.JSON(http.StatusOK, txs)
 	})
@@ -126,7 +126,7 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 		var txids []string
 		for _, tx := range b.Transactions {
-			txids = append(txids, tx.Hash)
+			txids = append(txids, tx.TxID)
 		}
 		return c.JSON(http.StatusOK, txids)
 	})
@@ -167,7 +167,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, b.Hash)
+		return c.JSON(http.StatusOK, b.ID)
 	})
 
 	return r

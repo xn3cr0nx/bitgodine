@@ -9,4 +9,5 @@ FROM alpine:latest
 
 WORKDIR /root/
 COPY --from=builder /bitgodine/build/bitgodine .
+EXPOSE 3000
 CMD ["./bitgodine", "serve", "--dgHost", "dgraph_server"]

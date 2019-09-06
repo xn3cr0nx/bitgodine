@@ -15,7 +15,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/tx"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
 
-	"github.com/dgraph-io/dgo"
+	"github.com/dgraph-io/dgo/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"

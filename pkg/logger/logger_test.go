@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
 )
 
 var _ = Describe("Testing with Ginkgo", func() {

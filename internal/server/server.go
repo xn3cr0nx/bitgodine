@@ -10,17 +10,17 @@ import (
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
-	"github.com/xn3cr0nx/bitgodine_code/internal/routes/address"
-	"github.com/xn3cr0nx/bitgodine_code/internal/routes/block"
-	"github.com/xn3cr0nx/bitgodine_code/internal/routes/tx"
-	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
+	"github.com/xn3cr0nx/bitgodine_server/internal/routes/address"
+	"github.com/xn3cr0nx/bitgodine_server/internal/routes/block"
+	"github.com/xn3cr0nx/bitgodine_server/internal/routes/tx"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
 )
 
 // Server struct initialized with port

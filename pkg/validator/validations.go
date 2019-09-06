@@ -3,7 +3,7 @@ package validator
 import (
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine_code/internal/jwt"
+	"github.com/xn3cr0nx/bitgodine_server/internal/jwt"
 
 	"gopkg.in/go-playground/validator.v9"
 )

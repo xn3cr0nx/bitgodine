@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_code/internal/server"
-	"github.com/xn3cr0nx/bitgodine_code/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_server/internal/server"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
 )
 
 var (

@@ -17,28 +17,31 @@ WIN_BUILD=$(build)/$(BINARY_NAME).exe
 
 export GO111MODULE=on
 
-.PHONY: release
 
+.PHONY: all
 all: test build linux
+
+.PHONY: build
 build: 
 	$(GOBUILD) -o $(BUILD_PATH)/$(BINARY_NAME) -v $(ENTRY)
+
+.PHONY: test
 test:
 	$(GOTEST) -v ./...
+
+.PHONY: clean
 clean:
 	$(GOCLEAN)
-	rm -f $(BUILD_PATH)/$(BINARY_NAME)
-	rm -f $(BUILD_PATH)/$(BINARY_NAME)
-	rm -f $(BUILD_PATH)/$(BINARY_NAME).exe
+	rm -f $(BUILD_PATH)
+
+.PHONY: run
 run:
 	$(GORUN) $(ENTRY)
-diggy:
-	./$(SCRIPTS_PATH)/dgraph.sh
 
+.PHONY: install
 # Interacting with bitgodine cli
 install:
 	$(GOINSTALL) $(ENTRY)
-cluster:
-	$(GOINSTALL) $(ENTRY) && $(BINARY_NAME) cluster
 
 
 # Cross compilation

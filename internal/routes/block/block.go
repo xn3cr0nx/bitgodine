@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
-	"github.com/xn3cr0nx/bitgodine_code/internal/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_code/pkg/validator"
 
 	"github.com/labstack/echo/v4"

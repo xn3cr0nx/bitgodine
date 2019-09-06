@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/allegro/bigcache"
-	"github.com/xn3cr0nx/bitgodine_code/internal/cache"
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	homedir "github.com/mitchellh/go-homedir"

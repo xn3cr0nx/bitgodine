@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/xn3cr0nx/bitgodine_code/internal/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/address"
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/block"
 	"github.com/xn3cr0nx/bitgodine_code/internal/routes/tx"

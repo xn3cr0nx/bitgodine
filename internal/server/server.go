@@ -20,7 +20,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 )
 
 // Server struct initialized with port

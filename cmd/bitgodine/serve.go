@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_server/internal/server"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_server/internal/server"
 )
 
 var (
@@ -37,6 +41,22 @@ func init() {
 func start(cmd *cobra.Command, args []string) {
 	logger.Info("Bitgodine Serve", "Server Starting", logger.Params{"timestamp": time.Now()})
 
-	s := server.Instance(viper.GetInt("http.port"))
+	c, err := cache.NewCache(nil)
+	if err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+
+	dg := dgraph.Instance(&dgraph.Config{
+		Host: viper.GetString("dgHost"),
+		Port: viper.GetInt("dgPort"),
+	}, c)
+	if err := dg.Setup(); err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
+		os.Exit(-1)
+	}
+
+	s := server.Instance(viper.GetInt("http.port"), dg)
 	s.Listen()
 }

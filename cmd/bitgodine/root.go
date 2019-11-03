@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/allegro/bigcache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -39,27 +36,6 @@ var rootCmd = &cobra.Command{
 	Long: `Go implementation of Bitcoin forensic analysis tool to	investigate blockchain and Bitcoin malicious flows.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
-
-		dg := dgraph.Instance(DGraphConf())
-		for counter := 0; ; counter++ {
-			if counter == 5 {
-				logger.Error("Bitgodine", errors.New("Cannot connect to Dgraph"), logger.Params{})
-				os.Exit(-1)
-			}
-			err := dgraph.Setup(dg); 
-			if err == nil {
-				break
-			}
-			logger.Error("Bitgodine", err, logger.Params{})
-			logger.Info("Bitgodine", "Waiting for dgraph", logger.Params{})
-			time.Sleep(30 * time.Second)
-		}
-
-		_, err := cache.Instance(bigcache.DefaultConfig(2 * time.Minute))
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
 
 		net, _ := cmd.Flags().GetString("network")
 		switch net {

@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,17 +9,17 @@ import (
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
-	"github.com/xn3cr0nx/bitgodine_server/internal/routes/address"
-	"github.com/xn3cr0nx/bitgodine_server/internal/routes/block"
-	"github.com/xn3cr0nx/bitgodine_server/internal/routes/tx"
+	"github.com/xn3cr0nx/bitgodine_server/internal/address"
+	"github.com/xn3cr0nx/bitgodine_server/internal/block"
+	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
+	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	v "gopkg.in/go-playground/validator.v9"
 )
 
 // Server struct initialized with port
@@ -28,25 +27,16 @@ type (
 	Server struct {
 		port   string
 		router *echo.Echo
-		db     *dgo.Dgraph
+		db     *dgraph.Dgraph
 	}
 )
 
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int) *Server {
+func Instance(port int, dg *dgraph.Dgraph) *Server {
 	if server != nil {
 		return server
-	}
-	dg := dgraph.Instance(&dgraph.Config{
-		Host: viper.GetString("dgHost"),
-		Port: viper.GetInt("dgPort"),
-	})
-	if err := dgraph.Setup(dg); err != nil {
-		logger.Error("Bitgodine", err, logger.Params{})
-		logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
-		os.Exit(-1)
 	}
 	server = &Server{
 		port:   fmt.Sprintf(":%d", port),
@@ -66,6 +56,13 @@ func (s *Server) Listen() {
 
 	s.router.HTTPErrorHandler = customHTTPErrorHandler
 
+	s.router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("db", s.db)
+			return next(c)
+		}
+	})
+
 	s.router.Use(middleware.Recover())
 	s.router.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 5,
@@ -79,7 +76,7 @@ func (s *Server) Listen() {
 	s.router.Use(middleware.RequestID())
 
 	s.router.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "Welcome to Bitgodine Rest API")
+		return c.JSON(http.StatusOK, "Welcome to Bitgodine REST API")
 	})
 
 	api := s.router.Group("/api")
@@ -111,11 +108,27 @@ func (s *Server) Listen() {
 
 func customHTTPErrorHandler(err error, c echo.Context) {
 	c.Logger().Error(err)
+
 	code := http.StatusInternalServerError
-	if he, ok := err.(*echo.HTTPError); ok {
-		code = he.Code
+	m := ""
+	if e, ok := err.(*echo.HTTPError); ok {
+		code = e.Code
+		if httpError, ok := e.Message.(*echo.HTTPError); ok {
+			m = httpError.Message.(string)
+		} else if _, ok := e.Message.(v.ValidationErrors); ok {
+			m = "Bad Request"
+		} else {
+			if customError, ok := e.Message.(chttp.Error); ok {
+				m = customError.Type
+			} else {
+				m = e.Message.(string)
+			}
+		}
 	}
 
 	message := map[string]interface{}{"code": code, "error": http.StatusText(code)}
+	if m != "" && m != message["error"] {
+		message["type"] = m
+	}
 	c.JSON(code, message)
 }

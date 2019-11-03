@@ -32,15 +32,17 @@ func Routes(g *echo.Group) *echo.Group {
 	g.GET("/block-height/:height", func(c echo.Context) error {
 		height, err := strconv.Atoi(c.Param("height"))
 		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest)
+		}
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(height, "numeric,gte=0"); err != nil {
 			return err
 		}
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(height, "required,numeric,gte=0"); err != nil {
-			return err
-		}
-		b, err := dgraph.GetBlockFromHeight(int32(height))
+
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).GetBlockFromHeight(int32(height))
 		if err != nil {
 			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
+				return echo.NewHTTPError(http.StatusNotFound)
 			}
 			return err
 		}
@@ -54,7 +56,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		b, err := dgraph.GetBlockFromHash(hash)
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -71,7 +74,8 @@ func Routes(g *echo.Group) *echo.Group {
 	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 	// 		return err
 	// 	}
-	// 	b, err := dgraph.GetBlockFromHash(hash)
+	// 	db := c.Get("db")
+	// 	b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
 	// 	if err != nil {
 	// 		if err.Error() == "Block not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -94,7 +98,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 			return err
 		}
-		b, err := dgraph.GetBlockFromHash(hash)
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -117,7 +122,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		b, err := dgraph.GetBlockFromHash(hash)
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -140,7 +146,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 			return err
 		}
-		blocks, err := dgraph.GetBlockFromHeightRange(int32(start), 10)
+		db := c.Get("db")
+		blocks, err := db.(*dgraph.Dgraph).GetBlockFromHeightRange(int32(start), 10)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -155,7 +162,8 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/height", func(c echo.Context) error {
-		b, err := dgraph.LastBlock()
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).LastBlock()
 		if err != nil {
 			return err
 		}
@@ -163,7 +171,8 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/hash", func(c echo.Context) error {
-		b, err := dgraph.LastBlock()
+		db := c.Get("db")
+		b, err := db.(*dgraph.Dgraph).LastBlock()
 		if err != nil {
 			return err
 		}

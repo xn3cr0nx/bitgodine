@@ -18,7 +18,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
 			return err
 		}
-		t, err := dgraph.GetTx(txid)
+		db := c.Get("db")
+		t, err := db.(*dgraph.Dgraph).GetTx(txid)
 		if err != nil {
 			if err.Error() == "transaction not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -33,7 +34,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
 			return err
 		}
-		t, err := dgraph.GetTx(txid)
+		db := c.Get("db")
+		t, err := db.(*dgraph.Dgraph).GetTx(txid)
 		if err != nil {
 			if err.Error() == "transaction not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -49,7 +51,8 @@ func Routes(g *echo.Group) *echo.Group {
 	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
 	// 		return err
 	// 	}
-	// 	t, err := dgraph.GetTx(txid)
+	// db := c.Get("db")
+	// t, err := db.(*dgraph.Dgraph).GetTx(txid)
 	// 	if err != nil {
 	// 		if err.Error() == "transaction not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -74,7 +77,8 @@ func Routes(g *echo.Group) *echo.Group {
 	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,numeric,gte=0"); err != nil {
 	// 		return err
 	// 	}
-	// 	t, err := dgraph.GetTx(txid)
+	// db := c.Get("db")
+	// t, err := db.(*dgraph.Dgraph).GetTx(txid)
 	// 	if err != nil {
 	// 		if err.Error() == "transaction not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)

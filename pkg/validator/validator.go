@@ -41,3 +41,13 @@ func (cv *CustomValidator) RegisterCustomValidations() {
 	_ = cv.validator.RegisterValidation("testing", TestingValidator)
 	_ = cv.validator.RegisterValidation("jwt", JWTValidator)
 }
+
+// Struct this is not a middleware, but I would like it to be
+func Struct(c *echo.Context, b interface{}) (err error) {
+	// this cannot work passing a point (**struct), but passing by value won't really bind. Loosly approach
+	if err = (*c).Bind(b); err != nil {
+		err = echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	err = (*c).Validate(b)
+	return
+}

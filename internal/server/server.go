@@ -129,8 +129,11 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 		} else {
 			if customError, ok := e.Message.(chttp.Error); ok {
 				m = customError.Type
+			} else if stringError, ok := e.Message.(string); ok {
+				m = stringError
 			} else {
-				m = e.Message.(string)
+				// TODO: manipulate string and extract just message
+				m = err.Error()
 			}
 		}
 	}

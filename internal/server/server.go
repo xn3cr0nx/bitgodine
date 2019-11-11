@@ -8,8 +8,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
+	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/block"
 	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
@@ -28,13 +31,15 @@ type (
 		port   string
 		router *echo.Echo
 		db     *dgraph.Dgraph
+		cache  *cache.Cache
+		kv     *badger.Badger
 	}
 )
 
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int, dg *dgraph.Dgraph) *Server {
+func Instance(port int, dg *dgraph.Dgraph, c *cache.Cache, bdg *badger.Badger) *Server {
 	if server != nil {
 		return server
 	}
@@ -42,6 +47,8 @@ func Instance(port int, dg *dgraph.Dgraph) *Server {
 		port:   fmt.Sprintf(":%d", port),
 		router: echo.New(),
 		db:     dg,
+		cache:  c,
+		kv:     bdg,
 	}
 	return server
 }
@@ -59,6 +66,8 @@ func (s *Server) Listen() {
 	s.router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("db", s.db)
+			c.Set("cache", s.cache)
+			c.Set("kv", s.kv)
 			return next(c)
 		}
 	})

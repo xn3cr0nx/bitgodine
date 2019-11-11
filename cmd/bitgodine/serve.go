@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
@@ -57,6 +58,13 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	s := server.Instance(viper.GetInt("http.port"), dg)
+	conf := badger.Conf("")
+	bdg, err := badger.NewBadger(&conf)
+	if err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+
+	s := server.Instance(viper.GetInt("http.port"), dg, c, bdg)
 	s.Listen()
 }

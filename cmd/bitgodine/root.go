@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost, output string
-	dgPort                                                           int
-	debug                                                            bool
-	BitcoinNet                                                       chaincfg.Params
+	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost, output, bdg string
+	dgPort                                                                int
+	debug                                                                 bool
+	BitcoinNet                                                            chaincfg.Params
 )
 
 // DGraphConf exports the Config object to initialize indexing dgraph
@@ -76,16 +76,12 @@ func init() {
 	}
 	bitgodineFolder := filepath.Join(hd, ".bitgodine")
 	rootCmd.PersistentFlags().StringVar(&bitgodineDir, "bitgodineDir", bitgodineFolder, "Sets the folder containing configuration files and stored data")
-
 	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
-
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(bitgodineFolder, "badger"), "Sets the path to the indexing db files")
-
 	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
-
 	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", bitgodineFolder, "Sets the path to output clusters.csv file")
-
+	rootCmd.PersistentFlags().StringVar(&bdg, "badger", "/badger", "Sets the path to the badger stored files")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -103,6 +99,7 @@ func initConfig() {
 	viper.SetDefault("blocksDir", hd)
 	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 	viper.SetDefault("csv.output", bitgodineFolder)
+	viper.SetDefault("badger", "/badger")
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
@@ -112,6 +109,7 @@ func initConfig() {
 	viper.BindPFlag("dgHost", rootCmd.PersistentFlags().Lookup("dgHost"))
 	viper.BindPFlag("dgPort", rootCmd.PersistentFlags().Lookup("dgPort"))
 	viper.BindPFlag("csv.output", rootCmd.PersistentFlags().Lookup("output"))
+	viper.BindPFlag("badger", rootCmd.PersistentFlags().Lookup("badger"))
 
 	if cfgFile != "" {
 		// Use config file from the flag.

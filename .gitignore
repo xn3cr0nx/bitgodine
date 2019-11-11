@@ -1,6 +1,8 @@
 clusters.csv
 .~lock.clusters.csv#
 build/
+badger/
 .env
 *.html
 profiling
+*.png

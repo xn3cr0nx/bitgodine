@@ -43,6 +43,11 @@ run:
 install:
 	$(GOINSTALL) $(ENTRY)
 
+.PHONY: run
+run:
+	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve --badger ./badger"
+
+
 
 # Cross compilation
 linux: $(LNX_BUILD)

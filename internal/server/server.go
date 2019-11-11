@@ -92,6 +92,7 @@ func (s *Server) Listen() {
 	tx.Routes(api)
 	block.Routes(api)
 	address.Routes(api)
+	analysis.Routes(api)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

@@ -65,8 +65,6 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
-	db := (*w.c).Get("db").(storage.DB)
-	kv := (*w.c).Get("kv").(*badger.Badger)
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		// w.vulnLock.Lock()
@@ -77,14 +75,10 @@ func (w *Worker) Work() {
 		w.store[w.tx.TxID] = []byte{0}
 		return
 	}
-	if h, e := kv.Read(w.tx.TxID); e == nil {
-		w.vulnLock.Lock()
-		defer w.vulnLock.Unlock()
-		w.vuln[w.tx.TxID] = h[0]
+	v, err := AnalyzeTx(w.c, w.tx.TxID)
+	if err != nil {
 		return
 	}
-	var v byte
-	ApplyHeuristics(db, w.tx, &v)
 	w.vulnLock.Lock()
 	defer w.vulnLock.Unlock()
 	w.vuln[w.tx.TxID] = v
@@ -112,20 +106,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	store := make(map[string][]byte)
 	storeLock := sync.RWMutex{}
 
-	for i := from; i < to; i++ {
-		// for i := from; i < to; i = i + 5 {
-		// var hbound int32
-		// if (i + step) < to {
-		// 	hbound = i + step
-		// } else {
-		// 	hbound = to - i
-		// }
-		// blocks, e := db.GetBlockFromHeightRange(i, int(hbound))
-		// if e != nil {
-		// 	err = e
-		// 	return
-		// }
-		// for _, block := range blocks {
+	for i := from; i <= to; i++ {
 		block, e := db.GetBlockFromHeight(i)
 		if e != nil {
 			if e.Error() == "Key not found" {
@@ -154,7 +135,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 			}(block.Transactions[i])
 		}
 		wg.Wait()
-		// }
 
 		logger.Debug("Analysis", fmt.Sprintf("Blocks untill %d analyzed", i), logger.Params{})
 	}

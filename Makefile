@@ -45,7 +45,7 @@ install:
 
 .PHONY: run
 run:
-	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve --badger ./badger"
+	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve"
 
 
 

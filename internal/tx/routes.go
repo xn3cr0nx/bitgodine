@@ -3,7 +3,7 @@ package tx
 import (
 	"net/http"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -19,7 +19,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		t, err := db.(*dgraph.Dgraph).GetTx(txid)
+		t, err := db.(storage.DB).GetTx(txid)
 		if err != nil {
 			if err.Error() == "transaction not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -35,7 +35,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		t, err := db.(*dgraph.Dgraph).GetTx(txid)
+		t, err := db.(storage.DB).GetTx(txid)
 		if err != nil {
 			if err.Error() == "transaction not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -52,7 +52,7 @@ func Routes(g *echo.Group) *echo.Group {
 	// 		return err
 	// 	}
 	// db := c.Get("db")
-	// t, err := db.(*dgraph.Dgraph).GetTx(txid)
+	// t, err := db.(storage.DB).GetTx(txid)
 	// 	if err != nil {
 	// 		if err.Error() == "transaction not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -78,7 +78,7 @@ func Routes(g *echo.Group) *echo.Group {
 	// 		return err
 	// 	}
 	// db := c.Get("db")
-	// t, err := db.(*dgraph.Dgraph).GetTx(txid)
+	// t, err := db.(storage.DB).GetTx(txid)
 	// 	if err != nil {
 	// 		if err.Error() == "transaction not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)

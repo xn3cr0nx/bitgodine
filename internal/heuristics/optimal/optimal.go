@@ -4,12 +4,12 @@ import (
 	"errors"
 	"math"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
 // ChangeOutput returnes the index of the output which value is less than any inputs value, if there is any
-func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	// max value int64
 	var minInput int64 = 9223372036854775807
 	for _, in := range tx.Vin {
@@ -39,7 +39,7 @@ func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

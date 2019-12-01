@@ -3,7 +3,7 @@ package heuristics
 import (
 	"math"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/backward"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
@@ -70,8 +70,8 @@ func Index(r string) int {
 }
 
 // VulnerableFunction returnes vulnerable function to be applied to analysis
-func VulnerableFunction(h string) func(*dgraph.Dgraph, *models.Tx) bool {
-	functions := map[string](func(*dgraph.Dgraph, *models.Tx) bool){
+func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
+	functions := map[string](func(storage.DB, *models.Tx) bool){
 		"Peeling Chain":    peeling.Vulnerable,
 		"Power of Ten":     power.Vulnerable,
 		"Optimal Change":   optimal.Vulnerable,

@@ -1,11 +1,11 @@
 module github.com/xn3cr0nx/bitgodine_server
 
 require (
-	github.com/Jeffail/tunny v0.0.0-20190930221602-f13eb662a36a
+	github.com/Jeffail/tunny v0.0.0-20190930221602-f13eb662a36a // indirect
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190926002857-ba530c4abb35
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
-	github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d
+	github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d // indirect
 	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/dgo v1.0.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -24,8 +24,8 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	github.com/xn3cr0nx/bitgodine_clusterizer v0.0.0-20191103123916-c54f823c1f5d
-	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20191110202200-c80d2e7762fc
+	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20191130173631-61739c658a6a
+	gonum.org/v1/netlib v0.0.0-20191031114514-eccb95939662 // indirect
 	gonum.org/v1/plot v0.0.0-20191107103940-ca91d9d40d0a
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.29.1

@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
 	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/block"
@@ -30,7 +30,7 @@ type (
 	Server struct {
 		port   string
 		router *echo.Echo
-		db     *dgraph.Dgraph
+		db     storage.DB
 		cache  *cache.Cache
 		kv     *badger.Badger
 	}
@@ -39,14 +39,14 @@ type (
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int, dg *dgraph.Dgraph, c *cache.Cache, bdg *badger.Badger) *Server {
+func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger) *Server {
 	if server != nil {
 		return server
 	}
 	server = &Server{
 		port:   fmt.Sprintf(":%d", port),
 		router: echo.New(),
-		db:     dg,
+		db:     db,
 		cache:  c,
 		kv:     bdg,
 	}

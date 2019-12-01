@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
-
 	"github.com/btcsuite/btcd/chaincfg"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -21,14 +19,6 @@ var (
 	debug                                                                 bool
 	BitcoinNet                                                            chaincfg.Params
 )
-
-// DGraphConf exports the Config object to initialize indexing dgraph
-func DGraphConf() *dgraph.Config {
-	return &dgraph.Config{
-		Host: viper.GetString("dgHost"),
-		Port: viper.GetInt("dgPort"),
-	}
-}
 
 var rootCmd = &cobra.Command{
 	Use:   "bitgodine",

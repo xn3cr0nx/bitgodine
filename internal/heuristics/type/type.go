@@ -5,12 +5,12 @@ import (
 	"errors"
 
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
 // ChangeOutput returnes the index of the output which address type corresponds to input addresses type
-func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var inputTypes []txscript.ScriptClass
 	var outputTypes []txscript.ScriptClass
 
@@ -55,7 +55,7 @@ func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/xn3cr0nx/bitgodine_server/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_server/internal/db"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	txs "github.com/xn3cr0nx/bitgodine_server/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
 	"gopkg.in/go-playground/assert.v1"

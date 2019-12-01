@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(dg *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(dg storage.DB, tx *models.Tx) (uint32, error) {
 	var outputAddresses,
 		inputAddresses,
 		inputTargets []string
@@ -75,7 +75,7 @@ func ChangeOutput(dg *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(dg *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(dg storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(dg, tx)
 	return err == nil
 }

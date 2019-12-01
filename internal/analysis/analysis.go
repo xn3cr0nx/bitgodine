@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -10,11 +11,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
 	"github.com/xn3cr0nx/bitgodine_server/internal/task"
@@ -32,7 +33,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 		vuln = v[0]
 		return
 	}
-	db := (*c).Get("db").(*dgraph.Dgraph)
+	db := (*c).Get("db").(storage.DB)
 	tx, err := db.GetTx(txid)
 	if err != nil {
 		if err.Error() == "transaction not found" {
@@ -64,7 +65,7 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
-	db := (*w.c).Get("db").(*dgraph.Dgraph)
+	db := (*w.c).Get("db").(storage.DB)
 	kv := (*w.c).Get("kv").(*badger.Badger)
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
@@ -94,8 +95,16 @@ func (w *Worker) Work() {
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
 func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vuln map[string]byte, err error) {
-	db := (*c).Get("db").(*dgraph.Dgraph)
+	db := (*c).Get("db").(storage.DB)
+	if db == nil {
+		err = errors.New("db not initialized")
+		return
+	}
 	kv := (*c).Get("kv").(*badger.Badger)
+	if kv == nil {
+		err = errors.New("kv storage not initialized")
+		return
+	}
 	numCPUs := runtime.NumCPU()
 	pool := task.New(numCPUs * 3)
 	vuln = make(map[string]byte)
@@ -119,6 +128,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 		// for _, block := range blocks {
 		block, e := db.GetBlockFromHeight(i)
 		if e != nil {
+			if e.Error() == "Key not found" {
+				break
+			}
 			err = e
 			return
 		}
@@ -162,7 +174,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 }
 
 // ApplyHeuristics applies the set of heuristics the the passed transaction
-func ApplyHeuristics(db *dgraph.Dgraph, tx *models.Tx, vuln *byte) {
+func ApplyHeuristics(db storage.DB, tx *models.Tx, vuln *byte) {
 	for h := 0; h < heuristics.SetCardinality(); h++ {
 		if heuristics.VulnerableFunction(heuristics.Heuristic(h).String())(db, tx) {
 			(*vuln) += byte(math.Pow(2, float64(h+1)))

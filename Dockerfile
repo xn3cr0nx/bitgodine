@@ -2,7 +2,6 @@ FROM golang:1.13 as builder
 LABEL maintainer="Patrick Jusic <patrick.jusic@protonmail.com>"
 
 WORKDIR /bitgodine
-COPY . .
 
 ENV GOOS=linux \
   GO111MODULE=on \
@@ -19,12 +18,13 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -a -o ./build/bitgodine -v ./cmd/bitgodine
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./build/bitgodine -v ./cmd/bitgodine
 
 FROM alpine:latest
 
 WORKDIR /root/
 RUN mkdir /root/.bitgodine
 COPY --from=builder /bitgodine/build/bitgodine .
+RUN ls
 CMD ["./bitgodine", "serve", "--dgHost", "dgraph_server"]
 

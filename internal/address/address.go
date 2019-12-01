@@ -4,11 +4,11 @@ import (
 	"regexp"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
 // FirstAppearence returnes true if the passed address appears for the first time in blockchain at the given block height
-func FirstAppearence(db *dgraph.Dgraph, address *btcutil.Address) (int32, error) {
+func FirstAppearence(db storage.DB, address *btcutil.Address) (int32, error) {
 	height, err := db.GetAddressFirstOccurenceHeight(address)
 	if err != nil {
 		return 0, err

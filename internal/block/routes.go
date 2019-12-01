@@ -4,28 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
 	"github.com/labstack/echo/v4"
 )
-
-func BlockToModel(b dgraph.Block) models.Block {
-	return models.Block{
-		ID:         b.ID,
-		Height:     uint32(b.Height),
-		Version:    uint8(b.Version),
-		Timestamp:  b.Timestamp,
-		Bits:       b.Bits,
-		Nonce:      b.Nonce,
-		MerkleRoot: b.MerkleRoot,
-		TxCount:    len(b.Transactions),
-		// Size:              ,
-		// Weight:            ,
-		Previousblockhash: b.PrevBlock,
-	}
-}
 
 // Routes mounts all /block, /blocks and /block-height based routes on the main group
 func Routes(g *echo.Group) *echo.Group {
@@ -39,7 +23,7 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).GetBlockFromHeight(int32(height))
+		b, err := db.(storage.DB).GetBlockFromHeight(int32(height))
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound)
@@ -57,15 +41,14 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
+		b, err := db.(storage.DB).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
 			}
 			return err
 		}
-		res := BlockToModel(b)
-		return c.JSON(http.StatusOK, res)
+		return c.JSON(http.StatusOK, b)
 	})
 
 	// TODO: check if block in the best chain
@@ -75,15 +58,14 @@ func Routes(g *echo.Group) *echo.Group {
 	// 		return err
 	// 	}
 	// 	db := c.Get("db")
-	// 	b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
+	// 	b, err := db.(storage.DB).GetBlockFromHash(hash)
 	// 	if err != nil {
 	// 		if err.Error() == "Block not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
 	// 		}
 	// 		return err
 	// 	}
-	// 	res := BlockToModel(b)
-	// 	return c.JSON(http.StatusOK, res)
+	// 	return c.JSON(http.StatusOK, b)
 	// })
 
 	r.GET("/:hash/txs/:start_index", func(c echo.Context) error {
@@ -99,7 +81,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
+		b, err := db.(storage.DB).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -123,7 +105,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).GetBlockFromHash(hash)
+		b, err := db.(storage.DB).GetBlockFromHash(hash)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -147,7 +129,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 		db := c.Get("db")
-		blocks, err := db.(*dgraph.Dgraph).GetBlockFromHeightRange(int32(start), 10)
+		blocks, err := db.(storage.DB).GetBlockFromHeightRange(int32(start), 10)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
@@ -156,14 +138,14 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 		var res []models.Block
 		for _, b := range blocks {
-			res = append(res, BlockToModel(b))
+			res = append(res, b)
 		}
 		return c.JSON(http.StatusOK, res)
 	})
 
 	s.GET("/tip/height", func(c echo.Context) error {
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).LastBlock()
+		b, err := db.(storage.DB).LastBlock()
 		if err != nil {
 			return err
 		}
@@ -172,7 +154,7 @@ func Routes(g *echo.Group) *echo.Group {
 
 	s.GET("/tip/hash", func(c echo.Context) error {
 		db := c.Get("db")
-		b, err := db.(*dgraph.Dgraph).LastBlock()
+		b, err := db.(storage.DB).LastBlock()
 		if err != nil {
 			return err
 		}

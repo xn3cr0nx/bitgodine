@@ -8,7 +8,7 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/suite"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine_server/internal/db"
 	txs "github.com/xn3cr0nx/bitgodine_server/internal/transactions"
@@ -18,7 +18,7 @@ import (
 
 type TestBackwardSuite struct {
 	suite.Suite
-	dgraph *dgraph.Dgraph
+	dgraph storage.DB
 	db     *badger.DB
 }
 

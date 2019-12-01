@@ -3,7 +3,7 @@ package peeling
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
@@ -13,7 +13,7 @@ func LikePeelingChain(tx *models.Tx) bool {
 }
 
 // IsPeelingChain returnes true id the transaction is part of a peeling chain
-func IsPeelingChain(db *dgraph.Dgraph, tx *models.Tx) bool {
+func IsPeelingChain(db storage.DB, tx *models.Tx) bool {
 	if !LikePeelingChain(tx) {
 		return false
 	}
@@ -43,7 +43,7 @@ func IsPeelingChain(db *dgraph.Dgraph, tx *models.Tx) bool {
 }
 
 // ChangeOutput returnes the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	if LikePeelingChain(tx) {
 		if tx.Vout[0].Value > tx.Vout[1].Value {
 			return 0, nil
@@ -54,7 +54,7 @@ func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(dg *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(dg storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(dg, tx)
 	return err == nil
 }

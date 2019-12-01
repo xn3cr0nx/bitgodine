@@ -5,13 +5,13 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
 )
 
 // ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic
-func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var outputAddresses []uint32
 	blockHeight, err := db.GetTxBlockHeight(tx.TxID)
 	if err != nil {
@@ -51,7 +51,7 @@ func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

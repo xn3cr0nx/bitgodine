@@ -3,7 +3,7 @@ package locktime
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
@@ -11,7 +11,7 @@ import (
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
 // If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
-func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	locktimeGreaterZero := tx.Locktime > 0
 	var candidates []uint32
 
@@ -41,7 +41,7 @@ func ChangeOutput(db *dgraph.Dgraph, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db *dgraph.Dgraph, tx *models.Tx) bool {
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

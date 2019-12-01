@@ -22,6 +22,7 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	r.GET("/:txid", func(c echo.Context) error {
+		// TODO: check id is correct and not of a block
 		txid := c.Param("txid")
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err

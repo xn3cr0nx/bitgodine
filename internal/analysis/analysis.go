@@ -166,6 +166,11 @@ func ApplyHeuristics(db storage.DB, tx *models.Tx, vuln *byte) {
 func Percentages(analysis []byte, export bool) (err error) {
 	var percentages []float64
 	for h := 0; h < heuristics.SetCardinality(); h++ {
+		if len(analysis) == 0 {
+			percentages = append(percentages, 0)
+			continue
+		}
+
 		counter := 0
 		for _, a := range analysis {
 			if a&byte(math.Pow(2, float64(h))) > 0 {

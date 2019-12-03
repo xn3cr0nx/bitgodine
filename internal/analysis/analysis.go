@@ -24,7 +24,7 @@ import (
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	ca := (*c).Get("cache").(*cache.Cache)
-	if res, ok := ca.Get(txid); ok {
+	if res, ok := ca.Get("v_" + txid); ok {
 		vuln = res.(byte)
 		return
 	}
@@ -47,7 +47,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	if err = kv.Store(txid, []byte{vuln}); err != nil {
 		return
 	}
-	if !ca.Set(txid, vuln, 1) {
+	if !ca.Set("v_"+txid, vuln, 1) {
 		(*c).Logger().Error(err)
 	}
 	return

@@ -124,30 +124,23 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 			return
 		}
 		logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
+		// chain[block.Height] = make(map[string]byte, txLen)
 
-		txLen := len(block.Transactions)
-		chain[block.Height] = make(map[string]byte, txLen)
-		var wg sync.WaitGroup
-		wg.Add(txLen)
-		for i := range block.Transactions {
-			go func(height int32, tx models.Tx) {
-				defer wg.Done()
-				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.TxID), logger.Params{})
-				worker := Worker{
-					height:    height,
-					tx:        &tx,
-					c:         c,
-					vuln:      vuln,
+		for _, tx := range block.Transactions {
+			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.TxID), logger.Params{})
+			worker := Worker{
+				height:    block.Height,
+				tx:        &tx,
+				c:         c,
+				vuln:      vuln,
 					vulnLock:  &vulnLock,
 					store:     store,
 					storeLock: &storeLock,
 					chain:     chain,
-					chainLock: &chainLock,
-				}
-				pool.Do(&worker)
-			}(block.Height, block.Transactions[i])
+				chainLock: &chainLock,
+			}
+			pool.Do(&worker)
 		}
-		wg.Wait()
 
 		logger.Debug("Analysis", fmt.Sprintf("Blocks untill %d analyzed", i), logger.Params{})
 	}

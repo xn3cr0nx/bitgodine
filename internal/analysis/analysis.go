@@ -42,7 +42,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 		return
 	}
 
-	ApplyHeuristics(db, &tx, &vuln)
+	heuristics.ApplySet(db, &tx, &vuln)
 
 	if err = kv.Store(txid, []byte{vuln}); err != nil {
 		return
@@ -153,15 +153,8 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	return
 }
 
-// ApplyHeuristics applies the set of heuristics the the passed transaction
-func ApplyHeuristics(db storage.DB, tx *models.Tx, vuln *byte) {
-	for h := 0; h < heuristics.SetCardinality(); h++ {
-		if heuristics.VulnerableFunction(heuristics.Heuristic(h).String())(db, tx) {
-			(*vuln) += byte(math.Pow(2, float64(h+1)))
-		}
-	}
-}
-
+// GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
+func GlobalPercentages(analysis []byte, export bool) (err error) {
 // Percentages prints a table with percentages of heuristics success rate based on passed analysis
 func Percentages(analysis []byte, export bool) (err error) {
 	var percentages []float64
@@ -173,7 +166,7 @@ func Percentages(analysis []byte, export bool) (err error) {
 
 		counter := 0
 		for _, a := range analysis {
-			if a&byte(math.Pow(2, float64(h))) > 0 {
+			if heuristics.VulnerableMask(a, h) {
 				counter++
 			}
 		}

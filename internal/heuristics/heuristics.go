@@ -3,8 +3,8 @@ package heuristics
 import (
 	"math"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/backward"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/forward"
@@ -85,13 +85,32 @@ func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 	return functions[h]
 }
 
-// ToHeuristicsList return a list of heuristic names corresponding to vulnerability byte passed
-func ToHeuristicsList(v byte) (heuristics []string) {
+// Apply applies the heuristic specified to the passed transaction
+func Apply(db storage.DB, tx *models.Tx, h int, vuln *byte) {
+	if VulnerableFunction(Heuristic(h).String())(db, tx) {
+		(*vuln) += byte(math.Pow(2, float64(h+1)))
+	}
+}
+
+// ApplySet applies the set of heuristics to the passed transaction
+func ApplySet(db storage.DB, tx *models.Tx, vuln *byte) {
+	for h := 0; h < SetCardinality(); h++ {
+		Apply(db, tx, h, vuln)
+	}
+}
+
+// ToList return a list of heuristic names corresponding to vulnerability byte passed
+func ToList(v byte) (heuristics []string) {
 	for i := 0; i < 8; i++ {
-		// bitwise AND operation applies a mask to vulnerabilities byte to extract value bit by bit
-		if v&byte(math.Pow(2, float64(i))) > 0 {
+		if VulnerableMask(v, i) {
 			heuristics = append(heuristics, Heuristic(i).String())
 		}
 	}
 	return
+}
+
+// VulnerableMask uses bitwise AND operation to apply a mask to vulnerabilities byte to extract value bit by bit
+// and returnes true if the vuln byte is vulnerable to passed heuristic
+func VulnerableMask(v byte, h int) bool {
+	return v&byte(math.Pow(2, float64(h))) > 0
 }

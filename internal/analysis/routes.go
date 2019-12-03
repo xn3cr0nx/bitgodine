@@ -31,7 +31,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err != nil {
 			return err
 		}
-		h := heuristics.ToHeuristicsList(vuln)
+		h := heuristics.ToList(vuln)
 		logger.Info("Tx analysis", strings.Join(h, ","), logger.Params{})
 		return c.JSON(http.StatusOK, vuln)
 	})

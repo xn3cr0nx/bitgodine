@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sort"
 	"sync"
 
 	"github.com/labstack/echo/v4"
@@ -62,7 +61,7 @@ type Worker struct {
 	vulnLock  *sync.RWMutex
 	store     map[string][]byte
 	storeLock *sync.RWMutex
-	chain     map[int32]map[string]byte
+	chain     []sync.Map
 	chainLock *sync.RWMutex
 }
 
@@ -90,7 +89,7 @@ func (w *Worker) Work() {
 	w.store[w.tx.TxID] = []byte{v}
 	w.chainLock.Lock()
 	defer w.chainLock.Unlock()
-	w.chain[w.height][w.tx.TxID] = v
+	w.chain[w.height].Store(w.tx.TxID, v)
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
@@ -111,7 +110,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	vulnLock := sync.RWMutex{}
 	store := make(map[string][]byte)
 	storeLock := sync.RWMutex{}
-	chain := make(map[int32]map[string]byte)
+	chain := make([]sync.Map, to-from+1)
 	chainLock := sync.RWMutex{}
 
 	for i := from; i <= to; i++ {
@@ -133,10 +132,10 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 				tx:        &tx,
 				c:         c,
 				vuln:      vuln,
-					vulnLock:  &vulnLock,
-					store:     store,
-					storeLock: &storeLock,
-					chain:     chain,
+				vulnLock:  &vulnLock,
+				store:     store,
+				storeLock: &storeLock,
+				chain:     chain,
 				chainLock: &chainLock,
 			}
 			pool.Do(&worker)
@@ -197,30 +196,32 @@ func GlobalPercentages(analysis []byte, export bool) (err error) {
 }
 
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
-func PlotHeuristicsTimeline(data map[int32]map[string]byte) (err error) {
+// func PlotHeuristicsTimeline(data map[int32]map[string]byte) (err error) {
+func PlotHeuristicsTimeline(data []sync.Map) (err error) {
 	coordinates := make(map[string][]plot.Coordinates)
-
-	keys := make([]int, len(data))
-	for k := range data {
-		keys[k] = int(k)
-	}
-	sort.Ints(keys)
 
 	for h := 0; h < heuristics.SetCardinality(); h++ {
 		heuristic := heuristics.Heuristic(h).String()
-		for _, k := range keys {
-			if len(data[int32(k)]) == 0 {
-				coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(k), Y: 0})
+		for height, k := range data {
+			counter := 0
+			length := 0
+			k.Range(func(txid, v interface{}) bool {
+				vuln, ok := v.(byte)
+				if ok {
+					length++
+					if heuristics.VulnerableMask(vuln, h) {
+						counter++
+					}
+				}
+				return ok
+			})
+
+			if length == 0 {
+				coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(height), Y: 0})
 				continue
 			}
-			counter := 0
-			for _, a := range data[int32(k)] {
-				if heuristics.VulnerableMask(a, h) {
-					counter++
-				}
-			}
-			percentage := float64(counter) / float64(len(data[int32(k)]))
-			coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(k), Y: percentage})
+			percentage := float64(counter) / float64(length)
+			coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(height), Y: percentage})
 
 		}
 	}

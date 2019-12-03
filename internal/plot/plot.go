@@ -1,66 +1,82 @@
 package plot
 
 import (
-	"math/rand"
+	"fmt"
 	"os"
 
+	"github.com/wcharczuk/go-chart"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
-	"gonum.org/v1/plot/vg/draw"
-	"gonum.org/v1/plot/vg/vgsvg"
 )
 
-func HeuristicsTimeline() (err error) {
-	rand.Seed(int64(0))
-
-	p, err := plot.New()
-	if err != nil {
-		return
-	}
-
-	p.Title.Text = "Heuristics timeline"
-	p.X.Label.Text = "blocks"
-	p.Y.Label.Text = "heuristics effectiveness"
-
-	err = plotutil.AddLinePoints(p,
-		"First", randomPoints(15),
-		"Second", randomPoints(15),
-		"Third", randomPoints(15))
-	if err != nil {
-		return
-	}
-
-	// Save the plot to a PNG file.
-	if err = p.Save(4*vg.Inch, 4*vg.Inch, "points.png"); err != nil {
-		return
-	}
-
-	c := vgsvg.New(3*vg.Inch, 3*vg.Inch)
-	// Draw to the Canvas.
-	p.Draw(draw.New(c))
-	// Write the Canvas to a io.Writer (in this case, os.Stdout).
-	if _, err := c.WriteTo(os.Stdout); err != nil {
-		panic(err)
-	}
-
-	return
+// Coordinates wraps x and y coordinates to show on plot
+type Coordinates struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
-// randomPoints returns some random x, y points.
-func randomPoints(n int) plotter.XYs {
-	pts := make(plotter.XYs, n)
-	for i := range pts {
-		if i == 0 {
-			pts[i].X = rand.Float64()
-		} else {
-			pts[i].X = pts[i-1].X + rand.Float64()
+// LineChart saves a linechart based on x and y data passed to the function
+func LineChart(title, xLabel, yLabel string, data map[string][]Coordinates) (err error) {
+	var lines []chart.Series
+	h := 0
+	for k, coordinates := range data {
+		x := make([]float64, len(coordinates))
+		y := make([]float64, len(coordinates))
+		for i := range x {
+			x[i] = coordinates[i].X
+			y[i] = coordinates[i].Y + float64(h)
 		}
-		pts[i].Y = pts[i].X + 10*rand.Float64()
+
+		lines = append(lines, chart.ContinuousSeries{
+			Name:            k,
+			XValues:         x,
+			XValueFormatter: chart.FloatValueFormatter,
+			YValues:         y,
+			// YValueFormatter: chart.PercentValueFormatter,
+		})
+		h++
 	}
-	return pts
+
+	graph := chart.Chart{
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top:  50,
+				Left: 150,
+			},
+		},
+		XAxis: chart.XAxis{
+			Name: xLabel,
+			ValueFormatter: func(v interface{}) string {
+				if vf, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%0.f", vf)
+				}
+				return ""
+			},
+			Style: chart.Style{
+				TextRotationDegrees: 90,
+			},
+		},
+		YAxis: chart.YAxis{
+			Name: yLabel,
+		},
+		Title:  title,
+		Series: lines,
+	}
+
+	graph.Elements = []chart.Renderable{
+		chart.LegendLeft(&graph),
+	}
+
+	f, err := os.Create("plot.png")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	err = graph.Render(chart.PNG, f)
+	return
 }
 
 // HeuristicsPercentages plots the percentage effectiveness for each heuristic in the passed time range

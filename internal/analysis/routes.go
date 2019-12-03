@@ -6,7 +6,6 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -15,11 +14,6 @@ import (
 // Routes mounts all /block, /blocks and /block-height based routes on the main group
 func Routes(g *echo.Group) *echo.Group {
 	r := g.Group("/analysis")
-
-	r.GET("/test", func(c echo.Context) error {
-		plot.HeuristicsTimeline()
-		return c.JSON(http.StatusOK, "ok")
-	})
 
 	r.GET("/:txid", func(c echo.Context) error {
 		// TODO: check id is correct and not of a block
@@ -53,7 +47,7 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 
 		if q.Plot {
-			return c.File("barchart.png")
+			return c.File("plot.png")
 		}
 		return c.JSON(http.StatusOK, vuln)
 	})

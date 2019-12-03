@@ -3,10 +3,10 @@ package analysis
 import (
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
 	"os"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/labstack/echo/v4"
@@ -56,11 +56,14 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 // Worker wrapper to partecipate in task pool
 type Worker struct {
 	c         *echo.Context
+	height    int32
 	tx        *models.Tx
 	vuln      map[string]byte
-	store     map[string][]byte
 	vulnLock  *sync.RWMutex
+	store     map[string][]byte
 	storeLock *sync.RWMutex
+	chain     map[int32]map[string]byte
+	chainLock *sync.RWMutex
 }
 
 // Work method to make Worker compatible with task pool worker interface
@@ -85,6 +88,9 @@ func (w *Worker) Work() {
 	w.storeLock.Lock()
 	defer w.storeLock.Unlock()
 	w.store[w.tx.TxID] = []byte{v}
+	w.chainLock.Lock()
+	defer w.chainLock.Unlock()
+	w.chain[w.height][w.tx.TxID] = v
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
@@ -105,6 +111,8 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	vulnLock := sync.RWMutex{}
 	store := make(map[string][]byte)
 	storeLock := sync.RWMutex{}
+	chain := make(map[int32]map[string]byte)
+	chainLock := sync.RWMutex{}
 
 	for i := from; i <= to; i++ {
 		block, e := db.GetBlockFromHeight(i)
@@ -117,22 +125,27 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 		}
 		logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 
+		txLen := len(block.Transactions)
+		chain[block.Height] = make(map[string]byte, txLen)
 		var wg sync.WaitGroup
-		wg.Add(len(block.Transactions))
+		wg.Add(txLen)
 		for i := range block.Transactions {
-			go func(tx models.Tx) {
+			go func(height int32, tx models.Tx) {
 				defer wg.Done()
 				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.TxID), logger.Params{})
 				worker := Worker{
+					height:    height,
 					tx:        &tx,
 					c:         c,
 					vuln:      vuln,
-					store:     store,
 					vulnLock:  &vulnLock,
+					store:     store,
 					storeLock: &storeLock,
+					chain:     chain,
+					chainLock: &chainLock,
 				}
 				pool.Do(&worker)
-			}(block.Transactions[i])
+			}(block.Height, block.Transactions[i])
 		}
 		wg.Wait()
 
@@ -140,23 +153,24 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	}
 
 	pool.Shutdown()
+
 	if err := kv.StoreBatch(store); err != nil {
 		logger.Error("Analysis", err, logger.Params{})
 	}
 
-	var res []byte
-	for _, v := range vuln {
-		res = append(res, v)
-	}
-	err = Percentages(res, export)
+	// var res []byte
+	// for _, v := range vuln {
+	// 	res = append(res, v)
+	// }
+	// err = GlobalPercentages(res, export)
+
+	err = PlotHeuristicsTimeline(chain)
 
 	return
 }
 
 // GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
 func GlobalPercentages(analysis []byte, export bool) (err error) {
-// Percentages prints a table with percentages of heuristics success rate based on passed analysis
-func Percentages(analysis []byte, export bool) (err error) {
 	var percentages []float64
 	for h := 0; h < heuristics.SetCardinality(); h++ {
 		if len(analysis) == 0 {
@@ -189,49 +203,36 @@ func Percentages(analysis []byte, export bool) (err error) {
 	return
 }
 
-// func Plot(analysis [][]bool, start, end int) {
-// 	logger.Info("Analysis", "Generating plots..", logger.Params{})
+// PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
+func PlotHeuristicsTimeline(data map[int32]map[string]byte) (err error) {
+	coordinates := make(map[string][]plot.Coordinates)
 
-// 	line := charts.NewLine()
-// 	line.SetGlobalOptions(charts.TitleOpts{Title: "Heuristics Success Rate"}, charts.YAxisOpts{SplitLine: charts.SplitLineOpts{Show: true}})
+	keys := make([]int, len(data))
+	for k := range data {
+		keys[k] = int(k)
+	}
+	sort.Ints(keys)
 
-// 	// var heuristicsAxis []string
-// 	// for i := 0; i < 9; i++ {
-// 	// 	heuristicsAxis = append(heuristicsAxis, heuristics.Heuristic(i).String())
-// 	// }
-// 	// fmt.Println("axis", heuristicsAxis)
-// 	// line.AddXAxis(heuristicsAxis).AddYAxis("Peeling", []int{90, 70, 90, 70, 90, 70, 90, 70, 90})
+	for h := 0; h < heuristics.SetCardinality(); h++ {
+		heuristic := heuristics.Heuristic(h).String()
+		for _, k := range keys {
+			if len(data[int32(k)]) == 0 {
+				coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(k), Y: 0})
+				continue
+			}
+			counter := 0
+			for _, a := range data[int32(k)] {
+				if heuristics.VulnerableMask(a, h) {
+					counter++
+				}
+			}
+			percentage := float64(counter) / float64(len(data[int32(k)]))
+			coordinates[heuristic] = append(coordinates[heuristic], plot.Coordinates{X: float64(k), Y: percentage})
 
-// 	line.AddXAxis(generateHeightSeries(start, end))
+		}
+	}
 
-// 	for heuristic := range analysis[0] {
-// 		var series []int
-// 		for _, a := range analysis {
-// 			if a[heuristic] {
-// 				series = append(series, (heuristic*20)+10)
-// 			} else {
-// 				series = append(series, (heuristic*20)+0)
-// 			}
-// 		}
+	err = plot.LineChart("Heuristics timeline", "blocks", "heuristics effectiveness", coordinates)
 
-// 		// line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.AreaStyleOpts{Opacity: 0.2}, charts.LineOpts{Step: true})
-// 		line = line.AddYAxis(heuristics.Heuristic(heuristic).String(), series, charts.LineOpts{Step: true})
-// 	}
-
-// 	f, err := os.Create("line.html")
-// 	if err != nil {
-// 		logger.Error("Analysis", err, logger.Params{})
-// 		return
-// 	}
-// 	line.Render(f)
-// }
-// func generateHeightSeries(start, end int) (series []int) {
-// 	length := end - start
-// 	// steps := length / 10.0
-
-// 	for i := 0; i <= length; i++ {
-// 		series = append(series, start+i)
-// 	}
-
-// 	return
-// }
+	return
+}

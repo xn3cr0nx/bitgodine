@@ -5,12 +5,11 @@ require (
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190926002857-ba530c4abb35
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
-	github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d // indirect
+	github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d
 	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/dgo v1.0.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.7.0
-	github.com/go-echarts/go-echarts v0.0.0-20190915064101-cbb3b43ade5d // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/gobuffalo/packr v1.30.1 // indirect
@@ -24,6 +23,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
+	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
 	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20191130173631-61739c658a6a
 	gonum.org/v1/netlib v0.0.0-20191031114514-eccb95939662 // indirect
 	gonum.org/v1/plot v0.0.0-20191107103940-ca91d9d40d0a

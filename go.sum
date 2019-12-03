@@ -50,7 +50,6 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
-github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d h1:oDidjd8DtZ32Bh1Ii2q/F+JzoIk4aIfWZ8RHyo9iR1M=
 github.com/chenjiandongx/go-echarts v0.0.0-20190915064101-cbb3b43ade5d/go.mod h1:em9DXSXDwaHYspiqZRx3aXk8xgpj+w6EhWni7PGb8/E=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
@@ -310,6 +309,9 @@ github.com/valyala/fasttemplate v1.0.1 h1:tY9CJiPnMXf1ERmG2EyK7gNUd+c6RKGD0IfU8W
 github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPUpymEIMZ47gx8=
 github.com/vbauerster/mpb v3.4.0+incompatible/go.mod h1:zAHG26FUhVKETRu+MWqYXcI70POlC6N8up9p1dID7SU=
 github.com/vbauerster/mpb/v4 v4.9.3/go.mod h1:xMKSr3w3dixpCH9v7svY4wF3mmhuyWYuYtkpy8T5FOk=
+github.com/wcharczuk/go-chart v2.0.1+incompatible/go.mod h1:PF5tmL4EIx/7Wf+hEkpCqYi5He4u90sw+0+6FhrryuE=
+github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible h1:Bz/7IMIv+MmCANT7drP8zyxHH5xHC0/+smWpcJCCk4M=
+github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible/go.mod h1:PF5tmL4EIx/7Wf+hEkpCqYi5He4u90sw+0+6FhrryuE=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20191103122611-c2fa06618a95/go.mod h1:Tyey7z9olDI9njMafRLUJWJ1YXRE9nn1xM7ORJipdsQ=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20191110005013-a32ed6351535 h1:9wsuU9dT7Zvw2KDbpa2FJMa2f/va7aJ74ufcr9iiT4I=

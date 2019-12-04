@@ -14,27 +14,20 @@ import (
 
 // Coordinates wraps x and y coordinates to show on plot
 type Coordinates struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X []float64 `json:"x"`
+	Y []float64 `json:"y"`
 }
 
-// LineChart saves a linechart based on x and y data passed to the function
-func LineChart(title, xLabel, yLabel string, data map[string][]Coordinates) (err error) {
+// MultipleLineChart saves a multiple linechart based on x and y data passed to the function
+func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates) (err error) {
 	var lines []chart.Series
 	h := 0
 	for k, coordinates := range data {
-		x := make([]float64, len(coordinates))
-		y := make([]float64, len(coordinates))
-		for i := range x {
-			x[i] = coordinates[i].X
-			y[i] = coordinates[i].Y + float64(h)
-		}
-
 		lines = append(lines, chart.ContinuousSeries{
 			Name:            k,
-			XValues:         x,
+			XValues:         coordinates.X,
 			XValueFormatter: chart.FloatValueFormatter,
-			YValues:         y,
+			YValues:         coordinates.Y,
 			// YValueFormatter: chart.PercentValueFormatter,
 		})
 		h++

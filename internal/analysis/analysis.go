@@ -114,8 +114,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 		}
 		logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 
-		// chain[block.Height] = make([]byte, len(block.Transactions))
-
 		for _, tx := range block.Transactions {
 			logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.TxID), logger.Params{})
 			worker := Worker{
@@ -145,8 +143,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, step int32, export bool) (vu
 	// }
 	// err = GlobalPercentages(res, export)
 
-	fmt.Println("WTF DATA", chain)
-	err = PlotHeuristicsTimeline(chain)
+	err = PlotHeuristicsTimeline(chain, from)
 
 	return
 }
@@ -186,12 +183,12 @@ func GlobalPercentages(analysis []byte, export bool) (err error) {
 }
 
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
-func PlotHeuristicsTimeline(data map[int32][]byte) (err error) {
+func PlotHeuristicsTimeline(data map[int32][]byte, min int32) (err error) {
 	coordinates := make(map[string]plot.Coordinates)
 
 	x := make([]float64, len(data))
 	for k := range data {
-		x[k] = float64(k)
+		x[k-min] = float64(k)
 	}
 
 	for h := 0; h < heuristics.SetCardinality(); h++ {
@@ -199,7 +196,7 @@ func PlotHeuristicsTimeline(data map[int32][]byte) (err error) {
 		for height, vulnerabilites := range data {
 			counter := 0
 			if len(vulnerabilites) == 0 {
-				y[int(height)] = 0
+				y[int(height-min)] = 0
 				continue
 			}
 			for _, v := range vulnerabilites {
@@ -208,7 +205,7 @@ func PlotHeuristicsTimeline(data map[int32][]byte) (err error) {
 				}
 			}
 			percentage := float64(counter) / float64(len(vulnerabilites))
-			y[int(height)] = percentage + float64(h)
+			y[int(height-min)] = percentage + float64(h)
 		}
 		coordinates[heuristics.Heuristic(h).String()] = plot.Coordinates{X: x, Y: y}
 	}

@@ -1,4 +1,3 @@
-// Package task provides a pool of goroutines to perform tasks.
 package task
 
 import "sync"
@@ -46,6 +45,11 @@ func New(maxGoroutines int) *Task {
 // Shutdown waits for all the goroutines to shutdown.
 func (t *Task) Shutdown() {
 	close(t.work)
+	t.wg.Wait()
+}
+
+// Wait waits for all the goroutines to complete.
+func (t *Task) Wait() {
 	t.wg.Wait()
 }
 

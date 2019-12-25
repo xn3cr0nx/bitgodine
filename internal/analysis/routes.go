@@ -41,7 +41,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 
-		vuln, err := AnalyzeBlocks(&c, q.From, q.To, 5, q.Plot)
+		vuln, err := AnalyzeBlocks(&c, q.From, q.To, q.Plot)
 		if err != nil {
 			return err
 		}

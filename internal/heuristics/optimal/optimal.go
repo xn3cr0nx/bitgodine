@@ -1,3 +1,7 @@
+// Package optimal change heuristic
+// It tries to locate in the output set of a transaction an
+// address that receives an amount which is smaller than all inputs values. We
+// count the transactions in which this condition is satisfied.
 package optimal
 
 import (

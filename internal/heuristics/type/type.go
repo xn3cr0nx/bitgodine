@@ -1,3 +1,7 @@
+// Package class heuristic
+// This heuristic is the address type heuristic and it checks if the all the inputs 
+// are of the same type and then try to locate only one output 
+// that is of the same type. Again, we just need to check a simple condition.
 package class
 
 import (

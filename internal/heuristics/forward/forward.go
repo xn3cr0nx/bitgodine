@@ -1,3 +1,6 @@
+// Package forward heuristic
+// It checks the transactions that come
+// after the one in which we want to find the change address.
 package forward
 
 import (

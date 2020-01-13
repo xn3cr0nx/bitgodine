@@ -1,3 +1,9 @@
+// Package locktime heuristic
+// It checks for each output of a transaction, if the spending
+// transactions locktime is the same of the original transaction. In this case,
+// for the percentage, we just count each transaction that can be coupled with
+// a transaction that has the same locktime (if its different from the default
+// value).
 package locktime
 
 import (

@@ -1,3 +1,10 @@
+// Package peeling chain heuristic
+// Since in this case we are looking for a set of transactions
+// that have different length, can be really difficult to be sure that a series
+// of transactions that have one input and two outputs is a peeling chains
+// transaction, also because a chain can be connected in the middle point of
+// another chain. In this case, we count all the transactions that belong to a
+// series that have almost length 3 as peeling chains transactions.
 package peeling
 
 import (

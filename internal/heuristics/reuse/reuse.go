@@ -1,10 +1,16 @@
+// Package reuse heuristic
+// This heuristic just checks if an address that appears
+// in the input set, appears also in the output set, we just need to count the
+// number of transactions in which this condition is satisfied. This happens
+// when a user uses the same address to pay and to recollect the exceeding
+// amount of a transaction.
 package reuse
 
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
 func contains(recipient []string, element string) bool {

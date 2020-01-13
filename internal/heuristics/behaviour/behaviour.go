@@ -1,3 +1,8 @@
+// Package behaviour client heuristic
+// This heuristic checks if there are
+// output addresses that are the first time they appear in the Blockchain. We
+// count the transactions in which appear at least one fresh address in the
+// output set.
 package behaviour
 
 import (
@@ -5,8 +10,8 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
 )
 

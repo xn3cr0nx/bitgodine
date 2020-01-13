@@ -45,7 +45,7 @@ install:
 
 .PHONY: run
 run:
-	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve"
+	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis"
 
 
 

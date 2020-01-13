@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost, output, bdg string
-	dgPort                                                                int
-	debug                                                                 bool
-	BitcoinNet                                                            chaincfg.Params
+	cfgFile, network, bitgodineDir, blocksDir, dbDir, dgHost, output, bdg, analysis string
+	dgPort                                                                          int
+	debug                                                                           bool
+	BitcoinNet                                                                      chaincfg.Params
 )
 
 var rootCmd = &cobra.Command{
@@ -72,6 +72,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
 	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", bitgodineFolder, "Sets the path to output clusters.csv file")
 	rootCmd.PersistentFlags().StringVar(&bdg, "badger", "/badger", "Sets the path to the badger stored files")
+	rootCmd.PersistentFlags().StringVar(&analysis, "analysis", "/analysis", "Sets the path to the analysis stored files")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -90,6 +91,7 @@ func initConfig() {
 	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger"))
 	viper.SetDefault("csv.output", bitgodineFolder)
 	viper.SetDefault("badger", "/badger")
+	viper.SetDefault("analysis", "/analysis")
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
@@ -100,23 +102,17 @@ func initConfig() {
 	viper.BindPFlag("dgPort", rootCmd.PersistentFlags().Lookup("dgPort"))
 	viper.BindPFlag("csv.output", rootCmd.PersistentFlags().Lookup("output"))
 	viper.BindPFlag("badger", rootCmd.PersistentFlags().Lookup("badger"))
+	viper.BindPFlag("analysis", rootCmd.PersistentFlags().Lookup("analysis"))
+
+	viper.AutomaticEnv() // read in environment variables that match
 
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		// Search config in home directory with name ".bitgodine" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".bitgodine")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./config")
 	}
-
-	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

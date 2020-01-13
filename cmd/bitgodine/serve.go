@@ -66,7 +66,7 @@ func start(cmd *cobra.Command, args []string) {
 	// 	os.Exit(-1)
 	// }
 
-	bdg, err := badger.NewBadger(badger.Conf("/analysis"), false)
+	bdg, err := badger.NewBadger(badger.Conf(viper.GetString("analysis")), false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)

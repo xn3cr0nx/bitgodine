@@ -57,7 +57,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 type Worker struct {
 	c      *echo.Context
 	height int32
-	tx     *models.Tx
+	tx     models.Tx
 	lock   *sync.RWMutex
 	store  map[string][]byte
 	vuln   map[int32][]byte
@@ -65,7 +65,9 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
+	w.lock.RLock()
 	if len(w.tx.Vout) <= 1 {
+		w.lock.RUnlock()
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
 		defer w.lock.Unlock()
@@ -77,6 +79,7 @@ func (w *Worker) Work() {
 	if err != nil {
 		return
 	}
+	w.lock.RUnlock()
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	w.store[w.tx.TxID] = []byte{v}
@@ -114,7 +117,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 	lower := lowerBoundary(to, interval)
 	if lower-upper >= interval {
 		for i := upper; i < lower; i += interval {
-			r, err := kv.Read(fmt.Sprintf("int%d-%d", upper, lower))
+			r, err := kv.Read(fmt.Sprintf("int%d-%d", i, i+interval))
 			if err != nil {
 				break
 			}
@@ -134,16 +137,18 @@ func extractRange(kv *badger.Badger, r Range, interval int32, vuln map[int32][]b
 	upper := upperBoundary(r.From, interval)
 	lower := lowerBoundary(r.To, interval)
 	if lower-upper >= interval {
-		var analyzed Analyzed
-		analyzed.From = upper
-		analyzed.To = lower
-		analyzed.Vulnerabilites = vuln
-		var a []byte
-		a, err = json.Marshal(analyzed)
-		if err != nil {
-			return
+		for i := upper; i < lower; i += interval {
+			var analyzed Analyzed
+			analyzed.From = i
+			analyzed.To = i + interval
+			analyzed.Vulnerabilites = subMap(vuln, i, i+interval)
+			var a []byte
+			a, err = json.Marshal(analyzed)
+			if err != nil {
+				return
+			}
+			err = kv.Store(fmt.Sprintf("int%d-%d", i, i+interval), a)
 		}
-		err = kv.Store(fmt.Sprintf("int%d-%d", upper, lower), a)
 	}
 
 	return
@@ -155,6 +160,14 @@ func mergeMaps(args ...map[int32][]byte) (merged map[int32][]byte) {
 		for height, perc := range arg {
 			merged[height] = perc
 		}
+	}
+	return
+}
+
+func subMap(arg map[int32][]byte, from, to int32) (sub map[int32][]byte) {
+	sub = make(map[int32][]byte)
+	for h, a := range arg {
+		sub[h] = a
 	}
 	return
 }
@@ -199,40 +212,38 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 		if i == len(analyzed)-1 && a.To < to {
 			ranges = append(ranges, Range{a.To + 1, to})
 		}
-
-		fmt.Println("updated from to", ranges)
 	}
+	fmt.Println("updated ranges", ranges)
 
 	for _, r := range ranges {
 		from, to := r.From, r.To
+		if from == to {
+			continue
+		}
+		var block models.Block
 		for i := from; i <= to; i++ {
-			block, e := db.GetBlockFromHeight(i)
-			if e != nil {
-				if e.Error() == "Key not found" {
+			block, err = db.GetBlockFromHeight(i)
+			if err != nil {
+				if err.Error() == "Key not found" {
 					break
 				}
-				err = e
 				return
 			}
-			logger.Debug("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
+			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 
-			for _, tx := range block.Transactions {
-				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", tx.TxID), logger.Params{})
-				worker := Worker{
+			for t := range block.Transactions {
+				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", block.Transactions[t].TxID), logger.Params{})
+				go pool.Do(&Worker{
 					height: block.Height,
-					tx:     &tx,
+					tx:     block.Transactions[t],
 					c:      c,
 					lock:   &lock,
 					store:  store,
 					vuln:   vuln,
-				}
-				pool.Do(&worker)
+				})
 			}
-
-			logger.Debug("Analysis", fmt.Sprintf("Blocks untill %d analyzed", i), logger.Params{})
 		}
 	}
-
 	pool.Shutdown()
 
 	if _, ok := store[""]; ok {

@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
@@ -41,13 +42,15 @@ func init() {
 func start(cmd *cobra.Command, args []string) {
 	logger.Info("Bitgodine Serve", "Server Starting", logger.Params{"timestamp": time.Now()})
 
+	defer profile.Start(profile.MemProfile).Stop()
+
 	c, err := cache.NewCache(nil)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
 	}
 
-	dg, err := kv.NewKV(kv.Conf(viper.GetString("badger")), c, false)
+	db, err := kv.NewKV(kv.Conf(viper.GetString("badger")), c, false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
@@ -70,6 +73,6 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	// s := server.Instance(viper.GetInt("http.port"), dg, c, bdg)
-	s := server.Instance(viper.GetInt("http.port"), dg, c, bdg)
+	s := server.Instance(viper.GetInt("http.port"), db, c, bdg)
 	s.Listen()
 }

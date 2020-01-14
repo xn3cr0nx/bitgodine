@@ -9,3 +9,5 @@ profiling
 *.out
 *.png
 *.pdf
+*.test
+/config

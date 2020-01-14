@@ -59,8 +59,7 @@ type Worker struct {
 	height int32
 	tx     models.Tx
 	lock   *sync.RWMutex
-	store  map[string][]byte
-	vuln   map[int32][]byte
+	vuln   map[int32]map[string]byte
 }
 
 // Work method to make Worker compatible with task pool worker interface
@@ -68,8 +67,7 @@ func (w *Worker) Work() {
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
-		w.store[w.tx.TxID] = []byte{0}
-		w.vuln[w.height] = append(w.vuln[w.height], 0)
+		w.vuln[w.height][w.tx.TxID] = 0
 		w.lock.Unlock()
 		return
 	}
@@ -80,18 +78,20 @@ func (w *Worker) Work() {
 	// fmt.Println("DONE " + w.tx.TxID)
 
 	w.lock.Lock()
-	w.store[w.tx.TxID] = []byte{v}
-	w.vuln[w.height] = append(w.vuln[w.height], v)
+	w.vuln[w.height][w.tx.TxID] = v
 	w.lock.Unlock()
 }
 
-// Analyzed struct with info on previous analyzed blocks slice
-type Analyzed struct {
+// Graph alias for struct describing blockchain graph based on vulnerabilities mask
+type Graph map[int32]map[string]byte
+
+// Chunk struct with info on previous analyzed blocks slice
+type Chunk struct {
 	Range          `json:"range,omitempty"`
-	Vulnerabilites map[int32][]byte `json:"vulnerabilities,omitempty"`
+	Vulnerabilites Graph `json:"vulnerabilities,omitempty"`
 }
 
-func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (intervals []Analyzed) {
+func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (intervals []Chunk) {
 	upper := upperBoundary(from, interval)
 	lower := lowerBoundary(to, interval)
 	if lower-upper >= interval {
@@ -100,7 +100,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 			if err != nil {
 				break
 			}
-			var analyzed Analyzed
+			var analyzed Chunk
 			err = json.Unmarshal(r, &analyzed)
 			if err != nil {
 				logger.Error("Analysis", err, logger.Params{})
@@ -113,7 +113,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32][]byte, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -135,10 +135,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 
 	pool := task.New(runtime.NumCPU() * 3)
 	lock := sync.RWMutex{}
-	store := make(map[string][]byte, to-from)
-	vuln = make(map[int32][]byte, to-from)
+	vuln = make(map[int32]map[string]byte, to-from+1)
 
-	interval := int32(50000)
+	interval := int32(10000)
 	analyzed := restorePreviousAnalysis(kv, from, to, interval)
 	ranges := updateRange(from, to, analyzed)
 	fmt.Println("updated ranges", ranges)
@@ -161,21 +160,16 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 				logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 			}
 
-			for t := range block.Transactions {
-				if v, e := kv.Read(block.Transactions[t].TxID); e == nil {
-					// the assumption is shared map vuln is wrote before new txs are parsed, hence it shouldn't be acquired twice
-					// lock.Lock()
-					vuln[block.Height] = append(vuln[block.Height], v[0])
-					// lock.Unlock()
-					continue
-				}
+			lock.Lock()
+			vuln[block.Height] = make(map[string]byte, len(block.Transactions))
+			lock.Unlock()
 
+			for t := range block.Transactions {
 				pool.Do(&Worker{
 					height: block.Height,
 					tx:     block.Transactions[t],
 					db:     db,
 					lock:   &lock,
-					store:  store,
 					vuln:   vuln,
 				})
 			}
@@ -183,33 +177,22 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 	}
 	pool.Shutdown()
 
-	if _, ok := store[""]; ok {
-		delete(store, "")
-	}
-	if err := kv.StoreBatch(store); err != nil {
-		logger.Error("Analysis", err, logger.Params{})
-	}
-
 	for _, r := range ranges {
 		if e := storeRange(kv, r, interval, vuln); e != nil {
 			logger.Error("Analysis", e, logger.Params{})
 		}
 	}
 
-	maps := []map[int32][]byte{vuln}
-	for _, a := range analyzed {
-		maps = append(maps, a.Vulnerabilites)
-	}
-	vuln = mergeMaps(maps...)
+	vuln = mergeChunks(analyzed...).Vulnerabilites
 
-	if export {
-		data := heuristics.ExtractPercentages(vuln, from, to)
-		err = PlotHeuristicsTimeline(data, from)
-		// err = HeuristicsPercentages(data, from)
-	} else {
-		data := heuristics.ExtractGlobalPercentages(vuln, from, to)
-		err = GlobalPercentages(data, export)
-	}
+	// if export {
+	// 	data := heuristics.ExtractPercentages(vuln, from, to)
+	// 	err = PlotHeuristicsTimeline(data, from)
+	// 	// err = HeuristicsPercentages(data, from)
+	// } else {
+	// 	data := heuristics.ExtractGlobalPercentages(vuln, from, to)
+	// 	err = GlobalPercentages(data, export)
+	// }
 
 	return
 }

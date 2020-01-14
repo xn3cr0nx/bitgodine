@@ -25,7 +25,7 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		os.Exit(-1)
 	}
 
-	var vuln map[int32][]byte
+	var vuln map[int32]map[string]byte
 	for x := 0; x < t.N; x++ {
 		c := echo.New().AcquireContext()
 		c.Set("db", db)

@@ -27,7 +27,7 @@ func lowerBoundary(n, interval int32) (r int32) {
 	return
 }
 
-func updateRange(from, to int32, analyzed []Analyzed) (ranges []Range) {
+func updateRange(from, to int32, analyzed []Chunk) (ranges []Range) {
 	for i, a := range analyzed {
 		if i == 0 {
 			if a.From > from {
@@ -43,15 +43,15 @@ func updateRange(from, to int32, analyzed []Analyzed) (ranges []Range) {
 	return
 }
 
-func storeRange(kv *badger.Badger, r Range, interval int32, vuln map[int32][]byte) (err error) {
+func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph) (err error) {
 	upper := upperBoundary(r.From, interval)
 	lower := lowerBoundary(r.To, interval)
 	if lower-upper >= interval {
 		for i := upper; i < lower; i += interval {
-			var analyzed Analyzed
+			var analyzed Chunk
 			analyzed.From = i
 			analyzed.To = i + interval
-			analyzed.Vulnerabilites = subMap(vuln, i, i+interval)
+			analyzed.Vulnerabilites = subGraph(vuln, i, i+interval)
 			var a []byte
 			a, err = json.Marshal(analyzed)
 			if err != nil {
@@ -64,20 +64,30 @@ func storeRange(kv *badger.Badger, r Range, interval int32, vuln map[int32][]byt
 	return
 }
 
-func mergeMaps(args ...map[int32][]byte) (merged map[int32][]byte) {
-	merged = make(map[int32][]byte)
+func mergeGraphs(args ...Graph) (merged Graph) {
+	merged = make(Graph)
 	for _, arg := range args {
-		for height, perc := range arg {
-			merged[height] = perc
+		for height, txs := range arg {
+			merged[height] = txs
 		}
 	}
 	return
 }
 
-func subMap(arg map[int32][]byte, from, to int32) (sub map[int32][]byte) {
-	sub = make(map[int32][]byte)
+func subGraph(arg Graph, from, to int32) (sub Graph) {
+	sub = make(Graph)
 	for h, a := range arg {
 		sub[h] = a
+	}
+	return
+}
+
+func mergeChunks(args ...Chunk) (merged Chunk) {
+	merged = Chunk{
+		Vulnerabilites: make(Graph),
+	}
+	for _, chunk := range args {
+		merged.Vulnerabilites = mergeGraphs(merged.Vulnerabilites, chunk.Vulnerabilites)
 	}
 	return
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -22,11 +23,11 @@ import (
 
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
-	// ca := (*c).Get("cache").(*cache.Cache)
-	// if res, ok := ca.Get("v_" + txid); ok {
-	// 	vuln = res.(byte)
-	// 	return
-	// }
+	ca := (*c).Get("cache").(*cache.Cache)
+	if res, ok := ca.Get("v_" + txid); ok {
+		vuln = res.(byte)
+		return
+	}
 	kv := (*c).Get("kv").(*badger.Badger)
 	if v, e := kv.Read(txid); e == nil {
 		vuln = v[0]
@@ -46,15 +47,15 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	if err = kv.Store(txid, []byte{vuln}); err != nil {
 		return
 	}
-	// if !ca.Set("v_"+txid, vuln, 1) {
-	// 	(*c).Logger().Error(err)
-	// }
+	if !ca.Set("v_"+txid, vuln, 1) {
+		(*c).Logger().Error(err)
+	}
 	return
 }
 
 // Worker wrapper to partecipate in task pool
 type Worker struct {
-	c      *echo.Context
+	db     storage.DB
 	height int32
 	tx     models.Tx
 	lock   *sync.RWMutex
@@ -64,9 +65,7 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
-	w.lock.RLock()
 	if len(w.tx.Vout) <= 1 {
-		w.lock.RUnlock()
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
 		w.store[w.tx.TxID] = []byte{0}
@@ -74,41 +73,22 @@ func (w *Worker) Work() {
 		w.lock.Unlock()
 		return
 	}
-	v, err := AnalyzeTx(w.c, w.tx.TxID)
-	if err != nil {
-		return
-	}
-	w.lock.RUnlock()
+
+	var v byte
+	// fmt.Println("APPLYING " + w.tx.TxID)
+	heuristics.ApplySet(w.db, w.tx, &v)
+	// fmt.Println("DONE " + w.tx.TxID)
+
 	w.lock.Lock()
 	w.store[w.tx.TxID] = []byte{v}
 	w.vuln[w.height] = append(w.vuln[w.height], v)
 	w.lock.Unlock()
 }
 
-func upperBoundary(n, interval int32) (r int32) {
-	diff := n % interval
-	if diff == 0 {
-		diff = interval
-	}
-	r = n + (interval - diff)
-	return
-}
-
-func lowerBoundary(n, interval int32) (r int32) {
-	r = n - (n % interval)
-	return
-}
-
 // Analyzed struct with info on previous analyzed blocks slice
 type Analyzed struct {
 	Range          `json:"range,omitempty"`
 	Vulnerabilites map[int32][]byte `json:"vulnerabilities,omitempty"`
-}
-
-// Range wrapper for blocks interval boundaries
-type Range struct {
-	From int32 `json:"from,omitempty"`
-	To   int32 `json:"to,omitempty"`
 }
 
 func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (intervals []Analyzed) {
@@ -128,45 +108,6 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 			}
 			intervals = append(intervals, analyzed)
 		}
-	}
-	return
-}
-
-func extractRange(kv *badger.Badger, r Range, interval int32, vuln map[int32][]byte) (err error) {
-	upper := upperBoundary(r.From, interval)
-	lower := lowerBoundary(r.To, interval)
-	if lower-upper >= interval {
-		for i := upper; i < lower; i += interval {
-			var analyzed Analyzed
-			analyzed.From = i
-			analyzed.To = i + interval
-			analyzed.Vulnerabilites = subMap(vuln, i, i+interval)
-			var a []byte
-			a, err = json.Marshal(analyzed)
-			if err != nil {
-				return
-			}
-			err = kv.Store(fmt.Sprintf("int%d-%d", i, i+interval), a)
-		}
-	}
-
-	return
-}
-
-func mergeMaps(args ...map[int32][]byte) (merged map[int32][]byte) {
-	merged = make(map[int32][]byte)
-	for _, arg := range args {
-		for height, perc := range arg {
-			merged[height] = perc
-		}
-	}
-	return
-}
-
-func subMap(arg map[int32][]byte, from, to int32) (sub map[int32][]byte) {
-	sub = make(map[int32][]byte)
-	for h, a := range arg {
-		sub[h] = a
 	}
 	return
 }
@@ -198,28 +139,15 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 	vuln = make(map[int32][]byte, to-from)
 
 	interval := int32(50000)
-	ranges := []Range{Range{from, to}}
 	analyzed := restorePreviousAnalysis(kv, from, to, interval)
-	for i, a := range analyzed {
-		if i == 0 {
-			if a.From > from {
-				ranges[0].To = a.From - 1
-			} else {
-				ranges[0].To = a.From
-			}
-		}
-		if i == len(analyzed)-1 && a.To < to {
-			ranges = append(ranges, Range{a.To + 1, to})
-		}
-	}
+	ranges := updateRange(from, to, analyzed)
 	fmt.Println("updated ranges", ranges)
 
 	for _, r := range ranges {
-		from, to := r.From, r.To
-		if from == to {
+		if r.From == r.To {
 			continue
 		}
-		for i := from; i <= to; i++ {
+		for i := r.From; i <= r.To; i++ {
 			block, e := db.GetBlockFromHeight(i)
 			if e != nil {
 				if e.Error() == "Key not found" {
@@ -228,14 +156,24 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 				err = e
 				return
 			}
-			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
+
+			if block.Height%1000 == 0 {
+				logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
+			}
 
 			for t := range block.Transactions {
-				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", block.Transactions[t].TxID), logger.Params{})
+				if v, e := kv.Read(block.Transactions[t].TxID); e == nil {
+					// the assumption is shared map vuln is wrote before new txs are parsed, hence it shouldn't be acquired twice
+					// lock.Lock()
+					vuln[block.Height] = append(vuln[block.Height], v[0])
+					// lock.Unlock()
+					continue
+				}
+
 				pool.Do(&Worker{
 					height: block.Height,
 					tx:     block.Transactions[t],
-					c:      c,
+					db:     db,
 					lock:   &lock,
 					store:  store,
 					vuln:   vuln,
@@ -253,7 +191,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 	}
 
 	for _, r := range ranges {
-		if e := extractRange(kv, r, interval, vuln); e != nil {
+		if e := storeRange(kv, r, interval, vuln); e != nil {
 			logger.Error("Analysis", e, logger.Params{})
 		}
 	}

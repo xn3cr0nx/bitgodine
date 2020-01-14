@@ -59,7 +59,7 @@ type Worker struct {
 	height int32
 	tx     models.Tx
 	lock   *sync.RWMutex
-	vuln   map[int32]map[string]byte
+	vuln   Graph
 }
 
 // Work method to make Worker compatible with task pool worker interface
@@ -73,9 +73,9 @@ func (w *Worker) Work() {
 	}
 
 	var v byte
-	// fmt.Println("APPLYING " + w.tx.TxID)
+	fmt.Println("APPLYING " + w.tx.TxID)
 	heuristics.ApplySet(w.db, w.tx, &v)
-	// fmt.Println("DONE " + w.tx.TxID)
+	fmt.Println("DONE " + w.tx.TxID)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
@@ -92,9 +92,9 @@ type Chunk struct {
 }
 
 func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (intervals []Chunk) {
-	upper := upperBoundary(from, interval)
-	lower := lowerBoundary(to, interval)
-	if lower-upper >= interval {
+	if to-from >= interval {
+		upper := upperBoundary(from, interval)
+		lower := lowerBoundary(to, interval)
 		for i := upper; i < lower; i += interval {
 			r, err := kv.Read(fmt.Sprintf("int%d-%d", i, i+interval))
 			if err != nil {
@@ -108,6 +108,20 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 			}
 			intervals = append(intervals, analyzed)
 		}
+	} else {
+		lower := lowerBoundary(from, interval)
+		upper := upperBoundary(to, interval)
+		r, err := kv.Read(fmt.Sprintf("int%d-%d", lower, upper))
+		if err != nil {
+			return
+		}
+		var analyzed Chunk
+		err = json.Unmarshal(r, &analyzed)
+		if err != nil {
+			logger.Error("Analysis", err, logger.Params{})
+		}
+		analyzed.Vulnerabilites = subGraph(analyzed.Vulnerabilites, from, to)
+		intervals = []Chunk{analyzed}
 	}
 	return
 }
@@ -132,16 +146,19 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	if to > tip.Height {
 		to = tip.Height
 	}
+	interval := int32(10000)
+	analyzed := restorePreviousAnalysis(kv, from, to, interval)
+
+	for _, a := range analyzed {
+		fmt.Println("analyzed chunk", a.From, a.To, len(a.Vulnerabilites))
+	}
+
+	ranges := updateRange(from, to, analyzed)
+	fmt.Println("updated ranges", ranges)
 
 	pool := task.New(runtime.NumCPU() * 3)
 	lock := sync.RWMutex{}
 	vuln = make(map[int32]map[string]byte, to-from+1)
-
-	interval := int32(10000)
-	analyzed := restorePreviousAnalysis(kv, from, to, interval)
-	ranges := updateRange(from, to, analyzed)
-	fmt.Println("updated ranges", ranges)
-
 	for _, r := range ranges {
 		if r.From == r.To {
 			continue
@@ -155,7 +172,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 				err = e
 				return
 			}
-
 			if block.Height%1000 == 0 {
 				logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 			}
@@ -163,7 +179,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 			lock.Lock()
 			vuln[block.Height] = make(map[string]byte, len(block.Transactions))
 			lock.Unlock()
-
 			for t := range block.Transactions {
 				pool.Do(&Worker{
 					height: block.Height,
@@ -183,6 +198,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 		}
 	}
 
+	analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
 	vuln = mergeChunks(analyzed...).Vulnerabilites
 
 	// if export {

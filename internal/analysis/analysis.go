@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -23,11 +22,11 @@ import (
 
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
-	ca := (*c).Get("cache").(*cache.Cache)
-	if res, ok := ca.Get("v_" + txid); ok {
-		vuln = res.(byte)
-		return
-	}
+	// ca := (*c).Get("cache").(*cache.Cache)
+	// if res, ok := ca.Get("v_" + txid); ok {
+	// 	vuln = res.(byte)
+	// 	return
+	// }
 	kv := (*c).Get("kv").(*badger.Badger)
 	if v, e := kv.Read(txid); e == nil {
 		vuln = v[0]
@@ -42,14 +41,14 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 		return
 	}
 
-	heuristics.ApplySet(db, &tx, &vuln)
+	heuristics.ApplySet(db, tx, &vuln)
 
 	if err = kv.Store(txid, []byte{vuln}); err != nil {
 		return
 	}
-	if !ca.Set("v_"+txid, vuln, 1) {
-		(*c).Logger().Error(err)
-	}
+	// if !ca.Set("v_"+txid, vuln, 1) {
+	// 	(*c).Logger().Error(err)
+	// }
 	return
 }
 
@@ -70,9 +69,9 @@ func (w *Worker) Work() {
 		w.lock.RUnlock()
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
-		defer w.lock.Unlock()
 		w.store[w.tx.TxID] = []byte{0}
 		w.vuln[w.height] = append(w.vuln[w.height], 0)
+		w.lock.Unlock()
 		return
 	}
 	v, err := AnalyzeTx(w.c, w.tx.TxID)
@@ -81,9 +80,9 @@ func (w *Worker) Work() {
 	}
 	w.lock.RUnlock()
 	w.lock.Lock()
-	defer w.lock.Unlock()
 	w.store[w.tx.TxID] = []byte{v}
 	w.vuln[w.height] = append(w.vuln[w.height], v)
+	w.lock.Unlock()
 }
 
 func upperBoundary(n, interval int32) (r int32) {
@@ -195,8 +194,8 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 
 	pool := task.New(runtime.NumCPU() * 3)
 	lock := sync.RWMutex{}
-	store := make(map[string][]byte)
-	vuln = make(map[int32][]byte)
+	store := make(map[string][]byte, to-from)
+	vuln = make(map[int32][]byte, to-from)
 
 	interval := int32(50000)
 	ranges := []Range{Range{from, to}}
@@ -220,20 +219,20 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln map[int32
 		if from == to {
 			continue
 		}
-		var block models.Block
 		for i := from; i <= to; i++ {
-			block, err = db.GetBlockFromHeight(i)
-			if err != nil {
-				if err.Error() == "Key not found" {
+			block, e := db.GetBlockFromHeight(i)
+			if e != nil {
+				if e.Error() == "Key not found" {
 					break
 				}
+				err = e
 				return
 			}
 			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 
 			for t := range block.Transactions {
 				logger.Debug("Analysis", fmt.Sprintf("Analyzing transaction %s", block.Transactions[t].TxID), logger.Params{})
-				go pool.Do(&Worker{
+				pool.Do(&Worker{
 					height: block.Height,
 					tx:     block.Transactions[t],
 					c:      c,

@@ -5,4 +5,7 @@ badger/
 .env
 *.html
 profiling
+*.pprof
+*.out
 *.png
+*.pdf

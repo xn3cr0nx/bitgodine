@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/profile"
+	// "github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
@@ -42,7 +42,7 @@ func init() {
 func start(cmd *cobra.Command, args []string) {
 	logger.Info("Bitgodine Serve", "Server Starting", logger.Params{"timestamp": time.Now()})
 
-	defer profile.Start(profile.MemProfile).Stop()
+	// defer profile.Start(profile.MemProfile, profile.ProfilePath("./mem.pprof")).Stop()
 
 	c, err := cache.NewCache(nil)
 	if err != nil {

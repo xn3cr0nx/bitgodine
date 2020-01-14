@@ -16,6 +16,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/block"
 	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -55,6 +56,8 @@ func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger) *Serv
 
 // Listen initializes the echo webserver
 func (s *Server) Listen() {
+	pprof.Wrap(s.router)
+
 	s.router.HideBanner = true
 	s.router.Debug = viper.GetBool("debug")
 	s.router.Use(middleware.Logger())

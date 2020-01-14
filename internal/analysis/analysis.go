@@ -148,11 +148,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	}
 	interval := int32(10000)
 	analyzed := restorePreviousAnalysis(kv, from, to, interval)
-
-	for _, a := range analyzed {
-		fmt.Println("analyzed chunk", a.From, a.To, len(a.Vulnerabilites))
-	}
-
 	ranges := updateRange(from, to, analyzed)
 	fmt.Println("updated ranges", ranges)
 
@@ -201,14 +196,14 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
 	vuln = mergeChunks(analyzed...).Vulnerabilites
 
-	// if export {
-	// 	data := heuristics.ExtractPercentages(vuln, from, to)
-	// 	err = PlotHeuristicsTimeline(data, from)
-	// 	// err = HeuristicsPercentages(data, from)
-	// } else {
-	// 	data := heuristics.ExtractGlobalPercentages(vuln, from, to)
-	// 	err = GlobalPercentages(data, export)
-	// }
+	if export {
+		data := heuristics.ExtractPercentages(vuln, from, to)
+		err = PlotHeuristicsTimeline(data, from)
+		// err = HeuristicsPercentages(data, from)
+	} else {
+		data := heuristics.ExtractGlobalPercentages(vuln, from, to)
+		err = GlobalPercentages(data, export)
+	}
 
 	return
 }

@@ -80,7 +80,6 @@ func subGraph(g Graph, from, to int32) (sub Graph) {
 			sub[h] = a
 		}
 	}
-	fmt.Println("Stored subgraph", from, to, len(sub))
 	return
 }
 

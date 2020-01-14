@@ -116,7 +116,7 @@ func VulnerableMask(v byte, h int) bool {
 }
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
-func ExtractPercentages(data map[int32][]byte, from, to int32) (perc map[int32][]float64) {
+func ExtractPercentages(data map[int32]map[string]byte, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64)
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, SetCardinality())
@@ -138,7 +138,7 @@ func ExtractPercentages(data map[int32][]byte, from, to int32) (perc map[int32][
 }
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
-func ExtractGlobalPercentages(data map[int32][]byte, from, to int32) (perc []float64) {
+func ExtractGlobalPercentages(data map[int32]map[string]byte, from, to int32) (perc []float64) {
 	perc = make([]float64, SetCardinality())
 	for h := 0; h < SetCardinality(); h++ {
 		counter, tot := 0, 0

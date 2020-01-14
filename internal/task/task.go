@@ -44,9 +44,8 @@ func New(maxGoroutines int) *Task {
 
 // Shutdown waits for all the goroutines to shutdown.
 func (t *Task) Shutdown() {
-	// TODO: this lines should be inverted
-	t.wg.Wait()
 	close(t.work)
+	t.wg.Wait()
 }
 
 // Wait waits for all the goroutines to complete.

@@ -8,8 +8,6 @@ package behaviour
 import (
 	"errors"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
@@ -23,23 +21,12 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 		return 0, err
 	}
 	for vout, out := range tx.Vout {
-		// _, addr, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, &chaincfg.MainNetParams)
-		// if err != nil {
-		// 	return 0, err
-		// }
-		var firstOccurence int32
-		// if len(addr) > 0 {
-		if out.ScriptpubkeyAddress != "" {
-			addr, err := btcutil.DecodeAddress(out.ScriptpubkeyAddress, &chaincfg.MainNetParams)
-			if err != nil {
-				return 0, err
-			}
-			firstOccurence, err = address.FirstAppearence(db, &addr)
-			if err != nil {
-				return 0, err
-			}
-		} else {
+		if out.ScriptpubkeyAddress == "" {
 			continue
+		}
+		firstOccurence, err := address.FirstAppearence(db, out.ScriptpubkeyAddress)
+		if err != nil {
+			return 0, err
 		}
 		// check if occurence is the first, e.g. the transaction block height is the firstOccurence
 		if firstOccurence == blockHeight {

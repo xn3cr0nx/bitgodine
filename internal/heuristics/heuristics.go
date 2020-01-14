@@ -26,7 +26,7 @@ const (
 	AddressType
 	AddressReuse
 	Locktime
-	ClientBehaviour
+	// ClientBehaviour TODO: this heuristic can't actually work because occurences are not listed (check kv address package in bitgodine_parser)
 	Forward
 	Backward
 )
@@ -52,7 +52,7 @@ func (h Heuristic) String() string {
 		"Address Type",
 		"Address Reuse",
 		"Locktime",
-		"Client Behaviour",
+		// "Client Behaviour",
 		"Forward",
 		"Backward",
 	}
@@ -86,14 +86,14 @@ func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 }
 
 // Apply applies the heuristic specified to the passed transaction
-func Apply(db storage.DB, tx *models.Tx, h int, vuln *byte) {
-	if VulnerableFunction(Heuristic(h).String())(db, tx) {
+func Apply(db storage.DB, tx models.Tx, h int, vuln *byte) {
+	if VulnerableFunction(Heuristic(h).String())(db, &tx) {
 		(*vuln) += byte(math.Pow(2, float64(h+1)))
 	}
 }
 
 // ApplySet applies the set of heuristics to the passed transaction
-func ApplySet(db storage.DB, tx *models.Tx, vuln *byte) {
+func ApplySet(db storage.DB, tx models.Tx, vuln *byte) {
 	for h := 0; h < SetCardinality(); h++ {
 		Apply(db, tx, h, vuln)
 	}

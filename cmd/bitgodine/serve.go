@@ -50,7 +50,7 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	db, err := kv.NewKV(kv.Conf(viper.GetString("badger")), c, false)
+	db, err := kv.NewKV(kv.Conf(viper.GetString("badger")), false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)

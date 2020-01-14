@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
@@ -38,22 +38,20 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 			}
 			return 0, err
 		}
-		logger.Debug("Forward Heuristic", fmt.Sprintf("tx spending output vout %d: %s", out.Index, spendingTx.TxID), logger.Params{})
+		index := out.Index
 		for _, spendingIn := range spendingTx.Vin {
-			logger.Debug("Forward Heuristic", fmt.Sprintf("input of spending tx %s", spendingIn.TxID), logger.Params{})
 			// check if the input is the one the spending transaction is reached from
-			if spendingIn.Vout == out.Index {
+			if spendingIn.Vout == index {
 				continue
 			}
 			spentTx, err := db.GetTx(spendingIn.TxID)
 			if err != nil {
 				return 0, err
 			}
-			logger.Debug("Forward Heuristic", fmt.Sprintf("spent tx %s", spentTx.Vout), logger.Params{})
 			addr := spentTx.Vout[spendingIn.Vout].ScriptpubkeyAddress
 			for _, inputAddr := range inputAddresses {
 				if addr == inputAddr {
-					return out.Index, nil
+					return index, nil
 				}
 			}
 		}

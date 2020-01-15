@@ -2,6 +2,7 @@ package heuristics
 
 import (
 	"math"
+	"sync"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -97,6 +98,20 @@ func ApplySet(db storage.DB, tx models.Tx, vuln *byte) {
 	for h := 0; h < SetCardinality(); h++ {
 		Apply(db, tx, h, vuln)
 	}
+}
+
+// ApplySetConcurrent applies the set of heuristics to the passed transaction
+func ApplySetConcurrent(db storage.DB, tx models.Tx, vuln *byte) {
+	var wg sync.WaitGroup
+	wg.Add(SetCardinality())
+	for h := 0; h < SetCardinality(); h++ {
+		k := h
+		go func(k int) {
+			Apply(db, tx, k, vuln)
+			wg.Done()
+		}(k)
+	}
+	wg.Wait()
 }
 
 // ToList return a list of heuristic names corresponding to vulnerability byte passed

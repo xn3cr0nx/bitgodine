@@ -27,7 +27,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
-	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200114171924-45c70320fe99
+	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200115181230-90fc844e764c
 	gonum.org/v1/netlib v0.0.0-20191031114514-eccb95939662 // indirect
 	gonum.org/v1/plot v0.0.0-20191107103940-ca91d9d40d0a
 	gopkg.in/go-playground/assert.v1 v1.2.1

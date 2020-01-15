@@ -349,6 +349,8 @@ github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200114162903-583bba433d3d h1:oRZ2u
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200114162903-583bba433d3d/go.mod h1:ZfYiZW8LKSz+WAqXDptz2L8wsaNBZlvwRp6SYVKVi+Y=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200114171924-45c70320fe99 h1:dqeDE0+k9CBRN7dUhphPWgo6Iv20TiDhew1JubO+b48=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200114171924-45c70320fe99/go.mod h1:ZfYiZW8LKSz+WAqXDptz2L8wsaNBZlvwRp6SYVKVi+Y=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200115181230-90fc844e764c h1:zG80PIVqVeGiHwz5FRE2VlfftF7pzpF1maI2XzhQglI=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200115181230-90fc844e764c/go.mod h1:ZfYiZW8LKSz+WAqXDptz2L8wsaNBZlvwRp6SYVKVi+Y=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

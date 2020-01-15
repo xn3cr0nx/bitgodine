@@ -33,7 +33,7 @@ func Routes(g *echo.Group) *echo.Group {
 	r.GET("/blocks", func(c echo.Context) error {
 		type Query struct {
 			From int32 `query:"from" validate:"omitempty,gte=0"`
-			To   int32 `query:"to" validate:"omitempty,gtefield=From"`
+			To   int32 `query:"to" validate:"omitempty,gtfield=From"`
 			Plot bool  `query:"plot" validate:"omitempty"`
 		}
 		q := new(Query)

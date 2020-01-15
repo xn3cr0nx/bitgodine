@@ -5,22 +5,21 @@ package backward
 
 import (
 	"errors"
-	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(dg storage.DB, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var outputAddresses,
 		inputAddresses,
 		inputTargets []string
 	var spentTxs []models.Tx
 	var outputTargets []uint32
 
-	logger.Debug("Backward Heuristic", fmt.Sprintf("transaction %s", tx.TxID), logger.Params{})
+	logger.Debug("Backward Heuristic", "transaction "+tx.TxID, logger.Params{})
 
 	for _, out := range tx.Vout {
 		outputAddresses = append(outputAddresses, out.ScriptpubkeyAddress)
@@ -29,7 +28,7 @@ func ChangeOutput(dg storage.DB, tx *models.Tx) (uint32, error) {
 		if in.IsCoinbase {
 			continue
 		}
-		spentTx, err := dg.GetTx(in.TxID)
+		spentTx, err := db.GetTx(in.TxID)
 		if err != nil {
 			return 0, err
 		}
@@ -39,10 +38,8 @@ func ChangeOutput(dg storage.DB, tx *models.Tx) (uint32, error) {
 	}
 
 	for _, spent := range spentTxs {
-		logger.Debug("Backward Heuristic", fmt.Sprintf("spent transaction %s", spent.TxID), logger.Params{})
-
 		for _, in := range spent.Vin {
-			spentTx, err := dg.GetTx(in.TxID)
+			spentTx, err := db.GetTx(in.TxID)
 			if err != nil {
 				return 0, err
 			}
@@ -78,7 +75,7 @@ func ChangeOutput(dg storage.DB, tx *models.Tx) (uint32, error) {
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(dg storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(dg, tx)
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
+	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

@@ -7,13 +7,20 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 )
 
 func BenchmarkAnalyzeBlocks(t *testing.B) {
 	logger.Setup()
 
-	db, err := kv.NewKV(kv.Conf("/home/xn3cr0nx/.bitgodine/badger"), false)
+	c, err := cache.NewCache(nil)
+	if err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+
+	db, err := kv.NewKV(kv.Conf("/home/xn3cr0nx/.bitgodine/badger"), c, false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)

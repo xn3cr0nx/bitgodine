@@ -5,7 +5,6 @@ package forward
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
@@ -16,7 +15,7 @@ import (
 func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var inputAddresses []string
 
-	logger.Debug("Forward Heuristic", fmt.Sprintf("transaction %s", tx.TxID), logger.Params{})
+	logger.Debug("Forward Heuristic", "transaction "+tx.TxID, logger.Params{})
 
 	for _, in := range tx.Vin {
 		if in.IsCoinbase {

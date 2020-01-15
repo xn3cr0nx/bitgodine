@@ -73,9 +73,7 @@ func (w *Worker) Work() {
 	}
 
 	var v byte
-	fmt.Println("APPLYING " + w.tx.TxID)
-	heuristics.ApplySet(w.db, w.tx, &v)
-	fmt.Println("DONE " + w.tx.TxID)
+	heuristics.ApplySetConcurrent(w.db, w.tx, &v)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v

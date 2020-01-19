@@ -10,7 +10,6 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	"github.com/xn3cr0nx/bitgodine_server/internal/address"
 )
 
 // ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic
@@ -24,7 +23,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 		if out.ScriptpubkeyAddress == "" {
 			continue
 		}
-		firstOccurence, err := address.FirstAppearence(db, out.ScriptpubkeyAddress)
+		firstOccurence, err := db.GetAddressFirstOccurenceHeight(out.ScriptpubkeyAddress)
 		if err != nil {
 			return 0, err
 		}

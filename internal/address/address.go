@@ -2,18 +2,7 @@ package address
 
 import (
 	"regexp"
-
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
-
-// FirstAppearence returnes true if the passed address appears for the first time in blockchain at the given block height
-func FirstAppearence(db storage.DB, address string) (int32, error) {
-	height, err := db.GetAddressFirstOccurenceHeight(address)
-	if err != nil {
-		return 0, err
-	}
-	return height, nil
-}
 
 // IsBitcoinAddress returnes true is the string is a bitcoin address
 func IsBitcoinAddress(text string) bool {

@@ -24,7 +24,6 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	for _, out := range tx.Vout {
 		// output has been spent, check if locktime is consistent
 		if db.IsSpent(tx.TxID, out.Index) {
-			// spendingTx, err := tx.GetSpendingTx(uint32(vout))
 			spendingTx, err := db.GetFollowingTx(tx.TxID, out.Index)
 			if err != nil {
 				return 0, err

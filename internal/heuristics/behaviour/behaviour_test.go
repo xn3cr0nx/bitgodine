@@ -1,88 +1,53 @@
-package behaviour
+package behaviour_test
 
 import (
-	"path/filepath"
-	"testing"
-
 	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/dgo"
-	"github.com/mitchellh/go-homedir"
-	"github.com/stretchr/testify/suite"
-	"github.com/xn3cr0nx/bitgodine_server/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_server/internal/db"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	txs "github.com/xn3cr0nx/bitgodine_server/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
-	"gopkg.in/go-playground/assert.v1"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	. "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
+	"github.com/xn3cr0nx/bitgodine_server/internal/test"
 )
 
-type TestBehaviourSuite struct {
-	suite.Suite
-	dgraph *dgo.Dgraph
-	db     *badger.DB
-}
+var _ = Describe("Behaviour", func() {
+	var (
+		db    *kv.KV
+		block models.Block
+	)
 
-func (suite *TestBehaviourSuite) SetupSuite() {
-	logger.Setup()
+	BeforeEach(func() {
+		logger.Setup()
 
-	DgConf := &dgraph.Config{
-		Host: "localhost",
-		Port: 9080,
-	}
-	suite.dgraph = dgraph.Instance(DgConf)
-	dgraph.Setup(suite.dgraph)
+		db, err := test.InitTestDB()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(db).ToNot(BeNil())
 
-	hd, err := homedir.Dir()
-	assert.Equal(suite.T(), err, nil)
-	DbConf := &db.Config{
-		Dir: filepath.Join(hd, ".bitgodine", "badger"),
-	}
-	suite.db, err = db.Instance(DbConf)
-	assert.Equal(suite.T(), err, nil)
-	assert.NotEqual(suite.T(), suite.db, nil)
+		b, _ := btcutil.NewBlockFromBytes(test.Block181Bytes)
+		b.SetHeight(181)
+		// Expect(err).ToNot(HaveOccurred())
+		block = test.BlockToModel(b)
+		_, err = db.StoreBlock(&block)
+		Expect(err).ToNot(HaveOccurred())
+	})
 
-	suite.Setup()
-}
+	AfterEach(func() {
+		err := test.CleanTestDB(db)
+		Expect(err).ToNot(HaveOccurred())
+	})
 
-func (suite *TestBehaviourSuite) Setup() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
+	Context("Testing client behaviour heuristic", func() {
+		It("should test change output", func() {
+			vout, err := ChangeOutput(db, &block.Transactions[1])
+			Expect(err).ToNot(HaveOccurred())
+			Expect(vout).ToNot(Equal(1))
+		})
 
-	if !db.IsStored(block.Hash()) {
-		err := db.StoreBlock(&blocks.Block{Block: *block})
-		assert.Equal(suite.T(), err, nil)
-
-		for _, tx := range block.Transactions() {
-			err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
-			assert.Equal(suite.T(), err, nil)
-		}
-	}
-}
-
-func (suite *TestBehaviourSuite) TearDownSuite() {
-	(*suite.db).Close()
-}
-
-func (suite *TestBehaviourSuite) TestChangeOutput() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	vout, err := ChangeOutput(t)
-	assert.Equal(suite.T(), err, nil)
-	assert.Equal(suite.T(), vout, uint32(0))
-}
-
-func (suite *TestBehaviourSuite) TestVulnerable() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	v := Vulnerable(t)
-	assert.Equal(suite.T(), v, true)
-}
-
-func TestBehaviour(t *testing.T) {
-	suite.Run(t, new(TestBehaviourSuite))
-}
+		It("should test vulnerable", func() {
+			vuln := Vulnerable(db, &block.Transactions[1])
+			Expect(vuln).ToNot(BeTrue())
+		})
+	})
+})

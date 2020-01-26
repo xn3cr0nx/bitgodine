@@ -7,10 +7,35 @@ package behaviour
 
 import (
 	"errors"
+	"runtime"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 )
+
+type Worker struct {
+	db              storage.DB
+	output          models.Output
+	vout            int
+	outputAddresses []uint32
+	blockHeight     int32
+}
+
+func (w *Worker) Work() (err error) {
+	if w.output.ScriptpubkeyAddress == "" {
+		return
+	}
+	firstOccurence, err := w.db.GetAddressFirstOccurenceHeight(w.output.ScriptpubkeyAddress)
+	if err != nil {
+		return
+	}
+	// check if occurence is the first, e.g. the transaction block height is the firstOccurence
+	if firstOccurence == w.blockHeight {
+		w.outputAddresses = append(w.outputAddresses, uint32(w.vout))
+	}
+	return nil
+}
 
 // ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
@@ -19,19 +44,15 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	pool := task.New(runtime.NumCPU() / 2)
 	for vout, out := range tx.Vout {
-		if out.ScriptpubkeyAddress == "" {
-			continue
-		}
-		firstOccurence, err := db.GetAddressFirstOccurenceHeight(out.ScriptpubkeyAddress)
-		if err != nil {
-			return 0, err
-		}
-		// check if occurence is the first, e.g. the transaction block height is the firstOccurence
-		if firstOccurence == blockHeight {
-			outputAddresses = append(outputAddresses, uint32(vout))
-		}
+		pool.Do(&Worker{db, out, vout, outputAddresses, blockHeight})
 	}
+	if err := pool.Shutdown(); err != nil {
+		return 0, err
+	}
+
 	if len(outputAddresses) > 1 {
 		return 0, errors.New("More than an output appear for the first time in the blockchain, ineffective heuristic")
 	}
@@ -44,5 +65,6 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
+	// logger.Error("Client behaviour", err, logger.Params{})
 	return err == nil
 }

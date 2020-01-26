@@ -1,56 +1,56 @@
 // Package class heuristic
-// This heuristic is the address type heuristic and it checks if the all the inputs 
-// are of the same type and then try to locate only one output 
+// This heuristic is the address type heuristic and it checks if the all the inputs
+// are of the same type and then try to locate only one output
 // that is of the same type. Again, we just need to check a simple condition.
 package class
 
 import (
-	"encoding/hex"
 	"errors"
+	"fmt"
+	"golang.org/x/sync/errgroup"
 
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
 // ChangeOutput returnes the index of the output which address type corresponds to input addresses type
 func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
-	var inputTypes []txscript.ScriptClass
-	var outputTypes []txscript.ScriptClass
+	inputTypes := make([]string, len(tx.Vin))
+	outputTypes := make([]string, len(tx.Vout))
 
-	for _, in := range tx.Vin {
-		if in.IsCoinbase {
-			continue
+	var g errgroup.Group
+	g.Go(func() error {
+		for i, in := range tx.Vin {
+			if in.IsCoinbase {
+				continue
+			}
+			spentTx, err := db.GetTx(in.TxID)
+			if err != nil {
+				return err
+			}
+			inputTypes[i] = spentTx.Vout[in.Vout].ScriptpubkeyType
+			if inputTypes[i] != inputTypes[0] {
+				return errors.New("There are different kind of addresses between inputs")
+			}
 		}
-		spentTx, err := db.GetTx(in.TxID)
-		if err != nil {
-			return 0, err
+		return nil
+	})
+	g.Go(func() error {
+		for o, out := range tx.Vout {
+			outputTypes[o] = out.ScriptpubkeyType
+			if outputTypes[o] != outputTypes[0] {
+				return errors.New("Two or more output of the same type, cannot determine change output")
+			}
 		}
-		script, _ := hex.DecodeString(spentTx.Vout[in.Vout].Scriptpubkey)
-		class := txscript.GetScriptClass(script)
-		inputTypes = append(inputTypes, class)
-	}
-	// check all inputs are of the same type
-	for _, class := range inputTypes {
-		if class.String() != inputTypes[0].String() {
-			return 0, errors.New("There are different kind of addresses between inputs")
-		}
-	}
-	for _, out := range tx.Vout {
-		script, _ := hex.DecodeString(out.Scriptpubkey)
-		class := txscript.GetScriptClass(script)
-		outputTypes = append(outputTypes, class)
-	}
-	// check there are not two or more outputs of the same type
-	for k, class := range outputTypes {
-		if k > 0 && class.String() == outputTypes[0].String() {
-			return 0, errors.New("Two or more output of the same type, cannot determine change output")
-		}
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return 0, err
 	}
 
 	for _, input := range inputTypes {
 		for vout, output := range outputTypes {
-			if input.String() == output.String() {
+			if input == output {
 				return uint32(vout), nil
 			}
 		}

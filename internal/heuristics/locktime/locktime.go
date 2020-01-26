@@ -8,10 +8,32 @@ package locktime
 
 import (
 	"errors"
+	"runtime"
+	// "fmt"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 )
+
+type Worker struct {
+	db                  storage.DB
+	txid                string
+	vout                uint32
+	candidates          []uint32
+	locktimeGreaterZero bool
+}
+
+func (w *Worker) Work() (err error) {
+	spendingTx, err := w.db.GetFollowingTx(w.txid, w.vout)
+	if err != nil {
+		return
+	}
+	if (spendingTx.Locktime > 0) == w.locktimeGreaterZero {
+		w.candidates = append(w.candidates, w.vout)
+	}
+	return
+}
 
 // ChangeOutput returnes the index of the change output address based on locktime heuristic:
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
@@ -21,19 +43,12 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	locktimeGreaterZero := tx.Locktime > 0
 	var candidates []uint32
 
+	pool := task.New(runtime.NumCPU() / 2)
 	for _, out := range tx.Vout {
-		// output has been spent, check if locktime is consistent
-		if db.IsSpent(tx.TxID, out.Index) {
-			spendingTx, err := db.GetFollowingTx(tx.TxID, out.Index)
-			if err != nil {
-				return 0, err
-			}
-			if (spendingTx.Locktime > 0) == locktimeGreaterZero {
-				candidates = append(candidates, out.Index)
-			}
-		} else {
-			return 0, errors.New("There is a not spent output, ineffective heuristic")
-		}
+		pool.Do(&Worker{db, tx.TxID, out.Index, candidates, locktimeGreaterZero})
+	}
+	if err := pool.Shutdown(); err != nil {
+		return 0, err
 	}
 
 	if len(candidates) > 1 {

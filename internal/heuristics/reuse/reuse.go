@@ -27,10 +27,11 @@ func contains(recipient []string, element string) bool {
 func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var inputAddresses []string
 	var g errgroup.Group
-	for _, in := range tx.Vin {
-		if in.IsCoinbase {
+	for _, input := range tx.Vin {
+		if input.IsCoinbase {
 			continue
 		}
+		in := input
 		g.Go(func() error {
 			spentTx, err := db.GetTx(in.TxID)
 			if err != nil {

@@ -42,9 +42,9 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	}
 
 	var lowerOuts []uint32
-	for o, out := range tx.Vout {
+	for _, out := range tx.Vout {
 		if out.Value < minInput {
-			lowerOuts = append(lowerOuts, uint32(o))
+			lowerOuts = append(lowerOuts, out.Index)
 		}
 	}
 	if len(lowerOuts) > 1 {

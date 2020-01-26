@@ -8,6 +8,7 @@ package reuse
 
 import (
 	"errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -25,24 +26,37 @@ func contains(recipient []string, element string) bool {
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var inputAddresses []string
-
+	var g errgroup.Group
 	for _, in := range tx.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		spentTx, err := db.GetTx(in.TxID)
-		if err != nil {
-			return 0, err
-		}
-		inputAddresses = append(inputAddresses, spentTx.Vout[in.Vout].ScriptpubkeyAddress)
+		g.Go(func() error {
+			spentTx, err := db.GetTx(in.TxID)
+			if err != nil {
+				return err
+			}
+			inputAddresses = append(inputAddresses, spentTx.Vout[in.Vout].ScriptpubkeyAddress)
+			return nil
+		})
 	}
-	// Here on the first matching output, that output is returned as change, but could be a reuse on more outputs?
-	for vout, out := range tx.Vout {
+	if err := g.Wait(); err != nil {
+		return 0, err
+	}
+
+	var candidates []uint32
+	for _, out := range tx.Vout {
 		if contains(inputAddresses, out.ScriptpubkeyAddress) {
-			return uint32(vout), nil
+			candidates = append(candidates, out.Index)
 		}
 	}
 
+	if len(candidates) > 1 {
+		return 0, errors.New("More than an output address between inputs, ineffective heuristic")
+	}
+	if len(candidates) == 1 {
+		return candidates[0], nil
+	}
 	return 0, errors.New("No reuse address found")
 }
 

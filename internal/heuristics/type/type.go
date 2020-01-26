@@ -6,7 +6,6 @@ package class
 
 import (
 	"errors"
-	"fmt"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"

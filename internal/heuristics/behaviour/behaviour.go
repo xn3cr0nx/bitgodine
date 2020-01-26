@@ -34,7 +34,7 @@ func (w *Worker) Work() (err error) {
 	if firstOccurence == w.blockHeight {
 		w.outputAddresses = append(w.outputAddresses, uint32(w.vout))
 	}
-	return nil
+	return
 }
 
 // ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic

@@ -1,37 +1,49 @@
 // Package optimal change heuristic
 // It tries to locate in the output set of a transaction an
-// address that receives an amount which is smaller than all inputs values. We
-// count the transactions in which this condition is satisfied.
+// address that receives an amount which is smaller or equal than all inputs values.
+// We count the transactions in which this condition is satisfied.
 package optimal
 
 import (
-	"errors"
-	"golang.org/x/sync/errgroup"
+	"runtime"
+
+	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
+// Worker struct implementing workers pool
+type Worker struct {
+	db     storage.DB
+	txid   string
+	vout   uint32
+	index  int
+	values []int64
+}
+
+// Work executed in the workers pool
+func (w *Worker) Work() (err error) {
+	spentTx, err := w.db.GetTx(w.txid)
+	if err != nil {
+		return
+	}
+	w.values[w.index] = spentTx.Vout[int(w.vout)].Value
+	return
+}
+
 // ChangeOutput returnes the index of the output which value is less than any inputs value, if there is any
-func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	values := make([]int64, len(tx.Vin))
-	var g errgroup.Group
+	pool := task.New(runtime.NumCPU() / 2)
 	for i, in := range tx.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		k, input := i, in
-		g.Go(func() error {
-			spentTx, err := db.GetTx(input.TxID)
-			if err != nil {
-				return err
-			}
-			values[k] = spentTx.Vout[int(input.Vout)].Value
-			return nil
-		})
+		pool.Do(&Worker{db, in.TxID, in.Vout, i, values})
 	}
-	if err := g.Wait(); err != nil {
-		return 0, err
+	if err = pool.Shutdown(); err != nil {
+		return
 	}
 
 	var minInput int64
@@ -41,23 +53,17 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 		}
 	}
 
-	var lowerOuts []uint32
 	for _, out := range tx.Vout {
-		if out.Value < minInput {
-			lowerOuts = append(lowerOuts, out.Index)
+		if out.Value <= minInput {
+			c = append(c, out.Index)
 		}
 	}
-	if len(lowerOuts) > 1 {
-		return 0, errors.New("More than an out with lower value of an input, ineffective heuristic")
-	}
-	if len(lowerOuts) == 1 {
-		return lowerOuts[0], nil
-	}
-	return 0, errors.New("No matching output with value inferior to every input")
+
+	return
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
-	return err == nil
+	c, err := ChangeOutput(db, tx)
+	return err == nil && len(c) > 0
 }

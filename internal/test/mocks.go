@@ -1,21 +1,39 @@
 package test
 
 import (
-	"time"
 	"strings"
+	"time"
 
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 )
 
+func VulnerableFunctions(heuristic string) string {
+	vulnerabilites := map[string]string{
+		"Locktime":         "",
+		"Peeling Chain":    "fb167c6f11808bec46e0cf10b5d658d100a5f63203223de85504262908c881cf",
+		"Power of Ten":     "28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f",
+		"Optimal Change":   "28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f",
+		"Address Type":     "",
+		"Address Reuse":    "d71fd2f64c0b34465b7518d240c00e83f6a5b10138a7079d1252858fe7e6b577",
+		"Shadow":           "d71fd2f64c0b34465b7518d240c00e83f6a5b10138a7079d1252858fe7e6b577",
+		"Client Behaviour": "d71fd2f64c0b34465b7518d240c00e83f6a5b10138a7079d1252858fe7e6b577",
+		"Forward":          "",
+		"Backward":         "",
+	}
+	return vulnerabilites[heuristic]
+}
+
 func BlockToModel(b *btcutil.Block) models.Block {
 	var transactions []models.Tx
+	var txIds []string
 	for _, tx := range b.Transactions() {
 		transactions = append(transactions, TxToModel(tx, b.Height(), b.Hash().String(), b.MsgBlock().Header.Timestamp))
+		txIds = append(txIds, tx.Hash().String())
 	}
 
 	return models.Block{
@@ -27,7 +45,7 @@ func BlockToModel(b *btcutil.Block) models.Block {
 		Nonce:        b.MsgBlock().Header.Nonce,
 		MerkleRoot:   b.MsgBlock().Header.MerkleRoot.String(),
 		TxCount:      len(b.Transactions()),
-		Transactions: transactions,
+		Transactions: txIds,
 		// Size:              ,
 		// Weight:            ,
 		Previousblockhash: b.MsgBlock().Header.PrevBlock.String(),

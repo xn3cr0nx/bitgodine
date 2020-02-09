@@ -20,49 +20,50 @@ func LikePeelingChain(tx *models.Tx) bool {
 }
 
 // IsPeelingChain returnes true id the transaction is part of a peeling chain
-func IsPeelingChain(db storage.DB, tx *models.Tx) bool {
+func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 	if !LikePeelingChain(tx) {
-		return false
+		return
 	}
 
 	// Check if past transaction is peeling chain
 	spentTx, err := db.GetTx(tx.Vin[0].TxID)
 	if err != nil {
-		return false
+		return
 	}
 	if LikePeelingChain(&spentTx) {
-		return true
+		return true, nil
 	}
 	// Check if future transaction is peeling chain
 	for _, out := range tx.Vout {
-		if db.IsSpent(tx.TxID, out.Index) == false {
-			return false
-		}
-		spendingTx, err := db.GetFollowingTx(tx.TxID, out.Index)
-		if err != nil {
-			return false
+		spendingTx, e := db.GetFollowingTx(tx.TxID, out.Index)
+		if e != nil {
+			err = e
+			return
 		}
 		if LikePeelingChain(&spendingTx) {
-			return true
+			return true, nil
 		}
 	}
-	return true
+	return
 }
 
 // ChangeOutput returnes the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
-	if LikePeelingChain(tx) {
-		if tx.Vout[0].Value > tx.Vout[1].Value {
-			return 0, nil
+func ChangeOutput(db storage.DB, tx *models.Tx) (c uint32, err error) {
+	is, err := IsPeelingChain(db, tx)
+	if err != nil {
+		return
+	}
+	if is {
+		if tx.Vout[0].Value <= tx.Vout[1].Value {
+			c = 1
 		}
-		return 1, nil
+		return
 	}
 	return 0, errors.New("transaction is not like peeling chain")
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(dg storage.DB, tx *models.Tx) bool {
-	return IsPeelingChain(dg, tx)
-	// _, err := ChangeOutput(dg, tx)
-	// return err == nil
+	_, err := ChangeOutput(dg, tx)
+	return err == nil
 }

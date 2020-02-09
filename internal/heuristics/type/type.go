@@ -22,7 +22,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	g.Go(func() error {
 		for o, out := range tx.Vout {
 			outputTypes[o] = out.ScriptpubkeyType
-			if outputTypes[o] == outputTypes[0] {
+			if o > 0 && outputTypes[o] == outputTypes[0] {
 				return errors.New("Two or more output of the same type, cannot determine change output")
 			}
 		}

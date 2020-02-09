@@ -29,6 +29,7 @@ type Worker struct {
 	db             storage.DB
 	txid           string
 	vout           uint32
+	index          int
 	inputAddresses []string
 }
 
@@ -38,7 +39,7 @@ func (w *Worker) Work() (err error) {
 	if err != nil {
 		return
 	}
-	w.inputAddresses[int(w.vout)] = spentTx.Vout[w.vout].ScriptpubkeyAddress
+	w.inputAddresses[w.index] = spentTx.Vout[w.vout].ScriptpubkeyAddress
 	return
 }
 
@@ -46,11 +47,11 @@ func (w *Worker) Work() (err error) {
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	inputAddresses := make([]string, len(tx.Vin))
 	pool := task.New(runtime.NumCPU() / 2)
-	for _, in := range tx.Vin {
+	for i, in := range tx.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		pool.Do(&Worker{db, in.TxID, in.Vout, inputAddresses})
+		pool.Do(&Worker{db, in.TxID, in.Vout, i, inputAddresses})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return

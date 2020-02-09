@@ -7,30 +7,35 @@
 package locktime
 
 import (
-	"errors"
+	"fmt"
 	"runtime"
-	// "fmt"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 )
 
+// Worker struct implementing workers pool
 type Worker struct {
-	db                  storage.DB
-	txid                string
-	vout                uint32
-	candidates          []uint32
-	locktimeGreaterZero bool
+	db         storage.DB
+	txid       string
+	vout       uint32
+	candidates []uint32
+	locktime   uint32
 }
 
+// Work executed in the workers pool
 func (w *Worker) Work() (err error) {
+	fmt.Println("dispatched locktime tx", w.txid, w.vout)
+	defer (func() {
+		fmt.Println("done locktime tx", w.txid, w.vout)
+	})()
 	spendingTx, err := w.db.GetFollowingTx(w.txid, w.vout)
 	if err != nil {
 		return
 	}
-	if (spendingTx.Locktime > 0) == w.locktimeGreaterZero {
-		w.candidates = append(w.candidates, w.vout)
+	if spendingTx.Locktime >= w.locktime {
+		w.candidates[w.vout] = 1
 	}
 	return
 }
@@ -39,29 +44,30 @@ func (w *Worker) Work() (err error) {
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
 // If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
-func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
-	locktimeGreaterZero := tx.Locktime > 0
-	var candidates []uint32
-
+func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
+	if tx.Locktime == 0 {
+		return
+	}
+	candidates := make([]uint32, len(tx.Vout))
 	pool := task.New(runtime.NumCPU() / 2)
 	for _, out := range tx.Vout {
-		pool.Do(&Worker{db, tx.TxID, out.Index, candidates, locktimeGreaterZero})
+		pool.Do(&Worker{db, tx.TxID, out.Index, candidates, tx.Locktime})
 	}
-	if err := pool.Shutdown(); err != nil {
-		return 0, err
+	if err = pool.Shutdown(); err != nil {
+		return
 	}
 
-	if len(candidates) > 1 {
-		return 0, errors.New("Many output match the condition for timelock, ineffective heuristic")
+	for i, v := range candidates {
+		if v == 1 {
+			c = append(c, uint32(i))
+		}
 	}
-	if len(candidates) == 1 {
-		return candidates[0], nil
-	}
-	return 0, errors.New("No output matching the condition for timelock")
+
+	return
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
-	return err == nil
+	c, err := ChangeOutput(db, tx)
+	return err == nil && len(c) > 0
 }

@@ -7,8 +7,9 @@
 package reuse
 
 import (
-	"errors"
-	"golang.org/x/sync/errgroup"
+	"runtime"
+
+	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -23,46 +24,49 @@ func contains(recipient []string, element string) bool {
 	return false
 }
 
+// Worker struct implementing workers pool
+type Worker struct {
+	db             storage.DB
+	txid           string
+	vout           uint32
+	inputAddresses []string
+}
+
+// Work executed in the workers pool
+func (w *Worker) Work() (err error) {
+	spentTx, err := w.db.GetTx(w.txid)
+	if err != nil {
+		return
+	}
+	w.inputAddresses[int(w.vout)] = spentTx.Vout[w.vout].ScriptpubkeyAddress
+	return
+}
+
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
-	var inputAddresses []string
-	var g errgroup.Group
-	for _, input := range tx.Vin {
-		if input.IsCoinbase {
+func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
+	inputAddresses := make([]string, len(tx.Vin))
+	pool := task.New(runtime.NumCPU() / 2)
+	for _, in := range tx.Vin {
+		if in.IsCoinbase {
 			continue
 		}
-		in := input
-		g.Go(func() error {
-			spentTx, err := db.GetTx(in.TxID)
-			if err != nil {
-				return err
-			}
-			inputAddresses = append(inputAddresses, spentTx.Vout[in.Vout].ScriptpubkeyAddress)
-			return nil
-		})
+		pool.Do(&Worker{db, in.TxID, in.Vout, inputAddresses})
 	}
-	if err := g.Wait(); err != nil {
-		return 0, err
+	if err = pool.Shutdown(); err != nil {
+		return
 	}
 
-	var candidates []uint32
 	for _, out := range tx.Vout {
 		if contains(inputAddresses, out.ScriptpubkeyAddress) {
-			candidates = append(candidates, out.Index)
+			c = append(c, out.Index)
 		}
 	}
 
-	if len(candidates) > 1 {
-		return 0, errors.New("More than an output address between inputs, ineffective heuristic")
-	}
-	if len(candidates) == 1 {
-		return candidates[0], nil
-	}
-	return 0, errors.New("No reuse address found")
+	return
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
-	return err == nil
+	c, err := ChangeOutput(db, tx)
+	return err == nil && len(c) > 0
 }

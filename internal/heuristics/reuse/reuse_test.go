@@ -3,68 +3,54 @@ package reuse
 import (
 	"testing"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/dgo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/xn3cr0nx/bitgodine_server/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	txs "github.com/xn3cr0nx/bitgodine_server/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
-	"gopkg.in/go-playground/assert.v1"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_server/internal/test"
 )
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	dgraph *dgo.Dgraph
+	db     *kv.KV
+	target models.Tx
 }
 
 func (suite *TestAddressReuseSuite) SetupSuite() {
 	logger.Setup()
 
-	DgConf := &dgraph.Config{
-		Host: "localhost",
-		Port: 9080,
-	}
-	suite.dgraph = dgraph.Instance(DgConf)
-	dgraph.Setup(suite.dgraph)
-	// suite.Setup()
+	db, err := test.InitDB()
+	require.Nil(suite.T(), err)
+	suite.db = db.(*kv.KV)
+
+	suite.Setup()
 }
 
 func (suite *TestAddressReuseSuite) Setup() {
-	// block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	// assert.Equal(suite.T(), err, nil)
+	// check blockchain is synced at least to block 1000
+	h, err := suite.db.GetLastBlockHeight()
+	require.Nil(suite.T(), err)
+	require.GreaterOrEqual(suite.T(), h, int32(1000))
 
-	// if !db.IsStored(block.Hash()) {
-	// 	err := db.StoreBlock(&blocks.Block{Block: *block})
-	// 	assert.Equal(suite.T(), err, nil)
-
-	// 	for _, tx := range block.Transactions() {
-	// 		err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
-	// 		assert.Equal(suite.T(), err, nil)
-	// 	}
-	// }
+	tx, err := suite.db.GetTx(test.VulnerableFunctions(("Address Reuse")))
+	require.Nil(suite.T(), err)
+	suite.target = tx
 }
 
 func (suite *TestAddressReuseSuite) TearDownSuite() {
-	// (*suite.db).Close()
+	test.CleanTestDB(suite.db)
 }
 
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	vout, err := ChangeOutput(t)
-	assert.Equal(suite.T(), err, nil)
-	assert.Equal(suite.T(), vout, uint32(1))
+	c, err := ChangeOutput(suite.db, &suite.target)
+	require.Nil(suite.T(), err)
+	assert.Equal(suite.T(), c, []uint32{uint32(1)})
 }
 
 func (suite *TestAddressReuseSuite) TestVulnerable() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	v := Vulnerable(t)
+	v := Vulnerable(suite.db, &suite.target)
 	assert.Equal(suite.T(), v, true)
 }
 

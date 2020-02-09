@@ -1,10 +1,10 @@
 package analysis
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
 )
 
 // Range wrapper for blocks interval boundaries
@@ -43,7 +43,8 @@ func updateRange(from, to int32, analyzed []Chunk) (ranges []Range) {
 			}
 		}
 		if i == len(analyzed)-1 && a.To < to {
-			ranges = append(ranges, Range{a.To + 1, to})
+			// ranges = append(ranges, Range{a.To + 1, to})
+			ranges = append(ranges, Range{a.To, to})
 		}
 	}
 	return
@@ -55,12 +56,13 @@ func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph) (err err
 	lower := lowerBoundary(r.To, interval)
 	if lower-upper >= interval {
 		for i := upper; i < lower; i += interval {
+			fmt.Println("storing chunk", i, i+interval)
 			var analyzed Chunk
 			analyzed.From = i
 			analyzed.To = i + interval
 			analyzed.Vulnerabilites = subGraph(vuln, i, i+interval)
 			var a []byte
-			a, err = json.Marshal(analyzed)
+			a, err = encoding.Marshal(analyzed)
 			if err != nil {
 				return
 			}

@@ -1,7 +1,6 @@
 package analysis
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -64,6 +64,16 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
+
+	// if w.height > 99999 {
+	// fmt.Println("Tx", w.tx.TxID, "in block height", w.height, "applying")
+	// }
+	// if w.height > 99999 {
+	// defer (func() {
+	// 	fmt.Println("Tx", w.tx.TxID, "in block height", w.height, "done")
+	// })()
+	// }
+
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
@@ -73,7 +83,8 @@ func (w *Worker) Work() {
 	}
 
 	var v byte
-	heuristics.ApplySetConcurrent(w.db, w.tx, &v)
+	// heuristics.ApplySetConcurrent(w.db, w.tx, &v)
+	heuristics.ApplySet(w.db, w.tx, &v)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
@@ -93,13 +104,15 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 	if to-from >= interval {
 		upper := upperBoundary(from, interval)
 		lower := lowerBoundary(to, interval)
+		fmt.Println("restoring in range", upper, lower, interval)
 		for i := upper; i < lower; i += interval {
 			r, err := kv.Read(fmt.Sprintf("int%d-%d", i, i+interval))
+			fmt.Println("read range", i, i+interval, err)
 			if err != nil {
 				break
 			}
 			var analyzed Chunk
-			err = json.Unmarshal(r, &analyzed)
+			err = encoding.Unmarshal(r, &analyzed)
 			if err != nil {
 				logger.Error("Analysis", err, logger.Params{})
 				break
@@ -114,7 +127,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 			return
 		}
 		var analyzed Chunk
-		err = json.Unmarshal(r, &analyzed)
+		err = encoding.Unmarshal(r, &analyzed)
 		if err != nil {
 			logger.Error("Analysis", err, logger.Params{})
 		}
@@ -146,6 +159,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	}
 	interval := int32(10000)
 	analyzed := restorePreviousAnalysis(kv, from, to, interval)
+	fmt.Println("prev analyzed chunks", len(analyzed))
 	ranges := updateRange(from, to, analyzed)
 	fmt.Println("updated ranges", ranges)
 
@@ -172,10 +186,16 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 			lock.Lock()
 			vuln[block.Height] = make(map[string]byte, len(block.Transactions))
 			lock.Unlock()
-			for t := range block.Transactions {
+			for _, txID := range block.Transactions {
+				tx, e := db.GetTx(txID)
+				if e != nil {
+					err = e
+					return
+				}
+
 				pool.Do(&Worker{
 					height: block.Height,
-					tx:     block.Transactions[t],
+					tx:     tx,
 					db:     db,
 					lock:   &lock,
 					vuln:   vuln,
@@ -185,6 +205,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	}
 	pool.Shutdown()
 
+	fmt.Println("storing ranges", ranges)
 	for _, r := range ranges {
 		if e := storeRange(kv, r, interval, vuln); e != nil {
 			logger.Error("Analysis", e, logger.Params{})

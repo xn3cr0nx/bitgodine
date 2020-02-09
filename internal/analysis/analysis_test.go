@@ -37,6 +37,7 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		c := echo.New().AcquireContext()
 		c.Set("db", db)
 		c.Set("kv", bdg)
+		// vuln, err = AnalyzeBlocks(&c, 99003, 99004, false)
 		vuln, err = AnalyzeBlocks(&c, 0, 100000, false)
 	}
 	if len(vuln) == 0 {

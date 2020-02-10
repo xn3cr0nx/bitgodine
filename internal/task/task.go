@@ -1,6 +1,8 @@
 package task
 
-import "sync"
+import (
+	"sync"
+)
 
 // Worker must be implemented by types that want to use
 // the run pool.

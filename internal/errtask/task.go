@@ -1,6 +1,8 @@
 package task
 
-import "golang.org/x/sync/errgroup"
+import (
+	"golang.org/x/sync/errgroup"
+)
 
 // Worker must be implemented by types that want to use
 // the run pool.
@@ -18,12 +20,17 @@ type Task struct {
 // New creates a new work pool.
 // instanced with singleton pattern beacuse used centrally as worker pool based on
 // CPU resources
-func New(maxGoroutines int) *Task {
+func New(maxGoroutines int, buffer int) *Task {
 	t := Task{
 		// Using an unbuffered channel because we want the
 		// guarantee of knowing the work being submitted is
 		// actually being worked on after the call to Run returns.
-		work: make(chan Worker),
+		// work: make(chan Worker),
+	}
+	if buffer != 0 {
+		t.work = make(chan Worker, buffer)
+	} else {
+		t.work = make(chan Worker)
 	}
 
 	// The goroutines are the pool. So we could add code
@@ -44,7 +51,7 @@ func New(maxGoroutines int) *Task {
 }
 
 // Shutdown waits for all the goroutines to shutdown.
-func (t *Task) Shutdown() error {
+func (t *Task) Shutdown() (err error) {
 	close(t.work)
 	return t.g.Wait()
 }

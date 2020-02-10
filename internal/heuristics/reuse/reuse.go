@@ -46,7 +46,7 @@ func (w *Worker) Work() (err error) {
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	inputAddresses := make([]string, len(tx.Vin))
-	pool := task.New(runtime.NumCPU() / 2)
+	pool := task.New(runtime.NumCPU()/2, len(tx.Vin))
 	for i, in := range tx.Vin {
 		if in.IsCoinbase {
 			continue

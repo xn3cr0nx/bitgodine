@@ -44,7 +44,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 		return
 	}
 
-	pool := task.New(runtime.NumCPU())
+	pool := task.New(runtime.NumCPU(), len(tx.Vout))
 	for vout, out := range tx.Vout {
 		if out.ScriptpubkeyAddress == "" {
 			continue

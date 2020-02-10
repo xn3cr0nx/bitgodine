@@ -1,83 +1,59 @@
 package backward
 
 import (
-	"path/filepath"
 	"testing"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/badger"
-	"github.com/mitchellh/go-homedir"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	"github.com/xn3cr0nx/bitgodine_server/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine_server/internal/db"
-	txs "github.com/xn3cr0nx/bitgodine_server/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/logger"
-	"gopkg.in/go-playground/assert.v1"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine_server/internal/test"
 )
 
-type TestBackwardSuite struct {
+type TestAddressReuseSuite struct {
 	suite.Suite
-	dgraph storage.DB
-	db     *badger.DB
+	db     *kv.KV
+	target models.Tx
 }
 
-func (suite *TestBackwardSuite) SetupSuite() {
+func (suite *TestAddressReuseSuite) SetupSuite() {
 	logger.Setup()
 
-	suite.dgraph := dgraph.Instance(dgraph.Conf(), nil)
-	suite.dgraph.Setup()
-
-	hd, err := homedir.Dir()
-	assert.Equal(suite.T(), err, nil)
-	DbConf := &db.Config{
-		Dir: filepath.Join(hd, ".bitgodine", "badger"),
-	}
-	suite.db, err = db.Instance(DbConf)
-	assert.Equal(suite.T(), err, nil)
-	assert.NotEqual(suite.T(), suite.db, nil)
+	db, err := test.InitDB()
+	require.Nil(suite.T(), err)
+	suite.db = db.(*kv.KV)
 
 	suite.Setup()
 }
 
-func (suite *TestBackwardSuite) Setup() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
+func (suite *TestAddressReuseSuite) Setup() {
+	// check blockchain is synced at least to block 1000
+	h, err := suite.db.GetLastBlockHeight()
+	require.Nil(suite.T(), err)
+	require.GreaterOrEqual(suite.T(), h, int32(1000))
 
-	if !db.IsStored(block.Hash()) {
-		err := db.StoreBlock(&blocks.Block{Block: *block})
-		assert.Equal(suite.T(), err, nil)
-
-		for _, tx := range block.Transactions() {
-			err := dgraph.StoreTx(tx.Hash().String(), block.Hash().String(), block.Height(), tx.MsgTx().LockTime, tx.MsgTx().TxIn, tx.MsgTx().TxOut)
-			assert.Equal(suite.T(), err, nil)
-		}
-	}
+	tx, err := suite.db.GetTx(test.VulnerableFunctions(("Address Reuse")))
+	require.Nil(suite.T(), err)
+	suite.target = tx
 }
 
-func (suite *TestBackwardSuite) TearDownSuite() {
-	(*suite.db).Close()
+func (suite *TestAddressReuseSuite) TearDownSuite() {
+	test.CleanTestDB(suite.db)
 }
 
-func (suite *TestBackwardSuite) TestChangeOutput() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	_, err = ChangeOutput(t)
-	assert.Equal(suite.T(), err.Error(), "No output address matching backward heurisitic requirements found")
-	// assert.Equal(suite.T(), vout, uint32(1))
+func (suite *TestAddressReuseSuite) TestChangeOutput() {
+	c, err := ChangeOutput(suite.db, &suite.target)
+	require.Nil(suite.T(), err)
+	assert.Equal(suite.T(), c, []uint32{uint32(1)})
 }
 
-func (suite *TestBackwardSuite) TestVulnerable() {
-	block, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	assert.Equal(suite.T(), err, nil)
-	testTx := block.Transactions()[1]
-	t := &txs.Tx{Tx: *testTx}
-	v := Vulnerable(t)
-	assert.Equal(suite.T(), v, false)
+func (suite *TestAddressReuseSuite) TestVulnerable() {
+	v := Vulnerable(suite.db, &suite.target)
+	assert.Equal(suite.T(), v, true)
 }
 
-func TestBackward(t *testing.T) {
-	suite.Run(t, new(TestBackwardSuite))
+func TestAddressReuse(t *testing.T) {
+	suite.Run(t, new(TestAddressReuseSuite))
 }

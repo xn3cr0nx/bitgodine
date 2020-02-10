@@ -88,7 +88,9 @@ func Routes(g *echo.Group) *echo.Group {
 			}
 			return err
 		}
-		var txs []models.Tx
+		// TODO: fetch txs
+		// var txs []models.Tx
+		var txs []string
 		for i := start; i < 25+start; i++ {
 			if i > len(b.Transactions)-1 {
 				break
@@ -114,7 +116,7 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 		var txids []string
 		for _, tx := range b.Transactions {
-			txids = append(txids, tx.TxID)
+			txids = append(txids, tx)
 		}
 		return c.JSON(http.StatusOK, txids)
 	})

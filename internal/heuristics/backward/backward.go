@@ -5,8 +5,8 @@ package backward
 
 import (
 	"errors"
+	"golang.org/x/sync/errgroup"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
@@ -19,22 +19,30 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 	var spentTxs []models.Tx
 	var outputTargets []uint32
 
-	logger.Debug("Backward Heuristic", "transaction "+tx.TxID, logger.Params{})
-
-	for _, out := range tx.Vout {
-		outputAddresses = append(outputAddresses, out.ScriptpubkeyAddress)
-	}
-	for _, in := range tx.Vin {
-		if in.IsCoinbase {
-			continue
+	var g errgroup.Group
+	g.Go(func() error {
+		for _, out := range tx.Vout {
+			outputAddresses = append(outputAddresses, out.ScriptpubkeyAddress)
 		}
-		spentTx, err := db.GetTx(in.TxID)
-		if err != nil {
-			return 0, err
+		return nil
+	})
+	g.Go(func() error {
+		for _, in := range tx.Vin {
+			if in.IsCoinbase {
+				continue
+			}
+			spentTx, err := db.GetTx(in.TxID)
+			if err != nil {
+				return err
+			}
+			addr := spentTx.Vout[in.Vout].ScriptpubkeyAddress
+			inputAddresses = append(inputAddresses, addr)
+			spentTxs = append(spentTxs, spentTx)
 		}
-		addr := spentTx.Vout[in.Vout].ScriptpubkeyAddress
-		inputAddresses = append(inputAddresses, addr)
-		spentTxs = append(spentTxs, spentTx)
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return 0, err
 	}
 
 	for _, spent := range spentTxs {

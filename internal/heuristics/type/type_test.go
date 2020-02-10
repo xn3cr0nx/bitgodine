@@ -31,7 +31,7 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 
 func (suite *TestAddressReuseSuite) Setup() {
 	tx := models.Tx{
-		TxID: test.VulnerableFunctions("fbe24c7d93f01bf69f4f7c9d5fd257420ef6a7630c0ade732849958d29e6f9c9"),
+		TxID: test.VulnerableFunctions("Address Type"),
 		Vin: []models.Input{
 			models.Input{
 				TxID:         "5c8a9134b185c747cc7ecd9aec35d4358b199412c0db763c2854f33c25f142a2",
@@ -75,7 +75,7 @@ func (suite *TestAddressReuseSuite) Setup() {
 	}
 	serialized, err := encoding.Marshal(spentTx)
 	require.Nil(suite.T(), err)
-	err = suite.db.Store("5c8a9134b185c747cc7ecd9aec35d4358b199412c0db763c2854f33c25f142a2", serialized)
+	err = suite.db.Store(spentTx.TxID, serialized)
 	require.Nil(suite.T(), err)
 }
 

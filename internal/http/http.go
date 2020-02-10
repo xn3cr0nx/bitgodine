@@ -2,13 +2,13 @@ package http
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
 )
 
 // Error response body
@@ -25,7 +25,7 @@ func parseResponse(res *http.Response) (string, error) {
 	}
 	if res.StatusCode >= 400 {
 		e := new(Error)
-		if err := json.Unmarshal(body, e); err != nil {
+		if err := encoding.Unmarshal(body, e); err != nil {
 			return "", err
 		}
 		return "", echo.NewHTTPError(res.StatusCode, *e)
@@ -68,7 +68,7 @@ func POST(uri string, obj interface{}, headers map[string]string) (string, error
 	var buff []byte
 	if obj != nil {
 		var err error
-		buff, err = json.Marshal(obj)
+		buff, err = encoding.Marshal(obj)
 		if err != nil {
 			return "", err
 		}
@@ -96,7 +96,7 @@ func PUT(uri string, obj interface{}, headers map[string]string) (string, error)
 	var buff []byte
 	if obj != nil {
 		var err error
-		buff, err = json.Marshal(obj)
+		buff, err = encoding.Marshal(obj)
 		if err != nil {
 			return "", err
 		}
@@ -144,7 +144,7 @@ func PATCH(uri string, obj interface{}, headers map[string]string) (string, erro
 	var buff []byte
 	if obj != nil {
 		var err error
-		buff, err = json.Marshal(obj)
+		buff, err = encoding.Marshal(obj)
 		if err != nil {
 			return "", err
 		}

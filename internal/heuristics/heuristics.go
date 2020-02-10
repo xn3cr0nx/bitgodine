@@ -2,7 +2,6 @@ package heuristics
 
 import (
 	"math"
-	"sync"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -14,6 +13,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/peeling"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/power"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/reuse"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/shadow"
 	class "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/type"
 )
 
@@ -21,20 +21,26 @@ import (
 type Heuristic int
 
 const (
-	Peeling Heuristic = iota
+	Locktime Heuristic = iota
+	// Peeling Heuristic = iota
+	Peeling
 	PowerOfTen
 	OptimalChange
+	// ExactAmount
 	AddressType
 	AddressReuse
-	Locktime
-	// ClientBehaviour TODO: this heuristic can't actually work because occurences are not listed (check kv address package in bitgodine_parser)
-	Forward
-	Backward
+	Shadow
+	ClientBehaviour
+	// Backward
+	// Forward
 )
 
 // SetCardinality returnes the cardinality of the heuristics set
 func SetCardinality() int {
-	return int(Backward)
+	// return int(Forward) + 1
+	// return int(Locktime) + 1
+	// return int(Backward) + 1
+	return int(ClientBehaviour) + 1
 }
 
 // List returnes the list of heuristics
@@ -47,15 +53,17 @@ func List() (heuristics []string) {
 
 func (h Heuristic) String() string {
 	heuristics := [...]string{
+		"Locktime",
 		"Peeling Chain",
 		"Power of Ten",
 		"Optimal Change",
+		// "Exact Amount",
 		"Address Type",
 		"Address Reuse",
-		"Locktime",
-		// "Client Behaviour",
-		"Forward",
-		"Backward",
+		"Shadow",
+		"Client Behaviour",
+		// "Backward",
+		// "Forward",
 	}
 	return heuristics[h]
 }
@@ -73,12 +81,14 @@ func Index(r string) int {
 // VulnerableFunction returnes vulnerable function to be applied to analysis
 func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 	functions := map[string](func(storage.DB, *models.Tx) bool){
-		"Peeling Chain":    peeling.Vulnerable,
-		"Power of Ten":     power.Vulnerable,
-		"Optimal Change":   optimal.Vulnerable,
+		"Locktime":       locktime.Vulnerable,
+		"Peeling Chain":  peeling.Vulnerable,
+		"Power of Ten":   power.Vulnerable,
+		"Optimal Change": optimal.Vulnerable,
+		// "Exact Amount": 		self.Vulnerable,
 		"Address Type":     class.Vulnerable,
 		"Address Reuse":    reuse.Vulnerable,
-		"Locktime":         locktime.Vulnerable,
+		"Shadow":           shadow.Vulnerable,
 		"Client Behaviour": behaviour.Vulnerable,
 		"Forward":          forward.Vulnerable,
 		"Backward":         backward.Vulnerable,
@@ -98,20 +108,6 @@ func ApplySet(db storage.DB, tx models.Tx, vuln *byte) {
 	for h := 0; h < SetCardinality(); h++ {
 		Apply(db, tx, h, vuln)
 	}
-}
-
-// ApplySetConcurrent applies the set of heuristics to the passed transaction
-func ApplySetConcurrent(db storage.DB, tx models.Tx, vuln *byte) {
-	var wg sync.WaitGroup
-	wg.Add(SetCardinality())
-	for h := 0; h < SetCardinality(); h++ {
-		k := h
-		go func(k int) {
-			Apply(db, tx, k, vuln)
-			wg.Done()
-		}(k)
-	}
-	wg.Wait()
 }
 
 // ToList return a list of heuristic names corresponding to vulnerability byte passed

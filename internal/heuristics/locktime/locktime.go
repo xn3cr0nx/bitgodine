@@ -7,38 +7,10 @@
 package locktime
 
 import (
-	"fmt"
-	"runtime"
-
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
+	"golang.org/x/sync/errgroup"
 )
-
-// Worker struct implementing workers pool
-type Worker struct {
-	db         storage.DB
-	txid       string
-	vout       uint32
-	candidates []uint32
-	locktime   uint32
-}
-
-// Work executed in the workers pool
-func (w *Worker) Work() (err error) {
-	fmt.Println("dispatched locktime tx", w.txid, w.vout)
-	defer (func() {
-		fmt.Println("done locktime tx", w.txid, w.vout)
-	})()
-	spendingTx, err := w.db.GetFollowingTx(w.txid, w.vout)
-	if err != nil {
-		return
-	}
-	if spendingTx.Locktime >= w.locktime {
-		w.candidates[w.vout] = 1
-	}
-	return
-}
 
 // ChangeOutput returnes the index of the change output address based on locktime heuristic:
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
@@ -48,19 +20,23 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	if tx.Locktime == 0 {
 		return
 	}
-	candidates := make([]uint32, len(tx.Vout))
-	pool := task.New(runtime.NumCPU() / 2)
-	for _, out := range tx.Vout {
-		pool.Do(&Worker{db, tx.TxID, out.Index, candidates, tx.Locktime})
-	}
-	if err = pool.Shutdown(); err != nil {
-		return
-	}
 
-	for i, v := range candidates {
-		if v == 1 {
-			c = append(c, uint32(i))
-		}
+	var g errgroup.Group
+	for _, output := range tx.Vout {
+		out := output
+		g.Go(func() (err error) {
+			spendingTx, err := db.GetFollowingTx(tx.TxID, out.Index)
+			if err != nil {
+				return
+			}
+			if spendingTx.Locktime >= tx.Locktime {
+				c = append(c, out.Index)
+			}
+			return
+		})
+	}
+	if err = g.Wait(); err != nil {
+		return
 	}
 
 	return

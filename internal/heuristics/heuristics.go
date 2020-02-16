@@ -43,14 +43,6 @@ func SetCardinality() int {
 	return int(ClientBehaviour) + 1
 }
 
-// List returnes the list of heuristics
-func List() (heuristics []string) {
-	for h := 0; h < SetCardinality(); h++ {
-		heuristics = append(heuristics, Heuristic(h).String())
-	}
-	return
-}
-
 func (h Heuristic) String() string {
 	heuristics := [...]string{
 		// "Locktime",
@@ -66,6 +58,32 @@ func (h Heuristic) String() string {
 		// "Forward",
 	}
 	return heuristics[h]
+}
+
+// Abbreviation returnes vulnerable function to be applied to analysis
+func Abbreviation(a string) string {
+	functions := map[string]string{
+		"locktime": "Locktime",
+		"peeling":  "Peeling Chain",
+		"power":    "Power of Ten",
+		"optimal":  "Optimal Change",
+		"exact":    "Exact Amount",
+		"type":     "Address Type",
+		"reuse":    "Address Reuse",
+		"shadow":   "Shadow",
+		"client":   "Client Behaviour",
+		"forward":  "Forward",
+		"backward": "Backward",
+	}
+	return functions[a]
+}
+
+// List returnes the list of heuristics
+func List() (heuristics []string) {
+	for h := 0; h < SetCardinality(); h++ {
+		heuristics = append(heuristics, Heuristic(h).String())
+	}
+	return
 }
 
 // Index returns the index corresponding the heuristic
@@ -127,18 +145,18 @@ func VulnerableMask(v byte, h int) bool {
 }
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
-func ExtractPercentages(data map[int32]map[string]byte, from, to int32) (perc map[int32][]float64) {
-	perc = make(map[int32][]float64)
+func ExtractPercentages(data map[int32]map[string]byte, heuristicsList []string, from, to int32) (perc map[int32][]float64) {
+	perc = make(map[int32][]float64, to-from+1)
 	for i := from; i <= to; i++ {
-		perc[i] = make([]float64, SetCardinality())
-		for h := 0; h < SetCardinality(); h++ {
+		perc[i] = make([]float64, len(heuristicsList))
+		for h, heuristic := range heuristicsList {
 			counter := 0
 			if len(data[i]) == 0 {
 				perc[i][h] = 0
 				continue
 			}
 			for _, v := range data[i] {
-				if VulnerableMask(v, h) {
+				if VulnerableMask(v, Index(heuristic)) {
 					counter++
 				}
 			}
@@ -149,13 +167,13 @@ func ExtractPercentages(data map[int32]map[string]byte, from, to int32) (perc ma
 }
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
-func ExtractGlobalPercentages(data map[int32]map[string]byte, from, to int32) (perc []float64) {
-	perc = make([]float64, SetCardinality())
-	for h := 0; h < SetCardinality(); h++ {
+func ExtractGlobalPercentages(data map[int32]map[string]byte, heuristicsList []string, from, to int32) (perc []float64) {
+	perc = make([]float64, len(heuristicsList))
+	for h, heuristic := range heuristicsList {
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range data[i] {
-				if VulnerableMask(v, h) {
+				if VulnerableMask(v, Index(heuristic)) {
 					counter++
 				}
 				tot++

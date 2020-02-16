@@ -14,8 +14,9 @@ import (
 
 func VulnerableFunctions(heuristic string) string {
 	vulnerabilites := map[string]string{
-		"Locktime":         "40dc6d943cbe7c71ac07dae141a8464ac80ef4be60a45aa8653d3b0944205c82",
-		"Peeling Chain":    "fb167c6f11808bec46e0cf10b5d658d100a5f63203223de85504262908c881cf",
+		"Locktime":      "40dc6d943cbe7c71ac07dae141a8464ac80ef4be60a45aa8653d3b0944205c82",
+		"Peeling Chain": "fb167c6f11808bec46e0cf10b5d658d100a5f63203223de85504262908c881cf",
+		// "Peeling Chain":    "9f0e6c4f59f422f6097eba1c0be77d292aedfa8fd4c19c0abbf8d436bb4371a1",
 		"Power of Ten":     "28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f",
 		"Optimal Change":   "28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f",
 		"Address Type":     "fbe24c7d93f01bf69f4f7c9d5fd257420ef6a7630c0ade732849958d29e6f9c9",

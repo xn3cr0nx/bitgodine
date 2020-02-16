@@ -64,16 +64,6 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
-
-	// if w.height > 99999 {
-	// fmt.Println("Tx", w.tx.TxID, "in block height", w.height, "applying")
-	// }
-	// if w.height > 99999 {
-	// defer (func() {
-	// 	fmt.Println("Tx", w.tx.TxID, "in block height", w.height, "done")
-	// })()
-	// }
-
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
@@ -138,7 +128,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, export bool) (vuln Graph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -148,6 +138,10 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	if kv == nil {
 		err = errors.New("kv storage not initialized")
 		return
+	}
+
+	if len(heuristicsList) == 0 {
+		heuristicsList = heuristics.List()
 	}
 
 	tip, err := db.LastBlock()
@@ -216,48 +210,50 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, export bool) (vuln Graph, er
 	vuln = mergeChunks(analyzed...).Vulnerabilites
 
 	if export {
-		data := heuristics.ExtractPercentages(vuln, from, to)
-		err = PlotHeuristicsTimeline(data, from)
-		// err = HeuristicsPercentages(data, from)
+		data := heuristics.ExtractPercentages(vuln, heuristicsList, from, to)
+		err = PlotHeuristicsTimeline(data, from, heuristicsList)
 	} else {
-		data := heuristics.ExtractGlobalPercentages(vuln, from, to)
-		err = GlobalPercentages(data, export)
+		data := heuristics.ExtractGlobalPercentages(vuln, heuristicsList, from, to)
+		err = GlobalPercentages(data, heuristicsList)
 	}
 
 	return
 }
 
 // GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
-func GlobalPercentages(data []float64, export bool) (err error) {
+func GlobalPercentages(data []float64, heuristicsList []string) (err error) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})
 	// table.SetBorder(false)
 	table.SetCaption(true, "Heuristics success rate")
 	for h, perc := range data {
-		table.Append([]string{heuristics.Heuristic(h).String(), fmt.Sprintf("%4.2f", perc*100)})
+		table.Append([]string{heuristicsList[h], fmt.Sprintf("%4.2f", perc*100)})
 	}
 	table.Render()
 	return
 }
 
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
-func PlotHeuristicsTimeline(data map[int32][]float64, min int32) (err error) {
+func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList []string) (err error) {
 	coordinates := make(map[string]plot.Coordinates)
-
 	x := make([]float64, len(data))
 	for height := range data {
 		x[height-min] = float64(height)
 	}
 
-	for h := 0; h < heuristics.SetCardinality(); h++ {
+	for h, heuristic := range heuristicsList {
 		y := make([]float64, len(data))
 		for height, vulnerabilites := range data {
 			y[int(height-min)] = vulnerabilites[h] + float64(h)
 		}
-		coordinates[heuristics.Heuristic(h).String()] = plot.Coordinates{X: x, Y: y}
+		coordinates[heuristic] = plot.Coordinates{X: x, Y: y}
 	}
 
-	err = plot.MultipleLineChart("Heuristics timeline", "blocks", "heuristics effectiveness", coordinates)
+	title := "Heuristics timeline"
+	if len(heuristicsList) == 1 {
+		title = heuristicsList[0] + " timeline"
+	}
+	err = plot.MultipleLineChart(title, "blocks", "heuristics effectiveness", coordinates)
 
 	return
 }

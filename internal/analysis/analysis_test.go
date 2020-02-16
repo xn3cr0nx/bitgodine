@@ -38,7 +38,7 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		c.Set("db", db)
 		c.Set("kv", bdg)
 		// vuln, err = AnalyzeBlocks(&c, 99003, 99004, false)
-		vuln, err = AnalyzeBlocks(&c, 0, 100000, false)
+		vuln, err = AnalyzeBlocks(&c, 0, 120000, false)
 	}
 	if len(vuln) == 0 {
 		t.Error("failed benchmark for AnalyzeBlocks: ", vuln, err)

@@ -34,7 +34,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
-	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200209005558-6a7be80176d4
+	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/tools v0.0.0-20200110042803-e2f26524b78c // indirect
 	golang.org/x/tools/gopls v0.2.2 // indirect

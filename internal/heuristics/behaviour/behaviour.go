@@ -30,7 +30,7 @@ func (w *Worker) Work() (err error) {
 	}
 	// check if occurence is the first, e.g. the transaction block height is the firstOccurence
 	if firstOccurence == w.blockHeight {
-		w.candidates = append(w.candidates, uint32(w.vout))
+		w.candidates[w.vout] = 1
 	}
 	return
 }

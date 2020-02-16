@@ -373,6 +373,12 @@ github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200202082307-10b6098cb23a h1:KS62o
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200202082307-10b6098cb23a/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200209005558-6a7be80176d4 h1:og00ZCsQu5QZXuC+5fSFvljjE9NeYPkCXt2OYJQ3TiY=
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200209005558-6a7be80176d4/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211103658-dfbe39b062a9 h1:9aimV5zi4jKW7w/XhtY9FPgMo5+qMIk5qWMHdXexNvM=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211103658-dfbe39b062a9/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211110907-d02a6bc629d2 h1:bp2ytMyKiD7uNchcmB/WPJY+RoCjbmaJGht9E/tGKLs=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211110907-d02a6bc629d2/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad h1:zmSvSSYKMrHMo9oYjOF8/y8X1R0FPNGc9oeSkfZbwW8=
+github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
 github.com/xn3cr0nx/bitgodine_server v0.0.0-20200115182809-034032450f31/go.mod h1:Wn2NB9Ccx0e9KTTFZzVH9KLFO8GEFon46gIBDaKn9qQ=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

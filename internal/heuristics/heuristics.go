@@ -21,9 +21,9 @@ import (
 type Heuristic int
 
 const (
-	Locktime Heuristic = iota
-	// Peeling Heuristic = iota
-	Peeling
+	// Locktime Heuristic = iota
+	Peeling Heuristic = iota
+	// Peeling
 	PowerOfTen
 	OptimalChange
 	// ExactAmount
@@ -53,7 +53,7 @@ func List() (heuristics []string) {
 
 func (h Heuristic) String() string {
 	heuristics := [...]string{
-		"Locktime",
+		// "Locktime",
 		"Peeling Chain",
 		"Power of Ten",
 		"Optimal Change",

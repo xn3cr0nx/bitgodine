@@ -32,7 +32,7 @@ func (suite *TestAddressReuseSuite) Setup() {
 	// check blockchain is synced at least to block 1000
 	h, err := suite.db.GetLastBlockHeight()
 	require.Nil(suite.T(), err)
-	require.GreaterOrEqual(suite.T(), h, int32(132000))
+	require.GreaterOrEqual(suite.T(), h, int32(1000))
 
 	tx, err := suite.db.GetTx(test.VulnerableFunctions(("Peeling Chain")))
 	require.Nil(suite.T(), err)
@@ -46,7 +46,7 @@ func (suite *TestAddressReuseSuite) TearDownSuite() {
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
 	c, err := ChangeOutput(suite.db, &suite.target)
 	require.Nil(suite.T(), err)
-	assert.Equal(suite.T(), uint32(0), c)
+	assert.Equal(suite.T(), uint32(1), c)
 }
 
 func (suite *TestAddressReuseSuite) TestVulnerable() {

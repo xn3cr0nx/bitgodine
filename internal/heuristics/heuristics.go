@@ -115,16 +115,23 @@ func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 }
 
 // Apply applies the heuristic specified to the passed transaction
-func Apply(db storage.DB, tx models.Tx, h int, vuln *byte) {
-	if VulnerableFunction(Heuristic(h).String())(db, &tx) {
-		(*vuln) += byte(math.Pow(2, float64(h+1)))
+func Apply(db storage.DB, tx models.Tx, h string, vuln *byte) {
+	if VulnerableFunction(h)(db, &tx) {
+		(*vuln) += byte(math.Pow(2, float64(Index(h))))
 	}
 }
 
-// ApplySet applies the set of heuristics to the passed transaction
-func ApplySet(db storage.DB, tx models.Tx, vuln *byte) {
+// ApplyFullSet applies the set of heuristics to the passed transaction
+func ApplyFullSet(db storage.DB, tx models.Tx, vuln *byte) {
 	for h := 0; h < SetCardinality(); h++ {
-		Apply(db, tx, h, vuln)
+		Apply(db, tx, Heuristic(h).String(), vuln)
+	}
+}
+
+// ApplySet applies the set of passed heuristics to the passed transaction
+func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *byte) {
+	for _, heuristic := range heuristicsList {
+		Apply(db, tx, heuristic, vuln)
 	}
 }
 

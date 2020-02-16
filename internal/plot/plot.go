@@ -28,7 +28,7 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 			XValues:         coordinates.X,
 			XValueFormatter: chart.FloatValueFormatter,
 			YValues:         coordinates.Y,
-			// YValueFormatter: chart.PercentValueFormatter,
+			YValueFormatter: chart.PercentValueFormatter,
 		})
 		h++
 	}

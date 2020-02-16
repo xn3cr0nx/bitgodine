@@ -42,7 +42,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 		return
 	}
 
-	heuristics.ApplySet(db, tx, &vuln)
+	heuristics.ApplyFullSet(db, tx, &vuln)
 
 	if err = kv.Store(txid, []byte{vuln}); err != nil {
 		return
@@ -55,11 +55,12 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 
 // Worker wrapper to partecipate in task pool
 type Worker struct {
-	db     storage.DB
-	height int32
-	tx     models.Tx
-	lock   *sync.RWMutex
-	vuln   Graph
+	db             storage.DB
+	height         int32
+	tx             models.Tx
+	lock           *sync.RWMutex
+	vuln           Graph
+	heuristicsList []string
 }
 
 // Work method to make Worker compatible with task pool worker interface
@@ -73,8 +74,7 @@ func (w *Worker) Work() {
 	}
 
 	var v byte
-	// heuristics.ApplySetConcurrent(w.db, w.tx, &v)
-	heuristics.ApplySet(w.db, w.tx, &v)
+	heuristics.ApplySet(w.db, w.tx, w.heuristicsList, &v)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
@@ -140,10 +140,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, exp
 		return
 	}
 
-	if len(heuristicsList) == 0 {
-		heuristicsList = heuristics.List()
-	}
-
 	tip, err := db.LastBlock()
 	if err != nil {
 		return
@@ -188,11 +184,12 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, exp
 				}
 
 				pool.Do(&Worker{
-					height: block.Height,
-					tx:     tx,
-					db:     db,
-					lock:   &lock,
-					vuln:   vuln,
+					height:         block.Height,
+					tx:             tx,
+					db:             db,
+					lock:           &lock,
+					vuln:           vuln,
+					heuristicsList: heuristicsList,
 				})
 			}
 		}

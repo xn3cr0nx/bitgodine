@@ -128,7 +128,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, export bool) (vuln Graph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, export bool) (vuln Graph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -150,7 +150,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, exp
 	interval := int32(10000)
 	analyzed := restorePreviousAnalysis(kv, from, to, interval)
 	fmt.Println("prev analyzed chunks", len(analyzed))
-	ranges := updateRange(from, to, analyzed)
+	ranges := updateRange(from, to, analyzed, force)
 	fmt.Println("updated ranges", ranges)
 
 	pool := task.New(runtime.NumCPU() * 3)
@@ -197,14 +197,25 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, exp
 	pool.Shutdown()
 
 	fmt.Println("storing ranges", ranges)
-	for _, r := range ranges {
-		if e := storeRange(kv, r, interval, vuln); e != nil {
-			logger.Error("Analysis", e, logger.Params{})
+	if force {
+		fmt.Println("updating ranges")
+		newVuln := updateStoredRanges(kv, interval, analyzed, vuln)
+		vuln = mergeGraphs(vuln, newVuln)
+		for _, r := range ranges {
+			if e := storeRange(kv, r, interval, vuln); e != nil {
+				logger.Error("Analysis", e, logger.Params{})
+			}
 		}
-	}
+	} else {
+		for _, r := range ranges {
+			if e := storeRange(kv, r, interval, vuln); e != nil {
+				logger.Error("Analysis", e, logger.Params{})
+			}
+		}
 
-	analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
-	vuln = mergeChunks(analyzed...).Vulnerabilites
+		analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
+		vuln = mergeChunks(analyzed...).Vulnerabilites
+	}
 
 	if export {
 		data := heuristics.ExtractPercentages(vuln, heuristicsList, from, to)

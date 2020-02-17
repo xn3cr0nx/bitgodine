@@ -9,6 +9,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 )
 
 func BenchmarkAnalyzeBlocks(t *testing.B) {
@@ -37,8 +38,7 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		c := echo.New().AcquireContext()
 		c.Set("db", db)
 		c.Set("kv", bdg)
-		// vuln, err = AnalyzeBlocks(&c, 99003, 99004, false)
-		vuln, err = AnalyzeBlocks(&c, 0, 120000, false)
+		vuln, err = AnalyzeBlocks(&c, 0, 120000, heuristics.List(), false, false)
 	}
 	if len(vuln) == 0 {
 		t.Error("failed benchmark for AnalyzeBlocks: ", vuln, err)

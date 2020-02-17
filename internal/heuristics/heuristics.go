@@ -21,9 +21,8 @@ import (
 type Heuristic int
 
 const (
-	// Locktime Heuristic = iota
-	Peeling Heuristic = iota
-	// Peeling
+	Locktime Heuristic = iota
+	Peeling
 	PowerOfTen
 	OptimalChange
 	// ExactAmount
@@ -38,14 +37,13 @@ const (
 // SetCardinality returnes the cardinality of the heuristics set
 func SetCardinality() int {
 	// return int(Forward) + 1
-	// return int(Locktime) + 1
 	// return int(Backward) + 1
 	return int(ClientBehaviour) + 1
 }
 
 func (h Heuristic) String() string {
 	heuristics := [...]string{
-		// "Locktime",
+		"Locktime",
 		"Peeling Chain",
 		"Power of Ten",
 		"Optimal Change",
@@ -149,6 +147,12 @@ func ToList(v byte) (heuristics []string) {
 // and returnes true if the vuln byte is vulnerable to passed heuristic
 func VulnerableMask(v byte, h int) bool {
 	return v&byte(math.Pow(2, float64(h))) > 0
+}
+
+// MergeMask uses bitwise OR operation to apply a mask to vulnerabilities byte to merge a new mask with updated heuristics
+// bit and return the merge between original byte with updated bits
+func MergeMask(source byte, update byte) byte {
+	return source | update
 }
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)

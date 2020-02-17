@@ -5,6 +5,7 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 )
 
 // Range wrapper for blocks interval boundaries
@@ -32,8 +33,11 @@ func lowerBoundary(n, interval int32) (r int32) {
 }
 
 // updateRange returns block ranges to be analyzed excluding already analyzed chunks
-func updateRange(from, to int32, analyzed []Chunk) (ranges []Range) {
+func updateRange(from, to int32, analyzed []Chunk, force bool) (ranges []Range) {
 	ranges = append(ranges, Range{from, to})
+	if force {
+		return
+	}
 	for i, a := range analyzed {
 		if i == 0 {
 			if a.From > from {
@@ -43,7 +47,6 @@ func updateRange(from, to int32, analyzed []Chunk) (ranges []Range) {
 			}
 		}
 		if i == len(analyzed)-1 && a.To < to {
-			// ranges = append(ranges, Range{a.To + 1, to})
 			ranges = append(ranges, Range{a.To, to})
 		}
 	}
@@ -68,6 +71,24 @@ func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph) (err err
 			}
 			if err = kv.Store(fmt.Sprintf("int%d-%d", i, i+interval), a); err != nil {
 				return
+			}
+		}
+	}
+	return
+}
+
+// updateStoredRange updates sub chunks of analysis graph based on the interval with new analysis
+func updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk, vuln Graph) (newVuln Graph) {
+	if len(analyzed) == 0 {
+		return vuln
+	}
+	newRange := Range{From: analyzed[0].From, To: analyzed[len(analyzed)-1].To}
+	newVuln = make(Graph, newRange.To-newRange.From+1)
+	for _, a := range analyzed {
+		for i := a.From; i <= a.To; i++ {
+			newVuln[i] = make(map[string]byte, len(a.Vulnerabilites[i]))
+			for tx, v := range a.Vulnerabilites[i] {
+				newVuln[i][tx] = heuristics.MergeMask(v, vuln[i][tx])
 			}
 		}
 	}

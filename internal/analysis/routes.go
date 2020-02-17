@@ -32,10 +32,11 @@ func Routes(g *echo.Group) *echo.Group {
 
 	r.GET("/blocks", func(c echo.Context) error {
 		type Query struct {
-			From int32    `query:"from" validate:"omitempty,gte=0"`
-			To   int32    `query:"to" validate:"omitempty,gtfield=From"`
-			List []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-			Plot bool     `query:"plot" validate:"omitempty"`
+			From  int32    `query:"from" validate:"omitempty,gte=0"`
+			To    int32    `query:"to" validate:"omitempty,gtfield=From"`
+			List  []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
+			Plot  bool     `query:"plot" validate:"omitempty"`
+			Force bool     `query:"force" validate:"omitempty"`
 		}
 		q := new(Query)
 		if err := validator.Struct(&c, q); err != nil {
@@ -50,7 +51,7 @@ func Routes(g *echo.Group) *echo.Group {
 			list = heuristics.List()
 		}
 
-		vuln, err := AnalyzeBlocks(&c, q.From, q.To, list, q.Plot)
+		vuln, err := AnalyzeBlocks(&c, q.From, q.To, list, q.Force, q.Plot)
 		if err != nil {
 			return err
 		}

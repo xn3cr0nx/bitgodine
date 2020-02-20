@@ -7,6 +7,8 @@
 package locktime
 
 import (
+	"sync"
+
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"golang.org/x/sync/errgroup"
@@ -22,6 +24,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	}
 
 	var g errgroup.Group
+	lock := sync.RWMutex{}
 	for _, output := range tx.Vout {
 		out := output
 		g.Go(func() (err error) {
@@ -30,7 +33,9 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 				return
 			}
 			if spendingTx.Locktime >= tx.Locktime {
+				lock.Lock()
 				c = append(c, out.Index)
+				lock.Unlock()
 			}
 			return
 		})

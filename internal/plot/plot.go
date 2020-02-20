@@ -1,15 +1,11 @@
 package plot
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/wcharczuk/go-chart"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/plotutil"
-	"gonum.org/v1/plot/vg"
 )
 
 // Coordinates wraps x and y coordinates to show on plot
@@ -21,7 +17,6 @@ type Coordinates struct {
 // MultipleLineChart saves a multiple linechart based on x and y data passed to the function
 func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates) (err error) {
 	var lines []chart.Series
-	h := 0
 	for k, coordinates := range data {
 		lines = append(lines, chart.ContinuousSeries{
 			Name:            k,
@@ -29,8 +24,12 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 			XValueFormatter: chart.FloatValueFormatter,
 			YValues:         coordinates.Y,
 			YValueFormatter: chart.PercentValueFormatter,
+			// Style: chart.Style{
+			// 	// StrokeWidth: .01,
+			// 	FillColor:   heuristics.Color(k),
+			// 	StrokeColor: heuristics.Color(k),
+			// },
 		})
-		h++
 	}
 
 	graph := chart.Chart{
@@ -50,20 +49,26 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 			},
 			Style: chart.Style{
 				TextRotationDegrees: 90,
+				FontSize:            15,
 			},
 		},
 		YAxis: chart.YAxis{
 			Name: yLabel,
+			Style: chart.Style{
+				FontSize: 15,
+			},
 		},
 		Title:  title,
 		Series: lines,
+		Width:  1920,
+		Height: 1080,
 	}
 
 	graph.Elements = []chart.Renderable{
 		chart.LegendLeft(&graph),
 	}
 
-	f, err := os.Create("plot.png")
+	f, err := os.Create("timeline.png")
 	if err != nil {
 		return
 	}
@@ -72,36 +77,65 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 	return
 }
 
-// HeuristicsPercentages plots the percentage effectiveness for each heuristic in the passed time range
-func HeuristicsPercentages(percentages []float64) (err error) {
-	p, err := plot.New()
+// BarChart plots a multibar chart
+func BarChart(title string, xLabel []string, percentages []float64) (err error) {
+	if len(xLabel) != len(percentages) {
+		err = errors.New("Wrong arguments length")
+		return
+	}
+
+	var bars []chart.Value
+	for i, v := range percentages {
+		bars = append(bars, chart.Value{
+			Value: v,
+			Label: xLabel[i],
+			// Style: chart.Style{
+			// 	// StrokeWidth: .01,
+			// 	FillColor:   heuristics.Color(xLabel[i]),
+			// 	StrokeColor: heuristics.Color(xLabel[i]),
+			// },
+		})
+	}
+
+	stackedBarChart := chart.BarChart{
+		Title:      title,
+		TitleStyle: chart.Shown(),
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top: 100,
+			},
+		},
+		Width:  1920,
+		Height: 1080,
+		XAxis: chart.Style{
+			FontSize: 15,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{
+				Min: 0,
+				Max: 1,
+			},
+			ValueFormatter: func(v interface{}) string {
+				fmt.Println("wt", v)
+				if vf, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%0.f", vf*float64(100))
+				}
+				return ""
+			},
+			Style: chart.Style{
+				FontSize: 15,
+			},
+		},
+		BarSpacing: 100,
+		BarWidth:   150,
+		Bars:       bars,
+	}
+
+	f, err := os.Create("percentage.png")
 	if err != nil {
 		return
 	}
-	w := vg.Points(20)
-	p.Title.Text = "Heuristics effectiveness"
-	p.Y.Label.Text = "Percentage"
-	p.Y.Min = 0
-	p.Y.Max = 100
-	// p.X.Label.Text = "Heuristics"
-
-	for h := 0; h < len(percentages); h++ {
-		bar, e := plotter.NewBarChart(plotter.Values{percentages[h] * 100}, w)
-		if e != nil {
-			err = e
-			return
-		}
-		bar.LineStyle.Width = vg.Length(0)
-		bar.Color = plotutil.Color(h)
-		// bar.Offset = -w
-		bar.Offset = -w * vg.Length(h)
-		p.Add(bar)
-		p.Legend.Add(heuristics.Heuristic(h).String(), bar)
-	}
-
-	p.Legend.Top = true
-	p.HideX()
-	// p.NominalX(heuristics.List()...)
-	err = p.Save(5*vg.Inch, 3*vg.Inch, "barchart.png")
+	defer f.Close()
+	err = stackedBarChart.Render(chart.PNG, f)
 	return
 }

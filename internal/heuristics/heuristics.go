@@ -3,6 +3,7 @@ package heuristics
 import (
 	"math"
 
+	"github.com/wcharczuk/go-chart/drawing"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/backward"
@@ -60,7 +61,7 @@ func (h Heuristic) String() string {
 
 // Abbreviation returnes vulnerable function to be applied to analysis
 func Abbreviation(a string) string {
-	functions := map[string]string{
+	abbreviations := map[string]string{
 		"locktime": "Locktime",
 		"peeling":  "Peeling Chain",
 		"power":    "Power of Ten",
@@ -73,7 +74,25 @@ func Abbreviation(a string) string {
 		"forward":  "Forward",
 		"backward": "Backward",
 	}
-	return functions[a]
+	return abbreviations[a]
+}
+
+// Color returnes color corresponding to each heuristic
+func Color(a string) drawing.Color {
+	colors := map[string]drawing.Color{
+		"Locktime":         drawing.Color{R: 235, G: 255, B: 162},
+		"Peeling Chain":    drawing.Color{R: 0, G: 128, B: 128},
+		"Power of Ten":     drawing.Color{R: 141, G: 0, B: 0},
+		"Optimal Change":   drawing.Color{R: 201, G: 152, B: 0},
+		"Exact Amount":     drawing.Color{R: 86, G: 212, B: 101},
+		"Address Type":     drawing.Color{R: 64, G: 0, B: 64},
+		"Address Reuse":    drawing.Color{R: 0, G: 255, B: 159},
+		"Shadow":           drawing.Color{R: 203, G: 12, B: 89},
+		"Client Behaviour": drawing.Color{R: 12, G: 67, B: 131},
+		"Forward":          drawing.Color{R: 234, G: 124, B: 76},
+		"Backward":         drawing.Color{R: 104, G: 52, B: 171},
+	}
+	return colors[a]
 }
 
 // List returnes the list of heuristics

@@ -128,7 +128,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, export bool) (vuln Graph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln Graph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -217,10 +217,18 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 		vuln = mergeChunks(analyzed...).Vulnerabilites
 	}
 
-	if export {
+	switch chart {
+	case "timeline":
 		data := heuristics.ExtractPercentages(vuln, heuristicsList, from, to)
 		err = PlotHeuristicsTimeline(data, from, heuristicsList)
-	} else {
+	case "percentage":
+		data := heuristics.ExtractGlobalPercentages(vuln, heuristicsList, from, to)
+		title := "Heuristics percentages"
+		if len(heuristicsList) == 1 {
+			title = heuristicsList[0] + " percentage"
+		}
+		err = plot.BarChart(title, heuristicsList, data)
+	default:
 		data := heuristics.ExtractGlobalPercentages(vuln, heuristicsList, from, to)
 		err = GlobalPercentages(data, heuristicsList)
 	}

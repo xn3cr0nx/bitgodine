@@ -35,7 +35,7 @@ func Routes(g *echo.Group) *echo.Group {
 			From  int32    `query:"from" validate:"omitempty,gte=0"`
 			To    int32    `query:"to" validate:"omitempty,gtfield=From"`
 			List  []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-			Plot  bool     `query:"plot" validate:"omitempty"`
+			Plot  string   `query:"plot" validate:"omitempty,oneof=timeline percentage"`
 			Force bool     `query:"force" validate:"omitempty"`
 		}
 		q := new(Query)
@@ -56,8 +56,8 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 
-		if q.Plot {
-			return c.File("plot.png")
+		if q.Plot != "" {
+			return c.File(q.Plot + ".png")
 		}
 		return c.JSON(http.StatusOK, vuln)
 	})

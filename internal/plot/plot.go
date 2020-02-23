@@ -18,18 +18,20 @@ type Coordinates struct {
 func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates) (err error) {
 	var lines []chart.Series
 	for k, coordinates := range data {
-		lines = append(lines, chart.ContinuousSeries{
+		line := chart.ContinuousSeries{
 			Name:            k,
 			XValues:         coordinates.X,
 			XValueFormatter: chart.FloatValueFormatter,
 			YValues:         coordinates.Y,
 			YValueFormatter: chart.PercentValueFormatter,
-			// Style: chart.Style{
-			// 	// StrokeWidth: .01,
-			// 	FillColor:   heuristics.Color(k),
-			// 	StrokeColor: heuristics.Color(k),
-			// },
-		})
+		}
+		if len(data) == 1 {
+			// for k := range data {
+			line.Style.FillColor = chart.GetDefaultColor(0)
+			line.Style.StrokeColor = chart.GetDefaultColor(0)
+			// }
+		}
+		lines = append(lines, line)
 	}
 
 	graph := chart.Chart{
@@ -116,7 +118,6 @@ func BarChart(title string, xLabel []string, percentages []float64) (err error) 
 				Max: 1,
 			},
 			ValueFormatter: func(v interface{}) string {
-				fmt.Println("wt", v)
 				if vf, isFloat := v.(float64); isFloat {
 					return fmt.Sprintf("%0.f", vf*float64(100))
 				}

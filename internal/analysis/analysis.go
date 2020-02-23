@@ -157,9 +157,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 	lock := sync.RWMutex{}
 	vuln = make(map[int32]map[string]byte, to-from+1)
 	for _, r := range ranges {
-		if r.From == r.To {
-			continue
-		}
+		// if r.From == r.To {
+		// 	continue
+		// }
 		for i := r.From; i <= r.To; i++ {
 			block, e := db.GetBlockFromHeight(i)
 			if e != nil {

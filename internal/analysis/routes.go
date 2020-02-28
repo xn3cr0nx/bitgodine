@@ -37,6 +37,7 @@ func Routes(g *echo.Group) *echo.Group {
 			List  []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
 			Plot  string   `query:"plot" validate:"omitempty,oneof=timeline percentage"`
 			Force bool     `query:"force" validate:"omitempty"`
+			Type  string   `query:"type" validate:"omitempty,oneof=offbyone"`
 		}
 		q := new(Query)
 		if err := validator.Struct(&c, q); err != nil {
@@ -51,15 +52,23 @@ func Routes(g *echo.Group) *echo.Group {
 			list = heuristics.List()
 		}
 
-		vuln, err := AnalyzeBlocks(&c, q.From, q.To, list, q.Force, q.Plot)
-		if err != nil {
-			return err
+		if q.Type == "offbyone" {
+			err := offByOneAnalysis(&c, 0, 220250, list, q.Plot)
+			if err != nil {
+				return err
+			}
+			if q.Plot != "" {
+				return c.File(q.Plot + ".png")
+			}
+		} else {
+			vuln, err := AnalyzeBlocks(&c, q.From, q.To, list, q.Force, q.Plot)
+			if err != nil {
+				return err
+			}
+			return c.JSON(http.StatusOK, vuln)
 		}
 
-		if q.Plot != "" {
-			return c.File(q.Plot + ".png")
-		}
-		return c.JSON(http.StatusOK, vuln)
+		return c.JSON(http.StatusOK, "ok")
 	})
 
 	return r

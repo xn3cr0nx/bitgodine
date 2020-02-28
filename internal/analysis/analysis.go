@@ -12,11 +12,18 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/locktime"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/optimal"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/peeling"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/power"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/reuse"
+	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/shadow"
+	class "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/type"
 	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
 	"github.com/xn3cr0nx/bitgodine_server/internal/task"
 )
@@ -53,13 +60,127 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	return
 }
 
+// TxChange apply tx analysis and inferes transaction change output
+func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[string]uint32, err error) {
+	// ca := (*c).Get("cache").(*cache.Cache)
+	// if res, ok := ca.Get("v_" + txid); ok {
+	// 	vuln = res.(byte)
+	// 	return
+	// }
+	// kv := (*c).Get("kv").(*badger.Badger)
+	// if v, e := kv.Read(txid); e == nil {
+	// 	vuln = v[0]
+	// 	return
+	// }
+	db := (*c).Get("db").(storage.DB)
+	tx, err := db.GetTx(txid)
+	if err != nil {
+		if err.Error() == "transaction not found" {
+			err = echo.NewHTTPError(http.StatusNotFound, err)
+		}
+		return
+	}
+
+	if (len(tx.Vin) == 1 && tx.Vin[0].IsCoinbase) || len(tx.Vout) <= 1 {
+		err = errors.New("Not feasible transaction")
+		return
+	}
+
+	vout = make(map[string]uint32, len(heuristicsList))
+	for _, heuristic := range heuristicsList {
+		switch heuristic {
+		case "Locktime":
+			c, e := locktime.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Peeling Chain":
+			c, e := peeling.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			vout[heuristic] = c
+		case "Power of Ten":
+			c, e := power.ChangeOutput(&tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Optimal Change":
+			c, e := optimal.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Address Type":
+			c, e := class.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Address Reuse":
+			c, e := reuse.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Shadow":
+			c, e := shadow.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+		case "Client Behaviour":
+			c, e := behaviour.ChangeOutput(db, &tx)
+			if e != nil {
+				break
+			}
+			if len(c) == 1 {
+				vout[heuristic] = c[0]
+			}
+			// case "Forward":
+			// 	c, e := forward.ChangeOutput(db, &tx)
+			// 	if e != nil {
+			// 		break
+			// 	}
+			// case "Backward":
+			// 	c, e := backward.ChangeOutput(db, &tx)
+			// 	if e != nil {
+			// 		break
+			// 	}
+			// }
+		}
+	}
+
+	// if err = kv.Store(txid, []byte{vuln}); err != nil {
+	// 	return
+	// }
+	// if !ca.Set("v_"+txid, vuln, 1) {
+	// 	(*c).Logger().Error(err)
+	// }
+	return
+}
+
 // Worker wrapper to partecipate in task pool
 type Worker struct {
 	db             storage.DB
 	height         int32
 	tx             models.Tx
 	lock           *sync.RWMutex
-	vuln           Graph
+	vuln           MaskedGraph
 	heuristicsList []string
 }
 
@@ -81,54 +202,8 @@ func (w *Worker) Work() {
 	w.lock.Unlock()
 }
 
-// Graph alias for struct describing blockchain graph based on vulnerabilities mask
-type Graph map[int32]map[string]byte
-
-// Chunk struct with info on previous analyzed blocks slice
-type Chunk struct {
-	Range          `json:"range,omitempty"`
-	Vulnerabilites Graph `json:"vulnerabilities,omitempty"`
-}
-
-func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (intervals []Chunk) {
-	if to-from >= interval {
-		upper := upperBoundary(from, interval)
-		lower := lowerBoundary(to, interval)
-		fmt.Println("restoring in range", upper, lower, interval)
-		for i := upper; i < lower; i += interval {
-			r, err := kv.Read(fmt.Sprintf("int%d-%d", i, i+interval))
-			fmt.Println("read range", i, i+interval, err)
-			if err != nil {
-				break
-			}
-			var analyzed Chunk
-			err = encoding.Unmarshal(r, &analyzed)
-			if err != nil {
-				logger.Error("Analysis", err, logger.Params{})
-				break
-			}
-			intervals = append(intervals, analyzed)
-		}
-	} else {
-		lower := lowerBoundary(from, interval)
-		upper := upperBoundary(to, interval)
-		r, err := kv.Read(fmt.Sprintf("int%d-%d", lower, upper))
-		if err != nil {
-			return
-		}
-		var analyzed Chunk
-		err = encoding.Unmarshal(r, &analyzed)
-		if err != nil {
-			logger.Error("Analysis", err, logger.Params{})
-		}
-		analyzed.Vulnerabilites = subGraph(analyzed.Vulnerabilites, from, to)
-		intervals = []Chunk{analyzed}
-	}
-	return
-}
-
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln Graph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln MaskedGraph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -219,17 +294,17 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 
 	switch chart {
 	case "timeline":
-		data := heuristics.ExtractPercentages(vuln, heuristicsList, from, to)
+		data := vuln.ExtractPercentages(heuristicsList, from, to)
 		err = PlotHeuristicsTimeline(data, from, heuristicsList)
 	case "percentage":
-		data := heuristics.ExtractGlobalPercentages(vuln, heuristicsList, from, to)
+		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		title := "Heuristics percentages"
 		if len(heuristicsList) == 1 {
 			title = heuristicsList[0] + " percentage"
 		}
 		err = plot.BarChart(title, heuristicsList, data)
 	default:
-		data := heuristics.ExtractGlobalPercentages(vuln, heuristicsList, from, to)
+		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		err = GlobalPercentages(data, heuristicsList)
 	}
 
@@ -270,6 +345,65 @@ func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList 
 		title = heuristicsList[0] + " timeline"
 	}
 	err = plot.MultipleLineChart(title, "blocks", "heuristics effectiveness", coordinates)
+
+	return
+}
+
+func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList []string, chart string) (err error) {
+	db := (*c).Get("db").(storage.DB)
+	if db == nil {
+		err = errors.New("db not initialized")
+		return
+	}
+	// kv := (*c).Get("kv").(*badger.Badger)
+	// if kv == nil {
+	// 	err = errors.New("kv storage not initialized")
+	// 	return
+	// }
+
+	vuln := make(HeuristicGraph, from-to+1)
+	for i := from; i <= to; i++ {
+		block, e := db.GetBlockFromHeight(i)
+		if e != nil {
+			if e.Error() == "Key not found" {
+				break
+			}
+			err = e
+			return
+		}
+		if block.Height%1000 == 0 {
+			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
+		}
+
+		vuln[block.Height] = make(map[string]map[string]uint32, len(block.Transactions))
+		for _, txID := range block.Transactions {
+			changeOutputs, e := TxChange(c, txID, heuristicsList)
+			if e != nil {
+				if e.Error() == "Not feasible transaction" {
+					continue
+				}
+				err = e
+				return
+			}
+			vuln[block.Height][txID] = changeOutputs
+		}
+	}
+
+	switch chart {
+	case "timeline":
+		data := vuln.ExtractPercentages(heuristicsList, from, to)
+		err = PlotHeuristicsTimeline(data, from, heuristicsList)
+	case "percentage":
+		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		title := "Heuristics percentages"
+		if len(heuristicsList) == 1 {
+			title = heuristicsList[0] + " percentage"
+		}
+		err = plot.BarChart(title, heuristicsList, data)
+	default:
+		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		err = GlobalPercentages(data, heuristicsList)
+	}
 
 	return
 }

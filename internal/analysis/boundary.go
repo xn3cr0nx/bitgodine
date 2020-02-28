@@ -1,13 +1,5 @@
 package analysis
 
-import (
-	"fmt"
-
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-)
-
 // Range wrapper for blocks interval boundaries
 type Range struct {
 	From int32 `json:"from,omitempty"`
@@ -53,51 +45,9 @@ func updateRange(from, to int32, analyzed []Chunk, force bool) (ranges []Range) 
 	return
 }
 
-// storeRange stores sub chunks of analysis graph based on the interval
-func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph) (err error) {
-	upper := upperBoundary(r.From, interval)
-	lower := lowerBoundary(r.To, interval)
-	if lower-upper >= interval {
-		for i := upper; i < lower; i += interval {
-			fmt.Println("storing chunk", i, i+interval)
-			var analyzed Chunk
-			analyzed.From = i
-			analyzed.To = i + interval
-			analyzed.Vulnerabilites = subGraph(vuln, i, i+interval)
-			var a []byte
-			a, err = encoding.Marshal(analyzed)
-			if err != nil {
-				return
-			}
-			if err = kv.Store(fmt.Sprintf("int%d-%d", i, i+interval), a); err != nil {
-				return
-			}
-		}
-	}
-	return
-}
-
-// updateStoredRange updates sub chunks of analysis graph based on the interval with new analysis
-func updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk, vuln Graph) (newVuln Graph) {
-	if len(analyzed) == 0 {
-		return vuln
-	}
-	newRange := Range{From: analyzed[0].From, To: analyzed[len(analyzed)-1].To}
-	newVuln = make(Graph, newRange.To-newRange.From+1)
-	for _, a := range analyzed {
-		for i := a.From; i <= a.To; i++ {
-			newVuln[i] = make(map[string]byte, len(a.Vulnerabilites[i]))
-			for tx, v := range a.Vulnerabilites[i] {
-				newVuln[i][tx] = heuristics.MergeMask(v, vuln[i][tx])
-			}
-		}
-	}
-	return
-}
-
 // subGraph returnes a graph interval between from and to
-func subGraph(g Graph, from, to int32) (sub Graph) {
-	sub = make(Graph, to-from+1)
+func subGraph(g MaskedGraph, from, to int32) (sub MaskedGraph) {
+	sub = make(MaskedGraph, to-from+1)
 	for h, a := range g {
 		if h >= from && h <= to {
 			sub[h] = a
@@ -107,8 +57,8 @@ func subGraph(g Graph, from, to int32) (sub Graph) {
 }
 
 // mergeGraphs returnes the union of multiple graphs
-func mergeGraphs(args ...Graph) (merged Graph) {
-	merged = make(Graph)
+func mergeGraphs(args ...MaskedGraph) (merged MaskedGraph) {
+	merged = make(MaskedGraph)
 	for _, arg := range args {
 		for height, txs := range arg {
 			merged[height] = txs
@@ -120,7 +70,7 @@ func mergeGraphs(args ...Graph) (merged Graph) {
 // mergeChunks returns the union of multiple chunks
 func mergeChunks(args ...Chunk) (merged Chunk) {
 	merged = Chunk{
-		Vulnerabilites: make(Graph),
+		Vulnerabilites: make(MaskedGraph),
 	}
 	min, max := args[0].From, args[0].To
 	for _, chunk := range args {

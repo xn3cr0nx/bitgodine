@@ -4,12 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime"
 	"sync"
 
 	"github.com/labstack/echo/v4"
-	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
@@ -24,7 +22,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/reuse"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/shadow"
 	class "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/type"
-	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
 	"github.com/xn3cr0nx/bitgodine_server/internal/task"
 )
 
@@ -232,9 +229,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 	lock := sync.RWMutex{}
 	vuln = make(map[int32]map[string]byte, to-from+1)
 	for _, r := range ranges {
-		// if r.From == r.To {
-		// 	continue
-		// }
 		for i := r.From; i <= r.To; i++ {
 			block, e := db.GetBlockFromHeight(i)
 			if e != nil {
@@ -292,60 +286,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 		vuln = mergeChunks(analyzed...).Vulnerabilites
 	}
 
-	switch chart {
-	case "timeline":
-		data := vuln.ExtractPercentages(heuristicsList, from, to)
-		err = PlotHeuristicsTimeline(data, from, heuristicsList)
-	case "percentage":
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
-		title := "Heuristics percentages"
-		if len(heuristicsList) == 1 {
-			title = heuristicsList[0] + " percentage"
-		}
-		err = plot.BarChart(title, heuristicsList, data)
-	default:
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
-		err = GlobalPercentages(data, heuristicsList)
-	}
-
-	return
-}
-
-// GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
-func GlobalPercentages(data []float64, heuristicsList []string) (err error) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Heuristic", "%"})
-	// table.SetBorder(false)
-	table.SetCaption(true, "Heuristics success rate")
-	for h, perc := range data {
-		table.Append([]string{heuristicsList[h], fmt.Sprintf("%4.2f", perc*100)})
-	}
-	table.Render()
-	return
-}
-
-// PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
-func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList []string) (err error) {
-	coordinates := make(map[string]plot.Coordinates)
-	x := make([]float64, len(data))
-	for height := range data {
-		x[height-min] = float64(height)
-	}
-
-	for h, heuristic := range heuristicsList {
-		y := make([]float64, len(data))
-		for height, vulnerabilites := range data {
-			y[int(height-min)] = vulnerabilites[h] + float64(h)
-		}
-		coordinates[heuristic] = plot.Coordinates{X: x, Y: y}
-	}
-
-	title := "Heuristics timeline"
-	if len(heuristicsList) == 1 {
-		title = heuristicsList[0] + " timeline"
-	}
-	err = plot.MultipleLineChart(title, "blocks", "heuristics effectiveness", coordinates)
-
+	err = generateOutput(vuln, chart, heuristicsList, from, to)
 	return
 }
 
@@ -389,21 +330,6 @@ func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList []string, 
 		}
 	}
 
-	switch chart {
-	case "timeline":
-		data := vuln.ExtractPercentages(heuristicsList, from, to)
-		err = PlotHeuristicsTimeline(data, from, heuristicsList)
-	case "percentage":
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
-		title := "Heuristics percentages"
-		if len(heuristicsList) == 1 {
-			title = heuristicsList[0] + " percentage"
-		}
-		err = plot.BarChart(title, heuristicsList, data)
-	default:
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
-		err = GlobalPercentages(data, heuristicsList)
-	}
-
+	err = generateOutput(vuln, chart, heuristicsList, from, to)
 	return
 }

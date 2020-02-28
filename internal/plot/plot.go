@@ -140,3 +140,62 @@ func BarChart(title string, xLabel []string, percentages []float64) (err error) 
 	err = stackedBarChart.Render(chart.PNG, f)
 	return
 }
+
+// // MultipleBarChart saves a multiple barchart based on x and y data passed to the function
+// func MultipleBarChart(title, xLabel, yLabel string, data map[string]Coordinates) (err error) {
+// 	// bars := make(map[string][]chart.Value, len(data))
+// 	var bars []chart.Value
+// 	for _, coordinates := range data {
+// 		for _, x := range coordinates.X {
+// 			// bars[k] = append(bars[k], chart.Value{
+// 			// 	Value: x,
+// 			// 	Label: coordinates.Y[i],
+// 			// })
+// 			bars = append(bars, chart.Value{
+// 				Value: x,
+// 				Label: coordinates.Y[i],
+// 			})
+// 		}
+// 	}
+
+// 	stackedBarChart := chart.BarChart{
+// 		Title:      title,
+// 		TitleStyle: chart.Shown(),
+// 		Background: chart.Style{
+// 			Padding: chart.Box{
+// 				Top: 100,
+// 			},
+// 		},
+// 		Width:  1920,
+// 		Height: 1080,
+// 		XAxis: chart.Style{
+// 			FontSize: 15,
+// 		},
+// 		YAxis: chart.YAxis{
+// 			Range: &chart.ContinuousRange{
+// 				Min: 0,
+// 				Max: 1,
+// 			},
+// 			ValueFormatter: func(v interface{}) string {
+// 				if vf, isFloat := v.(float64); isFloat {
+// 					return fmt.Sprintf("%0.f", vf*float64(100))
+// 				}
+// 				return ""
+// 			},
+// 			Style: chart.Style{
+// 				FontSize: 15,
+// 			},
+// 		},
+// 		BarSpacing: 100,
+// 		BarWidth:   150,
+// 		Bars:       bars,
+// 	}
+
+// 	f, err := os.Create("timebar.png")
+// 	if err != nil {
+// 		return
+// 	}
+// 	defer f.Close()
+// 	err = stackedBarChart.Render(chart.PNG, f)
+// 	return
+// }

@@ -61,7 +61,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 }
 
 // TxChange apply tx analysis and inferes transaction change output
-func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout HeuristicChangeAnalysis, err error) {
+func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask) (vout HeuristicChangeAnalysis, err error) {
 	// ca := (*c).Get("cache").(*cache.Cache)
 	// if res, ok := ca.Get("v_" + txid); ok {
 	// 	vuln = res.(byte)
@@ -86,70 +86,70 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 		return
 	}
 
-	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList))
-	for _, heuristic := range heuristicsList {
+	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToHeuristicList()))
+	for _, heuristic := range heuristicsList.ToHeuristicList() {
 		switch heuristic {
-		case "Locktime":
+		case 0:
 			c, e := locktime.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Peeling Chain":
+		case 1:
 			c, e := peeling.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
-			vout[heuristics.Index(heuristic)] = c
-		case "Power of Ten":
+			vout[heuristic] = c
+		case 2:
 			c, e := power.ChangeOutput(&tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Optimal Change":
+		case 3:
 			c, e := optimal.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Address Type":
+		case 4:
 			c, e := class.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Address Reuse":
+		case 5:
 			c, e := reuse.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Shadow":
+		case 6:
 			c, e := shadow.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
-		case "Client Behaviour":
+		case 7:
 			c, e := behaviour.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.Index(heuristic)] = c[0]
+				vout[heuristic] = c[0]
 			}
 			// case "Forward":
 			// 	c, e := forward.ChangeOutput(db, &tx)
@@ -181,7 +181,7 @@ type Worker struct {
 	tx             models.Tx
 	lock           *sync.RWMutex
 	vuln           MaskGraph
-	heuristicsList []string
+	heuristicsList heuristics.Mask
 }
 
 // Work method to make Worker compatible with task pool worker interface
@@ -189,7 +189,7 @@ func (w *Worker) Work() {
 	if len(w.tx.Vout) <= 1 {
 		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
 		w.lock.Lock()
-		w.vuln[w.height][w.tx.TxID] = 0
+		w.vuln[w.height][w.tx.TxID] = heuristics.MaskFromPower(0)
 		w.lock.Unlock()
 		return
 	}
@@ -203,7 +203,7 @@ func (w *Worker) Work() {
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln MaskGraph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, force bool, chart string) (vuln MaskGraph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -293,7 +293,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 	return
 }
 
-func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList []string, chart string) (err error) {
+func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, chart string) (err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")

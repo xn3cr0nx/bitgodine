@@ -25,7 +25,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err != nil {
 			return err
 		}
-		h := heuristics.ToList(vuln)
+		h := vuln.ToList()
 		logger.Info("Tx analysis", strings.Join(h, ","), logger.Params{})
 		return c.JSON(http.StatusOK, vuln)
 	})
@@ -44,7 +44,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 
-		var list []string
+		var list []heuristics.Heuristic
 		for _, h := range q.List {
 			list = append(list, heuristics.Abbreviation(h))
 		}
@@ -53,7 +53,7 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 
 		if q.Type == "offbyone" {
-			err := offByOneAnalysis(&c, 0, 220250, list, q.Plot)
+			err := offByOneAnalysis(&c, 0, 220250, heuristics.FromListToMask(list), q.Plot)
 			if err != nil {
 				return err
 			}
@@ -61,7 +61,7 @@ func Routes(g *echo.Group) *echo.Group {
 				return c.File(q.Plot + ".png")
 			}
 		} else {
-			vuln, err := AnalyzeBlocks(&c, q.From, q.To, list, q.Force, q.Plot)
+			vuln, err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Force, q.Plot)
 			if err != nil {
 				return err
 			}

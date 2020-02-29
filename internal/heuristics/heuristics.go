@@ -1,8 +1,6 @@
 package heuristics
 
 import (
-	"math"
-
 	"github.com/wcharczuk/go-chart/drawing"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -31,8 +29,8 @@ const (
 	AddressReuse
 	Shadow
 	ClientBehaviour
-	// Backward
-	// Forward
+	Backward
+	Forward
 )
 
 // SetCardinality returnes the cardinality of the heuristics set
@@ -52,26 +50,26 @@ func (h Heuristic) String() string {
 		"Address Reuse",
 		"Shadow",
 		"Client Behaviour",
-		// "Backward",
-		// "Forward",
+		"Backward",
+		"Forward",
 	}
 	return heuristics[h]
 }
 
 // Abbreviation returnes vulnerable function to be applied to analysis
-func Abbreviation(a string) string {
-	abbreviations := map[string]string{
-		"locktime": "Locktime",
-		"peeling":  "Peeling Chain",
-		"power":    "Power of Ten",
-		"optimal":  "Optimal Change",
-		"exact":    "Exact Amount",
-		"type":     "Address Type",
-		"reuse":    "Address Reuse",
-		"shadow":   "Shadow",
-		"client":   "Client Behaviour",
-		"forward":  "Forward",
-		"backward": "Backward",
+func Abbreviation(a string) Heuristic {
+	abbreviations := map[string]Heuristic{
+		"locktime": Locktime,
+		"peeling":  Peeling,
+		"power":    PowerOfTen,
+		"optimal":  OptimalChange,
+		// "exact":    ExactAmount,
+		"type":     AddressType,
+		"reuse":    AddressReuse,
+		"shadow":   Shadow,
+		"client":   ClientBehaviour,
+		"forward":  Forward,
+		"backward": Backward,
 	}
 	return abbreviations[a]
 }
@@ -95,9 +93,9 @@ func Color(a string) drawing.Color {
 }
 
 // List returnes the list of heuristics
-func List() (heuristics []string) {
+func List() (heuristics []Heuristic) {
 	for h := Heuristic(0); h < SetCardinality(); h++ {
-		heuristics = append(heuristics, h.String())
+		heuristics = append(heuristics, h)
 	}
 	return
 }
@@ -114,57 +112,47 @@ func Index(h string) Heuristic {
 		"Address Reuse":    AddressReuse,
 		"Shadow":           Shadow,
 		"Client Behaviour": ClientBehaviour,
-		// "Forward":          Forward,
-		// "Backward":         Backward,
+		"Forward":          Forward,
+		"Backward":         Backward,
 	}
 	return functions[h]
 }
 
 // VulnerableFunction returnes vulnerable function to be applied to analysis
-func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
-	functions := map[string](func(storage.DB, *models.Tx) bool){
-		"Locktime":       locktime.Vulnerable,
-		"Peeling Chain":  peeling.Vulnerable,
-		"Power of Ten":   power.Vulnerable,
-		"Optimal Change": optimal.Vulnerable,
+func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
+	functions := map[Heuristic](func(storage.DB, *models.Tx) bool){
+		Locktime:      locktime.Vulnerable,
+		Peeling:       peeling.Vulnerable,
+		PowerOfTen:    power.Vulnerable,
+		OptimalChange: optimal.Vulnerable,
 		// "Exact Amount": 		self.Vulnerable,
-		"Address Type":     class.Vulnerable,
-		"Address Reuse":    reuse.Vulnerable,
-		"Shadow":           shadow.Vulnerable,
-		"Client Behaviour": behaviour.Vulnerable,
-		"Forward":          forward.Vulnerable,
-		"Backward":         backward.Vulnerable,
+		AddressType:     class.Vulnerable,
+		AddressReuse:    reuse.Vulnerable,
+		Shadow:          shadow.Vulnerable,
+		ClientBehaviour: behaviour.Vulnerable,
+		Forward:         forward.Vulnerable,
+		Backward:        backward.Vulnerable,
 	}
 	return functions[h]
 }
 
 // Apply applies the heuristic specified to the passed transaction
-func Apply(db storage.DB, tx models.Tx, h string, vuln *Mask) {
-	if VulnerableFunction(h)(db, &tx) {
-		(*vuln) += Mask(math.Pow(2, float64(Index(h))))
+func Apply(db storage.DB, tx models.Tx, h Heuristic, vuln *Mask) {
+	if h.VulnerableFunction()(db, &tx) {
+		vuln.Sum(MaskFromPower(h))
 	}
 }
 
 // ApplyFullSet applies the set of heuristics to the passed transaction
 func ApplyFullSet(db storage.DB, tx models.Tx, vuln *Mask) {
 	for h := Heuristic(0); h < SetCardinality(); h++ {
-		Apply(db, tx, Heuristic(h).String(), vuln)
+		Apply(db, tx, h, vuln)
 	}
 }
 
 // ApplySet applies the set of passed heuristics to the passed transaction
-func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *Mask) {
-	for _, heuristic := range heuristicsList {
+func ApplySet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *Mask) {
+	for _, heuristic := range heuristicsList.ToHeuristicList() {
 		Apply(db, tx, heuristic, vuln)
 	}
-}
-
-// ToList return a list of heuristic names corresponding to vulnerability byte passed
-func ToList(v Mask) (heuristics []string) {
-	for i := Heuristic(0); i < 8; i++ {
-		if v.VulnerableMask(Heuristic(i)) {
-			heuristics = append(heuristics, i.String())
-		}
-	}
-	return
 }

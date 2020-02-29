@@ -4,8 +4,8 @@ import "github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 
 // Graph interface to manage analysis result
 type Graph interface {
-	ExtractPercentages([]string, int32, int32) map[int32][]float64
-	ExtractGlobalPercentages([]string, int32, int32) []float64
+	ExtractPercentages(heuristics.Mask, int32, int32) map[int32][]float64
+	ExtractGlobalPercentages(heuristics.Mask, int32, int32) []float64
 }
 
 // MaskGraph alias for struct describing blockchain graph based on vulnerabilities mask
@@ -21,18 +21,19 @@ type Chunk struct {
 type HeuristicGraph map[int32]map[string]HeuristicChangeAnalysis
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
-func (data MaskGraph) ExtractPercentages(heuristicsList []string, from, to int32) (perc map[int32][]float64) {
+func (data MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
+	list := heuristicsList.ToHeuristicList()
 	for i := from; i <= to; i++ {
-		perc[i] = make([]float64, len(heuristicsList))
-		for h, heuristic := range heuristicsList {
+		perc[i] = make([]float64, len(list))
+		for h, heuristic := range list {
 			counter := 0
 			if len(data[i]) == 0 {
 				perc[i][h] = 0
 				continue
 			}
 			for _, v := range data[i] {
-				if v.VulnerableMask(heuristics.Index(heuristic)) {
+				if v.VulnerableMask(heuristic) {
 					counter++
 				}
 			}
@@ -43,13 +44,14 @@ func (data MaskGraph) ExtractPercentages(heuristicsList []string, from, to int32
 }
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
-func (data MaskGraph) ExtractGlobalPercentages(heuristicsList []string, from, to int32) (perc []float64) {
-	perc = make([]float64, len(heuristicsList))
-	for h, heuristic := range heuristicsList {
+func (data MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	list := heuristicsList.ToHeuristicList()
+	perc = make([]float64, len(list))
+	for h, heuristic := range list {
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range data[i] {
-				if v.VulnerableMask(heuristics.Index(heuristic)) {
+				if v.VulnerableMask(heuristic) {
 					counter++
 				}
 				tot++
@@ -61,14 +63,15 @@ func (data MaskGraph) ExtractGlobalPercentages(heuristicsList []string, from, to
 }
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
-func (data HeuristicGraph) ExtractPercentages(heuristicsList []string, from, to int32) (perc map[int32][]float64) {
+func (data HeuristicGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
+	list := heuristicsList.ToHeuristicList()
 	for i := from; i <= to; i++ {
-		perc[i] = make([]float64, len(heuristicsList))
-		for h, heuristic := range heuristicsList {
+		perc[i] = make([]float64, len(list))
+		for h, heuristic := range list {
 			counter := 0
 			for _, v := range data[i] {
-				if change, ok := v[heuristics.Index(heuristic)]; ok {
+				if change, ok := v[heuristic]; ok {
 					if change == 0 {
 						counter++
 					}
@@ -81,13 +84,14 @@ func (data HeuristicGraph) ExtractPercentages(heuristicsList []string, from, to 
 }
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
-func (data HeuristicGraph) ExtractGlobalPercentages(heuristicsList []string, from, to int32) (perc []float64) {
-	perc = make([]float64, len(heuristicsList))
-	for h, heuristic := range heuristicsList {
+func (data HeuristicGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	list := heuristicsList.ToHeuristicList()
+	perc = make([]float64, len(list))
+	for h, heuristic := range list {
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range data[i] {
-				if change, ok := v[heuristics.Index(heuristic)]; ok {
+				if change, ok := v[heuristic]; ok {
 					if change == 0 {
 						counter++
 					}

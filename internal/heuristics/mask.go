@@ -26,3 +26,41 @@ func (v Mask) Bytes() []byte {
 func MaskFromBytes(v []byte) Mask {
 	return Mask(v[0])
 }
+
+// MaskFromPower returnes the mask byte from the power of 2
+func MaskFromPower(h Heuristic) Mask {
+	return Mask(math.Pow(2, float64(h)))
+}
+
+// Sum returnes the updated base mask
+func (v *Mask) Sum(m Mask) Mask {
+	return (*v) + m
+}
+
+// ToList return a list of heuristic names corresponding to vulnerability byte passed
+func (v Mask) ToList() (heuristics []string) {
+	for i := Heuristic(0); i < 8; i++ {
+		if v.VulnerableMask(Heuristic(i)) {
+			heuristics = append(heuristics, i.String())
+		}
+	}
+	return
+}
+
+// ToHeuristicList return a list of heuristic integers corresponding to vulnerability byte passed
+func (v Mask) ToHeuristicList() (heuristics []Heuristic) {
+	for i := Heuristic(0); i < 8; i++ {
+		if v.VulnerableMask(Heuristic(i)) {
+			heuristics = append(heuristics, i)
+		}
+	}
+	return
+}
+
+// FromListToMask convert list of heuristics to mask type
+func FromListToMask(list []Heuristic) (m Mask) {
+	for _, h := range list {
+		m = m.Sum(MaskFromPower(h))
+	}
+	return
+}

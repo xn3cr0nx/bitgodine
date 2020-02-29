@@ -28,19 +28,16 @@ import (
 // HeuristicChangeAnalysis analysis output map for heuristics change output
 type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
 
-// HeuristicMaskAnalysis analysis output map for heuristics vulnerability mask
-type HeuristicMaskAnalysis map[heuristics.Heuristic]byte
-
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
-func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
+func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 	ca := (*c).Get("cache").(*cache.Cache)
 	if res, ok := ca.Get("v_" + txid); ok {
-		vuln = res.(byte)
+		vuln = res.(heuristics.Mask)
 		return
 	}
 	kv := (*c).Get("kv").(*badger.Badger)
 	if v, e := kv.Read(txid); e == nil {
-		vuln = v[0]
+		vuln = heuristics.Mask(v[0])
 		return
 	}
 	db := (*c).Get("db").(storage.DB)
@@ -54,7 +51,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 
 	heuristics.ApplyFullSet(db, tx, &vuln)
 
-	if err = kv.Store(txid, []byte{vuln}); err != nil {
+	if err = kv.Store(txid, []byte{byte(vuln)}); err != nil {
 		return
 	}
 	if !ca.Set("v_"+txid, vuln, 1) {
@@ -197,7 +194,7 @@ func (w *Worker) Work() {
 		return
 	}
 
-	var v byte
+	var v heuristics.Mask
 	heuristics.ApplySet(w.db, w.tx, w.heuristicsList, &v)
 
 	w.lock.Lock()
@@ -233,7 +230,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 
 	pool := task.New(runtime.NumCPU() * 3)
 	lock := sync.RWMutex{}
-	vuln = make(map[int32]map[string]byte, to-from+1)
+	vuln = make(MaskGraph, to-from+1)
 	for _, r := range ranges {
 		for i := r.From; i <= r.To; i++ {
 			block, e := db.GetBlockFromHeight(i)
@@ -249,7 +246,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, for
 			}
 
 			lock.Lock()
-			vuln[block.Height] = make(map[string]byte, len(block.Transactions))
+			vuln[block.Height] = make(map[string]heuristics.Mask, len(block.Transactions))
 			lock.Unlock()
 			for _, txID := range block.Transactions {
 				tx, e := db.GetTx(txID)

@@ -41,7 +41,6 @@ const (
 // SetCardinality returnes the cardinality of the heuristics set
 func SetCardinality() Heuristic {
 	// return int(Forward) + 1
-	// return int(Backward) + 1
 	return ClientBehaviour + 1
 }
 
@@ -143,28 +142,28 @@ func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 }
 
 // Apply applies the heuristic specified to the passed transaction
-func Apply(db storage.DB, tx models.Tx, h string, vuln *byte) {
+func Apply(db storage.DB, tx models.Tx, h string, vuln *Mask) {
 	if VulnerableFunction(h)(db, &tx) {
-		(*vuln) += byte(math.Pow(2, float64(Index(h))))
+		(*vuln) += Mask(math.Pow(2, float64(Index(h))))
 	}
 }
 
 // ApplyFullSet applies the set of heuristics to the passed transaction
-func ApplyFullSet(db storage.DB, tx models.Tx, vuln *byte) {
+func ApplyFullSet(db storage.DB, tx models.Tx, vuln *Mask) {
 	for h := Heuristic(0); h < SetCardinality(); h++ {
 		Apply(db, tx, Heuristic(h).String(), vuln)
 	}
 }
 
 // ApplySet applies the set of passed heuristics to the passed transaction
-func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *byte) {
+func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *Mask) {
 	for _, heuristic := range heuristicsList {
 		Apply(db, tx, heuristic, vuln)
 	}
 }
 
 // ToList return a list of heuristic names corresponding to vulnerability byte passed
-func ToList(v byte) (heuristics []string) {
+func ToList(v Mask) (heuristics []string) {
 	for i := Heuristic(0); i < 8; i++ {
 		if VulnerableMask(v, Heuristic(i)) {
 			heuristics = append(heuristics, i.String())
@@ -175,12 +174,12 @@ func ToList(v byte) (heuristics []string) {
 
 // VulnerableMask uses bitwise AND operation to apply a mask to vulnerabilities byte to extract value bit by bit
 // and returnes true if the vuln byte is vulnerable to passed heuristic
-func VulnerableMask(v byte, h Heuristic) bool {
-	return v&byte(math.Pow(2, float64(h))) > 0
+func VulnerableMask(v Mask, h Heuristic) bool {
+	return v&Mask(math.Pow(2, float64(h))) > 0
 }
 
 // MergeMask uses bitwise OR operation to apply a mask to vulnerabilities byte to merge a new mask with updated heuristics
 // bit and return the merge between original byte with updated bits
-func MergeMask(source byte, update byte) byte {
+func MergeMask(source Mask, update Mask) Mask {
 	return source | update
 }

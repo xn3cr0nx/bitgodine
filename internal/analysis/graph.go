@@ -9,7 +9,7 @@ type Graph interface {
 }
 
 // MaskGraph alias for struct describing blockchain graph based on vulnerabilities mask
-type MaskGraph map[int32]map[string]byte
+type MaskGraph map[int32]map[string]heuristics.Mask
 
 // Chunk struct with info on previous analyzed blocks slice
 type Chunk struct {

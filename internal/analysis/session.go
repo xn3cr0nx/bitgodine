@@ -81,7 +81,7 @@ func updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk, vul
 		for i := a.From; i <= a.To; i++ {
 			newVuln[i] = make(map[string]heuristics.Mask, len(a.Vulnerabilites[i]))
 			for tx, v := range a.Vulnerabilites[i] {
-				newVuln[i][tx] = heuristics.MergeMask(v, vuln[i][tx])
+				newVuln[i][tx] = heuristics.MergeMasks(v, vuln[i][tx])
 			}
 		}
 	}

@@ -37,7 +37,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 	}
 	kv := (*c).Get("kv").(*badger.Badger)
 	if v, e := kv.Read(txid); e == nil {
-		vuln = heuristics.Mask(v[0])
+		vuln = heuristics.MaskFromBytes(v)
 		return
 	}
 	db := (*c).Get("db").(storage.DB)
@@ -51,7 +51,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 
 	heuristics.ApplyFullSet(db, tx, &vuln)
 
-	if err = kv.Store(txid, []byte{byte(vuln)}); err != nil {
+	if err = kv.Store(txid, vuln.Bytes()); err != nil {
 		return
 	}
 	if !ca.Set("v_"+txid, vuln, 1) {

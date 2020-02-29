@@ -32,7 +32,7 @@ func (data MaskGraph) ExtractPercentages(heuristicsList []string, from, to int32
 				continue
 			}
 			for _, v := range data[i] {
-				if heuristics.VulnerableMask(v, heuristics.Index(heuristic)) {
+				if v.VulnerableMask(heuristics.Index(heuristic)) {
 					counter++
 				}
 			}
@@ -49,7 +49,7 @@ func (data MaskGraph) ExtractGlobalPercentages(heuristicsList []string, from, to
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range data[i] {
-				if heuristics.VulnerableMask(v, heuristics.Index(heuristic)) {
+				if v.VulnerableMask(heuristics.Index(heuristic)) {
 					counter++
 				}
 				tot++

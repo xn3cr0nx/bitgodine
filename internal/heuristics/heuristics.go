@@ -21,9 +21,6 @@ import (
 // Heuristic type define a enum on implemented heuristics
 type Heuristic int
 
-// Mask struct to represent heuristics vulnerability mask
-type Mask byte
-
 const (
 	Locktime Heuristic = iota
 	Peeling
@@ -165,21 +162,9 @@ func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *Mask) 
 // ToList return a list of heuristic names corresponding to vulnerability byte passed
 func ToList(v Mask) (heuristics []string) {
 	for i := Heuristic(0); i < 8; i++ {
-		if VulnerableMask(v, Heuristic(i)) {
+		if v.VulnerableMask(Heuristic(i)) {
 			heuristics = append(heuristics, i.String())
 		}
 	}
 	return
-}
-
-// VulnerableMask uses bitwise AND operation to apply a mask to vulnerabilities byte to extract value bit by bit
-// and returnes true if the vuln byte is vulnerable to passed heuristic
-func VulnerableMask(v Mask, h Heuristic) bool {
-	return v&Mask(math.Pow(2, float64(h))) > 0
-}
-
-// MergeMask uses bitwise OR operation to apply a mask to vulnerabilities byte to merge a new mask with updated heuristics
-// bit and return the merge between original byte with updated bits
-func MergeMask(source Mask, update Mask) Mask {
-	return source | update
 }

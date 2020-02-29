@@ -25,7 +25,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err != nil {
 			return err
 		}
-		h := vuln.ToList()
+		h := vuln.ToHeuristicsList()
 		logger.Info("Tx analysis", strings.Join(h, ","), logger.Params{})
 		return c.JSON(http.StatusOK, vuln)
 	})

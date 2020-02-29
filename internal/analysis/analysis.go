@@ -86,8 +86,8 @@ func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask) (vou
 		return
 	}
 
-	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToHeuristicList()))
-	for _, heuristic := range heuristicsList.ToHeuristicList() {
+	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToList()))
+	for _, heuristic := range heuristicsList.ToList() {
 		switch heuristic {
 		case 0:
 			c, e := locktime.ChangeOutput(db, &tx)

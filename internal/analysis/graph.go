@@ -23,7 +23,7 @@ type HeuristicGraph map[int32]map[string]HeuristicChangeAnalysis
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
 func (data MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, len(list))
 		for h, heuristic := range list {
@@ -45,7 +45,7 @@ func (data MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, t
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
 func (data MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
 	for h, heuristic := range list {
 		counter, tot := 0, 0
@@ -65,7 +65,7 @@ func (data MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, f
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
 func (data HeuristicGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, len(list))
 		for h, heuristic := range list {
@@ -85,7 +85,7 @@ func (data HeuristicGraph) ExtractPercentages(heuristicsList heuristics.Mask, fr
 
 // ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
 func (data HeuristicGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
 	for h, heuristic := range list {
 		counter, tot := 0, 0

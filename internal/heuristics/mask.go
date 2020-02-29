@@ -37,21 +37,21 @@ func (v *Mask) Sum(m Mask) Mask {
 	return (*v) + m
 }
 
-// ToList return a list of heuristic names corresponding to vulnerability byte passed
-func (v Mask) ToList() (heuristics []string) {
+// ToList return a list of heuristic integers corresponding to vulnerability byte passed
+func (v Mask) ToList() (heuristics []Heuristic) {
 	for i := Heuristic(0); i < 8; i++ {
 		if v.VulnerableMask(Heuristic(i)) {
-			heuristics = append(heuristics, i.String())
+			heuristics = append(heuristics, i)
 		}
 	}
 	return
 }
 
-// ToHeuristicList return a list of heuristic integers corresponding to vulnerability byte passed
-func (v Mask) ToHeuristicList() (heuristics []Heuristic) {
+// ToHeuristicsList return a list of heuristic names corresponding to vulnerability byte passed
+func (v Mask) ToHeuristicsList() (heuristics []string) {
 	for i := Heuristic(0); i < 8; i++ {
 		if v.VulnerableMask(Heuristic(i)) {
-			heuristics = append(heuristics, i)
+			heuristics = append(heuristics, i.String())
 		}
 	}
 	return

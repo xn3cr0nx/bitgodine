@@ -15,7 +15,7 @@ func GlobalPercentages(data []float64, heuristicsList heuristics.Mask) (err erro
 	table.SetHeader([]string{"Heuristic", "%"})
 	// table.SetBorder(false)
 	table.SetCaption(true, "Heuristics success rate")
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	for h, perc := range data {
 		table.Append([]string{list[h].String(), fmt.Sprintf("%4.2f", perc*100)})
 	}
@@ -30,7 +30,7 @@ func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList 
 	for height := range data {
 		x[height-min] = float64(height)
 	}
-	list := heuristicsList.ToHeuristicList()
+	list := heuristicsList.ToList()
 	for h, heuristic := range list {
 		y := make([]float64, len(data))
 		for height, vulnerabilites := range data {
@@ -56,11 +56,11 @@ func generateOutput(vuln Graph, chart string, heuristicsList heuristics.Mask, fr
 	case "percentage":
 		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		title := "Heuristics percentages"
-		list := heuristicsList.ToHeuristicList()
+		list := heuristicsList.ToList()
 		if len(list) == 1 {
 			title = list[0].String() + " percentage"
 		}
-		err = plot.BarChart(title, heuristicsList.ToList(), data)
+		err = plot.BarChart(title, heuristicsList.ToHeuristicsList(), data)
 	default:
 		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		err = GlobalPercentages(data, heuristicsList)

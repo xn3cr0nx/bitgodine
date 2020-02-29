@@ -113,6 +113,16 @@ func Index(r string) int {
 	return -1
 }
 
+// HeuristicIndex returns the index corresponding the heuristic
+func HeuristicIndex(r string) Heuristic {
+	for i := 0; i <= SetCardinality(); i++ {
+		if Heuristic(i).String() == r {
+			return Heuristic(i)
+		}
+	}
+	return -1
+}
+
 // VulnerableFunction returnes vulnerable function to be applied to analysis
 func VulnerableFunction(h string) func(storage.DB, *models.Tx) bool {
 	functions := map[string](func(storage.DB, *models.Tx) bool){

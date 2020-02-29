@@ -25,6 +25,9 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/task"
 )
 
+// HeuristicChangeAnalysis analysis output map for heuristics change output
+type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
+
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	ca := (*c).Get("cache").(*cache.Cache)
@@ -58,7 +61,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 }
 
 // TxChange apply tx analysis and inferes transaction change output
-func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[string]uint32, err error) {
+func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout HeuristicChangeAnalysis, err error) {
 	// ca := (*c).Get("cache").(*cache.Cache)
 	// if res, ok := ca.Get("v_" + txid); ok {
 	// 	vuln = res.(byte)
@@ -83,7 +86,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 		return
 	}
 
-	vout = make(map[string]uint32, len(heuristicsList))
+	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList))
 	for _, heuristic := range heuristicsList {
 		switch heuristic {
 		case "Locktime":
@@ -92,21 +95,21 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Peeling Chain":
 			c, e := peeling.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
-			vout[heuristic] = c
+			vout[heuristics.HeuristicIndex(heuristic)] = c
 		case "Power of Ten":
 			c, e := power.ChangeOutput(&tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Optimal Change":
 			c, e := optimal.ChangeOutput(db, &tx)
@@ -114,7 +117,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Address Type":
 			c, e := class.ChangeOutput(db, &tx)
@@ -122,7 +125,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Address Reuse":
 			c, e := reuse.ChangeOutput(db, &tx)
@@ -130,7 +133,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Shadow":
 			c, e := shadow.ChangeOutput(db, &tx)
@@ -138,7 +141,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 		case "Client Behaviour":
 			c, e := behaviour.ChangeOutput(db, &tx)
@@ -146,7 +149,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout map[s
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristic] = c[0]
+				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
 			}
 			// case "Forward":
 			// 	c, e := forward.ChangeOutput(db, &tx)
@@ -316,7 +319,7 @@ func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList []string, 
 			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
 		}
 
-		vuln[block.Height] = make(map[string]map[string]uint32, len(block.Transactions))
+		vuln[block.Height] = make(map[string]HeuristicChangeAnalysis, len(block.Transactions))
 		for _, txID := range block.Transactions {
 			changeOutputs, e := TxChange(c, txID, heuristicsList)
 			if e != nil {

@@ -17,6 +17,9 @@ type Chunk struct {
 	Vulnerabilites MaskedGraph `json:"vulnerabilities,omitempty"`
 }
 
+// HeuristicGraph alias for struct describing blockchain graph based on heuristics
+type HeuristicGraph map[int32]map[string]HeuristicChangeAnalysis
+
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
 func (data MaskedGraph) ExtractPercentages(heuristicsList []string, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
@@ -57,9 +60,6 @@ func (data MaskedGraph) ExtractGlobalPercentages(heuristicsList []string, from, 
 	return
 }
 
-// HeuristicGraph alias for struct describing blockchain graph based on heuristics
-type HeuristicGraph map[int32]map[string]map[string]uint32
-
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
 func (data HeuristicGraph) ExtractPercentages(heuristicsList []string, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
@@ -68,7 +68,7 @@ func (data HeuristicGraph) ExtractPercentages(heuristicsList []string, from, to 
 		for h, heuristic := range heuristicsList {
 			counter := 0
 			for _, v := range data[i] {
-				if change, ok := v[heuristic]; ok {
+				if change, ok := v[heuristics.HeuristicIndex(heuristic)]; ok {
 					if change == 0 {
 						counter++
 					}
@@ -87,7 +87,7 @@ func (data HeuristicGraph) ExtractGlobalPercentages(heuristicsList []string, fro
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range data[i] {
-				if change, ok := v[heuristic]; ok {
+				if change, ok := v[heuristics.HeuristicIndex(heuristic)]; ok {
 					if change == 0 {
 						counter++
 					}

@@ -21,6 +21,9 @@ import (
 // Heuristic type define a enum on implemented heuristics
 type Heuristic int
 
+// Mask struct to represent heuristics vulnerability mask
+type Mask byte
+
 const (
 	Locktime Heuristic = iota
 	Peeling
@@ -36,10 +39,10 @@ const (
 )
 
 // SetCardinality returnes the cardinality of the heuristics set
-func SetCardinality() int {
+func SetCardinality() Heuristic {
 	// return int(Forward) + 1
 	// return int(Backward) + 1
-	return int(ClientBehaviour) + 1
+	return ClientBehaviour + 1
 }
 
 func (h Heuristic) String() string {
@@ -97,30 +100,28 @@ func Color(a string) drawing.Color {
 
 // List returnes the list of heuristics
 func List() (heuristics []string) {
-	for h := 0; h < SetCardinality(); h++ {
-		heuristics = append(heuristics, Heuristic(h).String())
+	for h := Heuristic(0); h < SetCardinality(); h++ {
+		heuristics = append(heuristics, h.String())
 	}
 	return
 }
 
 // Index returns the index corresponding the heuristic
-func Index(r string) int {
-	for i := 0; i <= SetCardinality(); i++ {
-		if Heuristic(i).String() == r {
-			return int(i)
-		}
+func Index(h string) Heuristic {
+	functions := map[string](Heuristic){
+		"Locktime":       Locktime,
+		"Peeling Chain":  Peeling,
+		"Power of Ten":   PowerOfTen,
+		"Optimal Change": OptimalChange,
+		// "Exact Amount": 		self.Vulnerable,
+		"Address Type":     AddressType,
+		"Address Reuse":    AddressReuse,
+		"Shadow":           Shadow,
+		"Client Behaviour": ClientBehaviour,
+		// "Forward":          Forward,
+		// "Backward":         Backward,
 	}
-	return -1
-}
-
-// HeuristicIndex returns the index corresponding the heuristic
-func HeuristicIndex(r string) Heuristic {
-	for i := 0; i <= SetCardinality(); i++ {
-		if Heuristic(i).String() == r {
-			return Heuristic(i)
-		}
-	}
-	return -1
+	return functions[h]
 }
 
 // VulnerableFunction returnes vulnerable function to be applied to analysis
@@ -150,7 +151,7 @@ func Apply(db storage.DB, tx models.Tx, h string, vuln *byte) {
 
 // ApplyFullSet applies the set of heuristics to the passed transaction
 func ApplyFullSet(db storage.DB, tx models.Tx, vuln *byte) {
-	for h := 0; h < SetCardinality(); h++ {
+	for h := Heuristic(0); h < SetCardinality(); h++ {
 		Apply(db, tx, Heuristic(h).String(), vuln)
 	}
 }
@@ -164,9 +165,9 @@ func ApplySet(db storage.DB, tx models.Tx, heuristicsList []string, vuln *byte) 
 
 // ToList return a list of heuristic names corresponding to vulnerability byte passed
 func ToList(v byte) (heuristics []string) {
-	for i := 0; i < 8; i++ {
-		if VulnerableMask(v, i) {
-			heuristics = append(heuristics, Heuristic(i).String())
+	for i := Heuristic(0); i < 8; i++ {
+		if VulnerableMask(v, Heuristic(i)) {
+			heuristics = append(heuristics, i.String())
 		}
 	}
 	return
@@ -174,7 +175,7 @@ func ToList(v byte) (heuristics []string) {
 
 // VulnerableMask uses bitwise AND operation to apply a mask to vulnerabilities byte to extract value bit by bit
 // and returnes true if the vuln byte is vulnerable to passed heuristic
-func VulnerableMask(v byte, h int) bool {
+func VulnerableMask(v byte, h Heuristic) bool {
 	return v&byte(math.Pow(2, float64(h))) > 0
 }
 

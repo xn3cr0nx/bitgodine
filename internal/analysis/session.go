@@ -47,7 +47,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32) (inter
 }
 
 // storeRange stores sub chunks of analysis graph based on the interval
-func storeRange(kv *badger.Badger, r Range, interval int32, vuln MaskedGraph) (err error) {
+func storeRange(kv *badger.Badger, r Range, interval int32, vuln MaskGraph) (err error) {
 	upper := upperBoundary(r.From, interval)
 	lower := lowerBoundary(r.To, interval)
 	if lower-upper >= interval {
@@ -71,12 +71,12 @@ func storeRange(kv *badger.Badger, r Range, interval int32, vuln MaskedGraph) (e
 }
 
 // updateStoredRange updates sub chunks of analysis graph based on the interval with new analysis
-func updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk, vuln MaskedGraph) (newVuln MaskedGraph) {
+func updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk, vuln MaskGraph) (newVuln MaskGraph) {
 	if len(analyzed) == 0 {
 		return vuln
 	}
 	newRange := Range{From: analyzed[0].From, To: analyzed[len(analyzed)-1].To}
-	newVuln = make(MaskedGraph, newRange.To-newRange.From+1)
+	newVuln = make(MaskGraph, newRange.To-newRange.From+1)
 	for _, a := range analyzed {
 		for i := a.From; i <= a.To; i++ {
 			newVuln[i] = make(map[string]byte, len(a.Vulnerabilites[i]))

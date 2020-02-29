@@ -28,6 +28,9 @@ import (
 // HeuristicChangeAnalysis analysis output map for heuristics change output
 type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
 
+// HeuristicMaskAnalysis analysis output map for heuristics vulnerability mask
+type HeuristicMaskAnalysis map[heuristics.Heuristic]byte
+
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string) (vuln byte, err error) {
 	ca := (*c).Get("cache").(*cache.Cache)
@@ -95,21 +98,21 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Peeling Chain":
 			c, e := peeling.ChangeOutput(db, &tx)
 			if e != nil {
 				break
 			}
-			vout[heuristics.HeuristicIndex(heuristic)] = c
+			vout[heuristics.Index(heuristic)] = c
 		case "Power of Ten":
 			c, e := power.ChangeOutput(&tx)
 			if e != nil {
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Optimal Change":
 			c, e := optimal.ChangeOutput(db, &tx)
@@ -117,7 +120,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Address Type":
 			c, e := class.ChangeOutput(db, &tx)
@@ -125,7 +128,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Address Reuse":
 			c, e := reuse.ChangeOutput(db, &tx)
@@ -133,7 +136,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Shadow":
 			c, e := shadow.ChangeOutput(db, &tx)
@@ -141,7 +144,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 		case "Client Behaviour":
 			c, e := behaviour.ChangeOutput(db, &tx)
@@ -149,7 +152,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList []string) (vout Heuri
 				break
 			}
 			if len(c) == 1 {
-				vout[heuristics.HeuristicIndex(heuristic)] = c[0]
+				vout[heuristics.Index(heuristic)] = c[0]
 			}
 			// case "Forward":
 			// 	c, e := forward.ChangeOutput(db, &tx)
@@ -180,7 +183,7 @@ type Worker struct {
 	height         int32
 	tx             models.Tx
 	lock           *sync.RWMutex
-	vuln           MaskedGraph
+	vuln           MaskGraph
 	heuristicsList []string
 }
 
@@ -203,7 +206,7 @@ func (w *Worker) Work() {
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln MaskedGraph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList []string, force bool, chart string) (vuln MaskGraph, err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")

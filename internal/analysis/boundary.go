@@ -46,8 +46,8 @@ func updateRange(from, to int32, analyzed []Chunk, force bool) (ranges []Range) 
 }
 
 // subGraph returnes a graph interval between from and to
-func subGraph(g MaskedGraph, from, to int32) (sub MaskedGraph) {
-	sub = make(MaskedGraph, to-from+1)
+func subGraph(g MaskGraph, from, to int32) (sub MaskGraph) {
+	sub = make(MaskGraph, to-from+1)
 	for h, a := range g {
 		if h >= from && h <= to {
 			sub[h] = a
@@ -57,8 +57,8 @@ func subGraph(g MaskedGraph, from, to int32) (sub MaskedGraph) {
 }
 
 // mergeGraphs returnes the union of multiple graphs
-func mergeGraphs(args ...MaskedGraph) (merged MaskedGraph) {
-	merged = make(MaskedGraph)
+func mergeGraphs(args ...MaskGraph) (merged MaskGraph) {
+	merged = make(MaskGraph)
 	for _, arg := range args {
 		for height, txs := range arg {
 			merged[height] = txs
@@ -70,7 +70,7 @@ func mergeGraphs(args ...MaskedGraph) (merged MaskedGraph) {
 // mergeChunks returns the union of multiple chunks
 func mergeChunks(args ...Chunk) (merged Chunk) {
 	merged = Chunk{
-		Vulnerabilites: make(MaskedGraph),
+		Vulnerabilites: make(MaskGraph),
 	}
 	min, max := args[0].From, args[0].To
 	for _, chunk := range args {

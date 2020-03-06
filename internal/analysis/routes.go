@@ -30,6 +30,19 @@ func Routes(g *echo.Group) *echo.Group {
 		return c.JSON(http.StatusOK, vuln)
 	})
 
+	r.GET("/:txid/full", func(c echo.Context) error {
+		// TODO: check id is correct and not of a block
+		txid := c.Param("txid")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+			return err
+		}
+		vuln, err := TxChange(&c, txid, heuristics.FromListToMask(heuristics.List()))
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, vuln)
+	})
+
 	r.GET("/blocks", func(c echo.Context) error {
 		type Query struct {
 			From  int32    `query:"from" validate:"omitempty,gte=0"`

@@ -61,7 +61,7 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 }
 
 // TxChange apply tx analysis and inferes transaction change output
-func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask) (vout HeuristicChangeAnalysis, err error) {
+func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask, unfeasibleConditions ...func(tx models.Tx) bool) (vout HeuristicChangeAnalysis, err error) {
 	// ca := (*c).Get("cache").(*cache.Cache)
 	// if res, ok := ca.Get("v_" + txid); ok {
 	// 	vuln = res.(byte)
@@ -81,12 +81,21 @@ func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask) (vou
 		return
 	}
 
-	if (len(tx.Vin) == 1 && tx.Vin[0].IsCoinbase) || len(tx.Vout) <= 1 {
-		err = errors.New("Not feasible transaction")
+	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToList()))
+
+	for _, condition := range unfeasibleConditions {
+		if condition(tx) {
+			err = errors.New("Not feasible transaction")
+			return
+		}
+	}
+
+	if len(tx.Vout) <= 1 {
+		fmt.Println("Possible self transfer")
+		vout[0] = 0
 		return
 	}
 
-	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToList()))
 	for _, heuristic := range heuristicsList.ToList() {
 		switch heuristic {
 		case 0:
@@ -174,6 +183,44 @@ func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask) (vou
 	return
 }
 
+// ExtractLikelihoodOutput function to return most probable output between applied heuristics results
+func ExtractLikelihoodOutput(analyzed HeuristicChangeAnalysis) (vout uint32, err error) {
+	fmt.Println("from heuristics analysis", analyzed)
+	if len(analyzed) == 0 {
+		return 0, errors.New("No effective analysis")
+	}
+	if len(analyzed) == 1 {
+		for _, v := range analyzed {
+			return v, nil
+		}
+	}
+	if out, ok := analyzed[heuristics.Index("Optimal Change")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Address Reuse")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Shadow")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Peeling Chain")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Address Type")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Power of Ten")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Client Behaviour")]; ok {
+		return out, nil
+	}
+	if out, ok := analyzed[heuristics.Index("Locktime")]; ok {
+		return out, nil
+	}
+	return
+}
+
 // Worker wrapper to partecipate in task pool
 type Worker struct {
 	db             storage.DB
@@ -186,11 +233,11 @@ type Worker struct {
 
 // Work method to make Worker compatible with task pool worker interface
 func (w *Worker) Work() {
-	if len(w.tx.Vout) <= 1 {
-		// TODO: we are not considering coinbase 1 output txs in heuristics analysis
-		w.lock.Lock()
-		w.vuln[w.height][w.tx.TxID] = heuristics.MaskFromPower(0)
-		w.lock.Unlock()
+	// excluding coinbase transactions in analysis
+	if coinbaseCondition(w.tx) {
+		// w.lock.Lock()
+		// w.vuln[w.height][w.tx.TxID] = heuristics.MaskFromPower(0)
+		// w.lock.Unlock()
 		return
 	}
 
@@ -321,7 +368,7 @@ func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList heuristics
 
 		vuln[block.Height] = make(map[string]HeuristicChangeAnalysis, len(block.Transactions))
 		for _, txID := range block.Transactions {
-			changeOutputs, e := TxChange(c, txID, heuristicsList)
+			changeOutputs, e := TxChange(c, txID, heuristicsList, coinbaseCondition, offByOneBugCondition)
 			if e != nil {
 				if e.Error() == "Not feasible transaction" {
 					continue

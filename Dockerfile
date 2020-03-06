@@ -1,4 +1,4 @@
-FROM golang:1.13 as builder
+FROM golang:1.13.8 as builder
 LABEL maintainer="Patrick Jusic <patrick.jusic@protonmail.com>"
 
 WORKDIR /bitgodine

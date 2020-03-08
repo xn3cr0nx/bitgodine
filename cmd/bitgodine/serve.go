@@ -7,6 +7,7 @@ import (
 	// "github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/utxoset"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
@@ -56,23 +57,14 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	// dg := dgraph.Instance(&dgraph.Config{
-	// 	Host: viper.GetString("dgHost"),
-	// 	Port: viper.GetInt("dgPort"),
-	// }, c)
-	// if err := dg.Setup(); err != nil {
-	// 	logger.Error("Bitgodine", err, logger.Params{})
-	// 	logger.Error("Bitgodine", errors.New("You need to start dgraph"), logger.Params{})
-	// 	os.Exit(-1)
-	// }
-
 	bdg, err := badger.NewBadger(badger.Conf(viper.GetString("analysis")), false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
 	}
 
-	// s := server.Instance(viper.GetInt("http.port"), dg, c, bdg)
-	s := server.Instance(viper.GetInt("http.port"), db, c, bdg)
+	utxos := utxoset.NewUtxoSet(utxoset.Conf(viper.GetString("utxo"), true))
+
+	s := server.Instance(viper.GetInt("http.port"), db, c, bdg, utxos)
 	s.Listen()
 }

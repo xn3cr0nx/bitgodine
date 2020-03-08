@@ -15,7 +15,7 @@ func Routes(g *echo.Group) *echo.Group {
 
 	r.GET("/:txid", func(c echo.Context) error {
 		txid := c.Param("txid")
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
 		db := c.Get("db")
@@ -31,7 +31,7 @@ func Routes(g *echo.Group) *echo.Group {
 
 	r.GET("/:txid/status", func(c echo.Context) error {
 		txid := c.Param("txid")
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
 		db := c.Get("db")
@@ -48,7 +48,7 @@ func Routes(g *echo.Group) *echo.Group {
 	// TODO: generate btcutil block and return hex conversion
 	// r.GET("/:txid/hex", func(c echo.Context) error {
 	// 	txid := c.Param("txid")
-	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
+	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 	// 		return err
 	// 	}
 	// db := c.Get("db")
@@ -70,7 +70,7 @@ func Routes(g *echo.Group) *echo.Group {
 	// TODO: retrieve spent output
 	// r.GET("/tx/:txid/outspend/:vout", func(c echo.Context) error {
 	// 	txid := c.Param("txid")
-	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required,testing"); err != nil {
+	// 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 	// 		return err
 	// 	}
 	// 	vout := c.Param("vout")

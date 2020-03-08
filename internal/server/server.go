@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/utxoset"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
@@ -18,7 +17,6 @@ import (
 	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
 	"github.com/xn3cr0nx/bitgodine_server/internal/trace"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
-	"github.com/xn3cr0nx/bitgodine_server/internal/utxo"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
@@ -32,29 +30,27 @@ import (
 // Server struct initialized with port
 type (
 	Server struct {
-		port    string
-		router  *echo.Echo
-		db      storage.DB
-		cache   *cache.Cache
-		kv      *badger.Badger
-		utxoset *utxoset.UtxoSet
+		port   string
+		router *echo.Echo
+		db     storage.DB
+		cache  *cache.Cache
+		kv     *badger.Badger
 	}
 )
 
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger, utxoset *utxoset.UtxoSet) *Server {
+func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger) *Server {
 	if server != nil {
 		return server
 	}
 	server = &Server{
-		port:    fmt.Sprintf(":%d", port),
-		router:  echo.New(),
-		db:      db,
-		cache:   c,
-		kv:      bdg,
-		utxoset: utxoset,
+		port:   fmt.Sprintf(":%d", port),
+		router: echo.New(),
+		db:     db,
+		cache:  c,
+		kv:     bdg,
 	}
 	return server
 }
@@ -76,7 +72,6 @@ func (s *Server) Listen() {
 			c.Set("db", s.db)
 			c.Set("cache", s.cache)
 			c.Set("kv", s.kv)
-			c.Set("utxoset", s.utxoset)
 			return next(c)
 		}
 	})
@@ -103,7 +98,6 @@ func (s *Server) Listen() {
 	address.Routes(api)
 	analysis.Routes(api)
 	trace.Routes(api)
-	utxo.Routes(api)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

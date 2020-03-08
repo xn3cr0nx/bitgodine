@@ -7,7 +7,6 @@ import (
 	// "github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_clusterizer/pkg/utxoset"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
@@ -56,15 +55,15 @@ func start(cmd *cobra.Command, args []string) {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
 	}
+	defer db.Close()
 
 	bdg, err := badger.NewBadger(badger.Conf(viper.GetString("analysis")), false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
 	}
+	defer bdg.Close()
 
-	utxos := utxoset.NewUtxoSet(utxoset.Conf(viper.GetString("utxo"), true))
-
-	s := server.Instance(viper.GetInt("http.port"), db, c, bdg, utxos)
+	s := server.Instance(viper.GetInt("http.port"), db, c, bdg)
 	s.Listen()
 }

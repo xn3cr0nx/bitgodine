@@ -15,10 +15,12 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/block"
 	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
+	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
 	"github.com/xn3cr0nx/bitgodine_server/internal/trace"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
+	"github.com/xn3cr0nx/bitgodine_spider/pkg/postgres"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -35,13 +37,14 @@ type (
 		db     storage.DB
 		cache  *cache.Cache
 		kv     *badger.Badger
+		pg     *postgres.Pg
 	}
 )
 
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger) *Server {
+func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}
@@ -51,6 +54,7 @@ func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger) *Serv
 		db:     db,
 		cache:  c,
 		kv:     bdg,
+		pg:     pg,
 	}
 	return server
 }
@@ -72,6 +76,7 @@ func (s *Server) Listen() {
 			c.Set("db", s.db)
 			c.Set("cache", s.cache)
 			c.Set("kv", s.kv)
+			c.Set("pg", s.pg)
 			return next(c)
 		}
 	})
@@ -98,6 +103,7 @@ func (s *Server) Listen() {
 	address.Routes(api)
 	analysis.Routes(api)
 	trace.Routes(api)
+	tag.Routes(api)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

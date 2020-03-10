@@ -12,6 +12,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_server/internal/server"
+	"github.com/xn3cr0nx/bitgodine_spider/pkg/postgres"
 )
 
 var (
@@ -64,6 +65,21 @@ func start(cmd *cobra.Command, args []string) {
 	}
 	defer bdg.Close()
 
-	s := server.Instance(viper.GetInt("http.port"), db, c, bdg)
+	pg, err := postgres.NewPg(postgres.Conf())
+	if err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+	if err := pg.Connect(); err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+	defer pg.Close()
+	if err := pg.Migration(); err != nil {
+		logger.Error("Bitgodine", err, logger.Params{})
+		os.Exit(-1)
+	}
+
+	s := server.Instance(viper.GetInt("http.port"), db, c, bdg, pg)
 	s.Listen()
 }

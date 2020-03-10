@@ -66,7 +66,10 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 
 		if q.Type == "offbyone" {
-			err := offByOneAnalysis(&c, 0, 220250, heuristics.FromListToMask(list), q.Plot)
+			if q.From == 0 && q.To == 0 {
+				q.To = 220250
+			}
+			err := offByOneAnalysis(&c, q.From, q.To, heuristics.FromListToMask(list), q.Plot)
 			if err != nil {
 				return err
 			}

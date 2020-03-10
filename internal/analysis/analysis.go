@@ -90,7 +90,7 @@ func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask, unfe
 		}
 	}
 
-	if len(tx.Vout) <= 1 {
+	if len(tx.Vin) > 1 && len(tx.Vout) <= 1 {
 		fmt.Println("Possible self transfer")
 		vout[0] = 0
 		return
@@ -346,11 +346,6 @@ func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList heuristics
 		err = errors.New("db not initialized")
 		return
 	}
-	// kv := (*c).Get("kv").(*badger.Badger)
-	// if kv == nil {
-	// 	err = errors.New("kv storage not initialized")
-	// 	return
-	// }
 
 	vuln := make(HeuristicGraph, from-to+1)
 	for i := from; i <= to; i++ {

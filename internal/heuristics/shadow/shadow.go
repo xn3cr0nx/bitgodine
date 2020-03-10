@@ -28,7 +28,6 @@ func (w *Worker) Work() (err error) {
 	if err != nil {
 		return
 	}
-	// check if occurence is the first, e.g. the transaction block height is the firstOccurence
 	if firstOccurence < w.blockHeight {
 		w.candidates[w.vout] = 1
 	}

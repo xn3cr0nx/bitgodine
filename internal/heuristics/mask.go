@@ -1,6 +1,8 @@
 package heuristics
 
-import "math"
+import (
+	"math"
+)
 
 // Mask struct to represent heuristics vulnerability mask
 type Mask byte
@@ -34,7 +36,8 @@ func MaskFromPower(h Heuristic) Mask {
 
 // Sum returnes the updated base mask
 func (v *Mask) Sum(m Mask) Mask {
-	return (*v) + m
+	(*v) = (*v) + m
+	return *v
 }
 
 // ToList return a list of heuristic integers corresponding to vulnerability byte passed

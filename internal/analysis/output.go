@@ -45,6 +45,11 @@ func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList 
 	}
 	err = plot.MultipleLineChart(title, "blocks", "heuristics effectiveness", coordinates)
 
+	// _, err = chttp.POST("http://plotter:5000/plot", coordinates, map[string]string{})
+	// if err != nil {
+	// 	return
+	// }
+
 	return
 }
 

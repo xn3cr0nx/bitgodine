@@ -2,9 +2,7 @@ package analysis
 
 import (
 	"net/http"
-	"strings"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
 
@@ -21,36 +19,10 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
-		vuln, err := AnalyzeTx(&c, txid)
-		if err != nil {
-			return err
-		}
-		h := vuln.ToHeuristicsList()
-		logger.Info("Tx analysis", strings.Join(h, ","), logger.Params{})
-		return c.JSON(http.StatusOK, vuln)
-	})
 
-	r.GET("/:txid/full", func(c echo.Context) error {
-		// TODO: check id is correct and not of a block
-		txid := c.Param("txid")
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-			return err
-		}
-		vuln, err := TxChange(&c, txid, heuristics.FromListToMask(heuristics.List()))
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, vuln)
-	})
-
-	r.GET("/blocks", func(c echo.Context) error {
 		type Query struct {
-			From  int32    `query:"from" validate:"omitempty,gte=0"`
-			To    int32    `query:"to" validate:"omitempty,gtefield=From"`
-			List  []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-			Plot  string   `query:"plot" validate:"omitempty,oneof=timeline percentage"`
-			Force bool     `query:"force" validate:"omitempty"`
-			Type  string   `query:"type" validate:"omitempty,oneof=offbyone"`
+			List []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
+			Type string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
 		}
 		q := new(Query)
 		if err := validator.Struct(&c, q); err != nil {
@@ -65,23 +37,59 @@ func Routes(g *echo.Group) *echo.Group {
 			list = heuristics.List()
 		}
 
-		if q.Type == "offbyone" {
+		if q.Type == "" {
+			q.Type = "applicability"
+		}
+
+		vuln, err := AnalyzeTx(&c, txid, heuristics.FromListToMask(list), q.Type)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, vuln)
+	})
+
+	r.GET("/blocks", func(c echo.Context) error {
+		type Query struct {
+			From     int32    `query:"from" validate:"omitempty,gte=0"`
+			To       int32    `query:"to" validate:"omitempty,gtefield=From"`
+			List     []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
+			Plot     string   `query:"plot" validate:"omitempty,oneof=timeline percentage"`
+			Force    bool     `query:"force" validate:"omitempty"`
+			Analysis string   `query:"analysis" validate:"omitempty,oneof=offbyone"`
+			Type     string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
+
+		var list []heuristics.Heuristic
+		for _, h := range q.List {
+			list = append(list, heuristics.Abbreviation(h))
+		}
+		if len(list) == 0 {
+			list = heuristics.List()
+		}
+
+		if q.Analysis == "offbyone" {
+			if q.From > 220250 || q.To > 220250 {
+				return echo.NewHTTPError(http.StatusBadRequest, "out of off by one bug range")
+			}
 			if q.From == 0 && q.To == 0 {
 				q.To = 220250
 			}
-			err := offByOneAnalysis(&c, q.From, q.To, heuristics.FromListToMask(list), q.Plot)
-			if err != nil {
-				return err
-			}
-			if q.Plot != "" {
-				return c.File(q.Plot + ".png")
-			}
-		} else {
-			vuln, err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Force, q.Plot)
-			if err != nil {
-				return err
-			}
-			return c.JSON(http.StatusOK, vuln)
+		}
+
+		if q.Type == "" {
+			q.Type = "applicability"
+		}
+
+		if err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Force, q.Plot); err != nil {
+			return err
+		}
+
+		if q.Plot != "" {
+			return c.File(q.Plot + ".png")
 		}
 
 		return c.JSON(http.StatusOK, "ok")

@@ -5,6 +5,7 @@ package backward
 
 import (
 	"errors"
+
 	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
@@ -12,7 +13,7 @@ import (
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	var outputAddresses,
 		inputAddresses,
 		inputTargets []string
@@ -41,15 +42,15 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 		}
 		return nil
 	})
-	if err := g.Wait(); err != nil {
-		return 0, err
+	if err = g.Wait(); err != nil {
+		return
 	}
 
 	for _, spent := range spentTxs {
 		for _, in := range spent.Vin {
-			spentTx, err := db.GetTx(in.TxID)
-			if err != nil {
-				return 0, err
+			spentTx, e := db.GetTx(in.TxID)
+			if e != nil {
+				return nil, e
 			}
 			if in.IsCoinbase {
 				continue
@@ -70,7 +71,8 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 				for _, target := range outputTargets {
 					for _, input := range inputTargets {
 						if outputAddresses[int(target)] != input {
-							return target, nil
+							c = []uint32{target}
+							return
 						}
 					}
 				}
@@ -79,7 +81,8 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (uint32, error) {
 		}
 	}
 
-	return 0, errors.New("No output address matching backward heurisitic requirements found")
+	err = errors.New("No output address matching backward heurisitic requirements found")
+	return
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic

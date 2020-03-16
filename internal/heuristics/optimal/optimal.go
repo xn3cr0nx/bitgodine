@@ -35,7 +35,7 @@ func (w *Worker) Work() (err error) {
 // ChangeOutput returnes the index of the output which value is less than any inputs value, if there is any
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	values := make([]int64, len(tx.Vin))
-	pool := task.New(runtime.NumCPU()/2, len(tx.Vin))
+	pool := task.New(runtime.NumCPU() / 2)
 	for i, in := range tx.Vin {
 		if in.IsCoinbase {
 			continue

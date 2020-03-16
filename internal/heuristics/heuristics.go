@@ -136,6 +136,24 @@ func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
 	return functions[h]
 }
 
+// ChangeFunction returnes change output function to be applied to analysis
+func (h Heuristic) ChangeFunction() func(storage.DB, *models.Tx) ([]uint32, error) {
+	functions := map[Heuristic](func(storage.DB, *models.Tx) ([]uint32, error)){
+		Locktime:      locktime.ChangeOutput,
+		Peeling:       peeling.ChangeOutput,
+		PowerOfTen:    power.ChangeOutput,
+		OptimalChange: optimal.ChangeOutput,
+		// "Exact Amount": 		self.ChangeOutput,
+		AddressType:     class.ChangeOutput,
+		AddressReuse:    reuse.ChangeOutput,
+		Shadow:          shadow.ChangeOutput,
+		ClientBehaviour: behaviour.ChangeOutput,
+		Forward:         forward.ChangeOutput,
+		Backward:        backward.ChangeOutput,
+	}
+	return functions[h]
+}
+
 // Apply applies the heuristic specified to the passed transaction
 func (h Heuristic) Apply(db storage.DB, tx models.Tx, vuln *Mask) {
 	if h.VulnerableFunction()(db, &tx) {
@@ -154,5 +172,23 @@ func ApplyFullSet(db storage.DB, tx models.Tx, vuln *Mask) {
 func ApplySet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *Mask) {
 	for _, h := range heuristicsList.ToList() {
 		h.Apply(db, tx, vuln)
+	}
+}
+
+// ApplyChange applies the heuristic specified to the passed transaction
+func (h Heuristic) ApplyChange(db storage.DB, tx models.Tx, vuln *map[Heuristic]uint32) {
+	c, err := h.ChangeFunction()(db, &tx)
+	if err != nil {
+		return
+	}
+	if len(c) == 1 {
+		(*vuln)[h] = c[0]
+	}
+}
+
+// ApplyChangeSet applies the set of passed heuristics to the passed transaction
+func ApplyChangeSet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *map[Heuristic]uint32) {
+	for _, h := range heuristicsList.ToList() {
+		h.ApplyChange(db, tx, vuln)
 	}
 }

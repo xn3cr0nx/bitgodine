@@ -20,18 +20,14 @@ type Task struct {
 // New creates a new work pool.
 // instanced with singleton pattern beacuse used centrally as worker pool based on
 // CPU resources
-func New(maxGoroutines int, buffer int) *Task {
+func New(maxGoroutines int) *Task {
 	t := Task{
 		// Using an unbuffered channel because we want the
 		// guarantee of knowing the work being submitted is
 		// actually being worked on after the call to Run returns.
 		// work: make(chan Worker),
 	}
-	if buffer != 0 {
-		t.work = make(chan Worker, buffer)
-	} else {
-		t.work = make(chan Worker)
-	}
+	t.work = make(chan Worker)
 
 	// The goroutines are the pool. So we could add code
 	// to change the size of the pool later on.

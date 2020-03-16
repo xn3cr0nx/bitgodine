@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	encoding "encoding/json"
+
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
 )
 
 // Error response body
@@ -44,9 +44,9 @@ func addHeaders(req *http.Request, headers map[string]string) {
 }
 
 // GET request wrapper
-func GET(uri string, headers map[string]string) (string, error) {
+func GET(url string, headers map[string]string) (string, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s:%s%s", viper.GetString("backend.host"), viper.GetString("backend.port"), uri), nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +64,7 @@ func GET(uri string, headers map[string]string) (string, error) {
 }
 
 // POST request wrapper
-func POST(uri string, obj interface{}, headers map[string]string) (string, error) {
+func POST(url string, obj interface{}, headers map[string]string) (string, error) {
 	var buff []byte
 	if obj != nil {
 		var err error
@@ -74,7 +74,7 @@ func POST(uri string, obj interface{}, headers map[string]string) (string, error
 		}
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s:%s%s", viper.GetString("backend.host"), viper.GetString("backend.port"), uri), bytes.NewBuffer(buff))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(buff))
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +92,7 @@ func POST(uri string, obj interface{}, headers map[string]string) (string, error
 }
 
 // PUT request wrapper
-func PUT(uri string, obj interface{}, headers map[string]string) (string, error) {
+func PUT(url string, obj interface{}, headers map[string]string) (string, error) {
 	var buff []byte
 	if obj != nil {
 		var err error
@@ -102,7 +102,7 @@ func PUT(uri string, obj interface{}, headers map[string]string) (string, error)
 		}
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s:%s%s", viper.GetString("backend.host"), viper.GetString("backend.port"), uri), bytes.NewBuffer(buff))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(buff))
 	if err != nil {
 		return "", err
 	}
@@ -120,9 +120,9 @@ func PUT(uri string, obj interface{}, headers map[string]string) (string, error)
 }
 
 // DELETE request wrapper
-func DELETE(uri string, headers map[string]string) (string, error) {
+func DELETE(url string, headers map[string]string) (string, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s:%s%s", viper.GetString("backend.host"), viper.GetString("backend.port"), uri), nil)
+	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -140,7 +140,7 @@ func DELETE(uri string, headers map[string]string) (string, error) {
 }
 
 // PATCH request wrapper
-func PATCH(uri string, obj interface{}, headers map[string]string) (string, error) {
+func PATCH(url string, obj interface{}, headers map[string]string) (string, error) {
 	var buff []byte
 	if obj != nil {
 		var err error
@@ -150,7 +150,7 @@ func PATCH(uri string, obj interface{}, headers map[string]string) (string, erro
 		}
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s:%s%s", viper.GetString("backend.host"), viper.GetString("backend.port"), uri), bytes.NewBuffer(buff))
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(buff))
 	if err != nil {
 		return "", err
 	}

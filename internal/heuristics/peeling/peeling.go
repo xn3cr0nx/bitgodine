@@ -48,22 +48,25 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 }
 
 // ChangeOutput returnes the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (c uint32, err error) {
+func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	is, err := IsPeelingChain(db, tx)
 	if err != nil {
 		return
 	}
 	if is {
 		if tx.Vout[0].Value <= tx.Vout[1].Value {
-			c = 1
+			c = append(c, 1)
+		} else {
+			c = append(c, 0)
 		}
 		return
 	}
-	return 0, errors.New("transaction is not like peeling chain")
+	err = errors.New("transaction is not like peeling chain")
+	return
 }
 
 // Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(dg storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(dg, tx)
+func Vulnerable(db storage.DB, tx *models.Tx) bool {
+	_, err := ChangeOutput(db, tx)
 	return err == nil
 }

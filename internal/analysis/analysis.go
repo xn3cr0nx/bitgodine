@@ -1,6 +1,11 @@
+// Package analysis applicability vs reliability: applicability describes in a deterministic
+// way if an heuristic is applicable to a transaction based on its conditions while
+// reliability is the degree of reliability the heuristic provides whether it is applicable
+// to the transaction.
 package analysis
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,37 +14,18 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	task "github.com/xn3cr0nx/bitgodine_server/internal/errtask"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/locktime"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/optimal"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/peeling"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/power"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/reuse"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/shadow"
-	class "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/type"
-	"github.com/xn3cr0nx/bitgodine_server/internal/task"
 )
 
 // HeuristicChangeAnalysis analysis output map for heuristics change output
 type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
 
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
-func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
-	ca := (*c).Get("cache").(*cache.Cache)
-	if res, ok := ca.Get("v_" + txid); ok {
-		vuln = res.(heuristics.Mask)
-		return
-	}
-	kv := (*c).Get("kv").(*badger.Badger)
-	if v, e := kv.Read(txid); e == nil {
-		vuln = heuristics.MaskFromBytes(v)
-		return
-	}
+func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error) {
 	db := (*c).Get("db").(storage.DB)
 	tx, err := db.GetTx(txid)
 	if err != nil {
@@ -49,137 +35,18 @@ func AnalyzeTx(c *echo.Context, txid string) (vuln heuristics.Mask, err error) {
 		return
 	}
 
-	heuristics.ApplyFullSet(db, tx, &vuln)
-
-	if err = kv.Store(txid, vuln.Bytes()); err != nil {
-		return
-	}
-	if !ca.Set("v_"+txid, vuln, 1) {
-		(*c).Logger().Error(err)
-	}
-	return
-}
-
-// TxChange apply tx analysis and inferes transaction change output
-func TxChange(c *echo.Context, txid string, heuristicsList heuristics.Mask, unfeasibleConditions ...func(tx models.Tx) bool) (vout HeuristicChangeAnalysis, err error) {
-	// ca := (*c).Get("cache").(*cache.Cache)
-	// if res, ok := ca.Get("v_" + txid); ok {
-	// 	vuln = res.(byte)
-	// 	return
-	// }
-	// kv := (*c).Get("kv").(*badger.Badger)
-	// if v, e := kv.Read(txid); e == nil {
-	// 	vuln = v[0]
-	// 	return
-	// }
-	db := (*c).Get("db").(storage.DB)
-	tx, err := db.GetTx(txid)
-	if err != nil {
-		if err.Error() == "transaction not found" {
-			err = echo.NewHTTPError(http.StatusNotFound, err)
-		}
-		return
+	if analysisType == "applicability" {
+		vuln = heuristics.FromListToMask(nil)
+		addr := vuln.(heuristics.Mask)
+		heuristics.ApplySet(db, tx, heuristicsList, &addr)
+		vuln = addr
+	} else {
+		vuln = make(map[heuristics.Heuristic]uint32)
+		addr := vuln.(map[heuristics.Heuristic]uint32)
+		heuristics.ApplyChangeSet(db, tx, heuristicsList, &addr)
+		vuln = addr
 	}
 
-	vout = make(map[heuristics.Heuristic]uint32, len(heuristicsList.ToList()))
-
-	for _, condition := range unfeasibleConditions {
-		if condition(tx) {
-			err = errors.New("Not feasible transaction")
-			return
-		}
-	}
-
-	if len(tx.Vin) > 1 && len(tx.Vout) <= 1 {
-		fmt.Println("Possible self transfer")
-		vout[0] = 0
-		return
-	}
-
-	for _, heuristic := range heuristicsList.ToList() {
-		switch heuristic {
-		case 0:
-			c, e := locktime.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 1:
-			c, e := peeling.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			vout[heuristic] = c
-		case 2:
-			c, e := power.ChangeOutput(&tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 3:
-			c, e := optimal.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 4:
-			c, e := class.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 5:
-			c, e := reuse.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 6:
-			c, e := shadow.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-		case 7:
-			c, e := behaviour.ChangeOutput(db, &tx)
-			if e != nil {
-				break
-			}
-			if len(c) == 1 {
-				vout[heuristic] = c[0]
-			}
-			// case "Forward":
-			// 	c, e := forward.ChangeOutput(db, &tx)
-			// 	if e != nil {
-			// 		break
-			// 	}
-			// case "Backward":
-			// 	c, e := backward.ChangeOutput(db, &tx)
-			// 	if e != nil {
-			// 		break
-			// 	}
-			// }
-		}
-	}
-
-	// if err = kv.Store(txid, []byte{vuln}); err != nil {
-	// 	return
-	// }
-	// if !ca.Set("v_"+txid, vuln, 1) {
-	// 	(*c).Logger().Error(err)
-	// }
 	return
 }
 
@@ -221,18 +88,24 @@ func ExtractLikelihoodOutput(analyzed HeuristicChangeAnalysis) (vout uint32, err
 	return
 }
 
-// Worker wrapper to partecipate in task pool
+// Worker basic worker to partecipate in task pool
 type Worker struct {
 	db             storage.DB
 	height         int32
 	tx             models.Tx
 	lock           *sync.RWMutex
-	vuln           MaskGraph
 	heuristicsList heuristics.Mask
 }
 
-// Work method to make Worker compatible with task pool worker interface
-func (w *Worker) Work() {
+// ApplicabilityWorker wrapper to partecipate in task pool
+type ApplicabilityWorker struct {
+	Worker
+	vuln                 MaskGraph
+	unfeasibleConditions []func(models.Tx) bool
+}
+
+// Work method to make ApplicabilityWorker compatible with task pool worker interface
+func (w *ApplicabilityWorker) Work() (err error) {
 	// excluding coinbase transactions in analysis
 	if coinbaseCondition(w.tx) {
 		// w.lock.Lock()
@@ -247,10 +120,42 @@ func (w *Worker) Work() {
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
 	w.lock.Unlock()
+	return
+}
+
+// ReliabilityWorker wrapper to partecipate in task pool
+type ReliabilityWorker struct {
+	Worker
+	vuln                 OutputGraph
+	unfeasibleConditions []func(models.Tx) bool // coinbaseCondition, offByOneBugCondition
+}
+
+// Work method to make ReliabilityWorker compatible with task pool worker interface
+func (w *ReliabilityWorker) Work() (err error) {
+	for _, condition := range w.unfeasibleConditions {
+		if condition(w.tx) {
+			err = errors.New("Not feasible transaction")
+			return
+		}
+	}
+
+	// if len(tx.Vout) == 1 {
+	// 	fmt.Println("Possible self transfer")
+	// 	vout[0] = 0
+	// 	return
+	// }
+
+	v := make(map[heuristics.Heuristic]uint32, len(w.heuristicsList.ToList()))
+	heuristics.ApplyChangeSet(w.db, w.tx, w.heuristicsList, &v)
+
+	w.lock.Lock()
+	w.vuln[w.height][w.tx.TxID] = v
+	w.lock.Unlock()
+	return
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, force bool, chart string) (vuln MaskGraph, err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, analysisType string, force bool, chart string) (err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -262,6 +167,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 		return
 	}
 
+	gob.Register(MaskGraph{})
+	gob.Register(OutputGraph{})
+
 	tip, err := db.LastBlock()
 	if err != nil {
 		return
@@ -270,14 +178,21 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 		to = tip.Height
 	}
 	interval := int32(10000)
-	analyzed := restorePreviousAnalysis(kv, from, to, interval)
+	analyzed := restorePreviousAnalysis(kv, from, to, interval, analysisType)
 	fmt.Println("prev analyzed chunks", len(analyzed))
 	ranges := updateRange(from, to, analyzed, force)
 	fmt.Println("updated ranges", ranges)
 
 	pool := task.New(runtime.NumCPU() * 3)
 	lock := sync.RWMutex{}
-	vuln = make(MaskGraph, to-from+1)
+
+	var vuln Graph
+	if analysisType == "applicability" {
+		vuln = make(MaskGraph, to-from+1)
+	} else {
+		vuln = make(OutputGraph, to-from+1)
+	}
+
 	for _, r := range ranges {
 		for i := r.From; i <= r.To; i++ {
 			block, e := db.GetBlockFromHeight(i)
@@ -293,8 +208,13 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 			}
 
 			lock.Lock()
-			vuln[block.Height] = make(map[string]heuristics.Mask, len(block.Transactions))
+			if analysisType == "applicability" {
+				vuln.(MaskGraph)[block.Height] = make(map[string]heuristics.Mask, len(block.Transactions))
+			} else {
+				vuln.(OutputGraph)[block.Height] = make(map[string]HeuristicChangeAnalysis, len(block.Transactions))
+			}
 			lock.Unlock()
+
 			for _, txID := range block.Transactions {
 				tx, e := db.GetTx(txID)
 				if e != nil {
@@ -302,77 +222,53 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 					return
 				}
 
-				pool.Do(&Worker{
+				w := Worker{
 					height:         block.Height,
 					tx:             tx,
 					db:             db,
 					lock:           &lock,
-					vuln:           vuln,
 					heuristicsList: heuristicsList,
-				})
+				}
+				if analysisType == "applicability" {
+					pool.Do(&ApplicabilityWorker{
+						w,
+						vuln.(MaskGraph),
+						nil,
+					})
+				} else {
+					pool.Do(&ReliabilityWorker{
+						w,
+						vuln.(OutputGraph),
+						nil,
+					})
+				}
+
 			}
 		}
 	}
-	pool.Shutdown()
+	if err = pool.Shutdown(); err != nil {
+		return
+	}
 
 	fmt.Println("storing ranges", ranges)
 	if force {
 		fmt.Println("updating ranges")
-		newVuln := updateStoredRanges(kv, interval, analyzed, vuln)
-		vuln = mergeGraphs(vuln, newVuln)
+		newVuln := vuln.updateStoredRanges(kv, interval, analyzed)
+		vuln = vuln.mergeGraphs(newVuln)
 		for _, r := range ranges {
-			if e := storeRange(kv, r, interval, vuln); e != nil {
+			if e := storeRange(kv, r, interval, vuln, analysisType); e != nil {
 				logger.Error("Analysis", e, logger.Params{})
 			}
 		}
 	} else {
 		for _, r := range ranges {
-			if e := storeRange(kv, r, interval, vuln); e != nil {
+			if e := storeRange(kv, r, interval, vuln, analysisType); e != nil {
 				logger.Error("Analysis", e, logger.Params{})
 			}
 		}
 
-		analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
-		vuln = mergeChunks(analyzed...).Vulnerabilites
-	}
-
-	err = generateOutput(vuln, chart, heuristicsList, from, to)
-	return
-}
-
-func offByOneAnalysis(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, chart string) (err error) {
-	db := (*c).Get("db").(storage.DB)
-	if db == nil {
-		err = errors.New("db not initialized")
-		return
-	}
-
-	vuln := make(HeuristicGraph, from-to+1)
-	for i := from; i <= to; i++ {
-		block, e := db.GetBlockFromHeight(i)
-		if e != nil {
-			if e.Error() == "Key not found" {
-				break
-			}
-			err = e
-			return
-		}
-		if block.Height%1000 == 0 {
-			logger.Info("Analysis", "Analyzing block", logger.Params{"height": block.Height, "hash": block.ID})
-		}
-
-		vuln[block.Height] = make(map[string]HeuristicChangeAnalysis, len(block.Transactions))
-		for _, txID := range block.Transactions {
-			changeOutputs, e := TxChange(c, txID, heuristicsList, coinbaseCondition, offByOneBugCondition)
-			if e != nil {
-				if e.Error() == "Not feasible transaction" {
-					continue
-				}
-				err = e
-				return
-			}
-			vuln[block.Height][txID] = changeOutputs
-		}
+		// analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
+		vuln = vuln.mergeChunks(analyzed...).Vulnerabilites
 	}
 
 	err = generateOutput(vuln, chart, heuristicsList, from, to)

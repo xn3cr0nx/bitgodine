@@ -26,10 +26,8 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 			YValueFormatter: chart.PercentValueFormatter,
 		}
 		if len(data) == 1 {
-			// for k := range data {
 			line.Style.FillColor = chart.GetDefaultColor(0)
 			line.Style.StrokeColor = chart.GetDefaultColor(0)
-			// }
 		}
 		lines = append(lines, line)
 	}

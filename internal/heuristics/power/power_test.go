@@ -44,7 +44,7 @@ func (suite *TestAddressReuseSuite) TearDownSuite() {
 }
 
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
-	c, err := ChangeOutput(&suite.target)
+	c, err := ChangeOutput(suite.db, &suite.target)
 	require.Nil(suite.T(), err)
 	assert.Equal(suite.T(), c, []uint32{uint32(0), uint32(1)})
 }

@@ -46,7 +46,7 @@ func (suite *TestAddressReuseSuite) TearDownSuite() {
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
 	c, err := ChangeOutput(suite.db, &suite.target)
 	require.Nil(suite.T(), err)
-	assert.Equal(suite.T(), c, []uint32{uint32(1)})
+	assert.Equal(suite.T(), c, []uint32{uint32(0)})
 }
 
 func (suite *TestAddressReuseSuite) TestVulnerable() {

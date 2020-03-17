@@ -10,7 +10,7 @@ import (
 )
 
 // GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
-func GlobalPercentages(data []float64, heuristicsList heuristics.Mask) (err error) {
+func renderPercentageTable(data []float64, heuristicsList heuristics.Mask) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})
 	// table.SetBorder(false)
@@ -20,7 +20,6 @@ func GlobalPercentages(data []float64, heuristicsList heuristics.Mask) (err erro
 		table.Append([]string{list[h].String(), fmt.Sprintf("%4.2f", perc*100)})
 	}
 	table.Render()
-	return
 }
 
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
@@ -68,7 +67,7 @@ func generateOutput(vuln Graph, chart string, heuristicsList heuristics.Mask, fr
 		err = plot.BarChart(title, heuristicsList.ToHeuristicsList(), data)
 	default:
 		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
-		err = GlobalPercentages(data, heuristicsList)
+		renderPercentageTable(data, heuristicsList)
 	}
 	return
 }

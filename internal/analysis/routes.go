@@ -84,7 +84,7 @@ func Routes(g *echo.Group) *echo.Group {
 			q.Type = "applicability"
 		}
 
-		if err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Force, q.Plot); err != nil {
+		if err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Analysis, q.Plot, q.Force); err != nil {
 			return err
 		}
 

@@ -37,6 +37,6 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		c := echo.New().AcquireContext()
 		c.Set("db", db)
 		c.Set("kv", bdg)
-		err = AnalyzeBlocks(&c, 0, 120000, heuristics.FromListToMask(heuristics.List()), "applicability", false, "")
+		err = AnalyzeBlocks(&c, 0, 120000, heuristics.FromListToMask(heuristics.List()), "applicability", "", "", false)
 	}
 }

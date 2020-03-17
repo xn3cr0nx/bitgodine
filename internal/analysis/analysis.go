@@ -100,8 +100,8 @@ type Worker struct {
 // ApplicabilityWorker wrapper to partecipate in task pool
 type ApplicabilityWorker struct {
 	Worker
-	vuln                 MaskGraph
-	unfeasibleConditions []func(models.Tx) bool
+	vuln       MaskGraph
+	conditions ConditionsSet
 }
 
 // Work method to make ApplicabilityWorker compatible with task pool worker interface
@@ -126,15 +126,14 @@ func (w *ApplicabilityWorker) Work() (err error) {
 // ReliabilityWorker wrapper to partecipate in task pool
 type ReliabilityWorker struct {
 	Worker
-	vuln                 OutputGraph
-	unfeasibleConditions []func(models.Tx) bool // coinbaseCondition, offByOneBugCondition
+	vuln       OutputGraph
+	conditions ConditionsSet
 }
 
 // Work method to make ReliabilityWorker compatible with task pool worker interface
 func (w *ReliabilityWorker) Work() (err error) {
-	for _, condition := range w.unfeasibleConditions {
+	for _, condition := range w.conditions {
 		if condition(w.tx) {
-			err = errors.New("Not feasible transaction")
 			return
 		}
 	}
@@ -155,7 +154,7 @@ func (w *ReliabilityWorker) Work() (err error) {
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, analysisType string, force bool, chart string) (err error) {
+func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, analysisType, criteria, chart string, force bool) (err error) {
 	db := (*c).Get("db").(storage.DB)
 	if db == nil {
 		err = errors.New("db not initialized")
@@ -183,8 +182,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	ranges := updateRange(from, to, analyzed, force)
 	fmt.Println("updated ranges", ranges)
 
-	pool := task.New(runtime.NumCPU() * 3)
-	lock := sync.RWMutex{}
+	// define tx analysis conditions based on analysis type and criteria
+	conditions := newConditionsSet()
+	conditions.fillConditionsSet(criteria)
 
 	var vuln Graph
 	if analysisType == "applicability" {
@@ -192,6 +192,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	} else {
 		vuln = make(OutputGraph, to-from+1)
 	}
+
+	pool := task.New(runtime.NumCPU() * 3)
+	lock := sync.RWMutex{}
 
 	for _, r := range ranges {
 		for i := r.From; i <= r.To; i++ {
@@ -233,13 +236,13 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 					pool.Do(&ApplicabilityWorker{
 						w,
 						vuln.(MaskGraph),
-						nil,
+						conditions,
 					})
 				} else {
 					pool.Do(&ReliabilityWorker{
 						w,
 						vuln.(OutputGraph),
-						nil,
+						conditions,
 					})
 				}
 
@@ -266,8 +269,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 				logger.Error("Analysis", e, logger.Params{})
 			}
 		}
-
-		// analyzed = append(analyzed, Chunk{Vulnerabilites: vuln})
 		vuln = vuln.mergeChunks(analyzed...).Vulnerabilites
 	}
 

@@ -2,6 +2,25 @@ package analysis
 
 import "github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 
+// Condition function signature for condition definition
+type Condition func(models.Tx) bool
+
+// ConditionsSet defines the list of transacions applicable conditions
+type ConditionsSet []Condition
+
+func newConditionsSet() ConditionsSet {
+	var set ConditionsSet
+	set = append(set, coinbaseCondition)
+	return set
+}
+
+func (set *ConditionsSet) fillConditionsSet(criteria string) {
+	switch criteria {
+	case "offbyone":
+		*set = append(*set, offByOneBugCondition)
+	}
+}
+
 func offByOneBugCondition(tx models.Tx) (output bool) {
 	if len(tx.Vout) != 2 {
 		output = true

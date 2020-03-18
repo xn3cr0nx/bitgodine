@@ -21,9 +21,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 )
 
-// HeuristicChangeAnalysis analysis output map for heuristics change output
-type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
-
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error) {
 	db := (*c).Get("db").(storage.DB)

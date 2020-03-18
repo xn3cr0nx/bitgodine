@@ -6,6 +6,12 @@ type Range struct {
 	To   int32 `json:"to,omitempty"`
 }
 
+// Chunk struct with info on previous analyzed blocks slice
+type Chunk struct {
+	Range          `json:"range,omitempty"`
+	Vulnerabilites Graph `json:"vulnerabilities,omitempty"`
+}
+
 // upperBoundary returnes the nearest upper boundary defined as the
 // nearest multiple of the interval above number n
 func upperBoundary(n, interval int32) (r int32) {

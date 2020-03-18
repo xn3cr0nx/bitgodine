@@ -14,14 +14,14 @@ import (
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 )
 
-// LikePeelingChain check the basic condition of peeling chain (2 txout and 1 txin)
-func LikePeelingChain(tx *models.Tx) bool {
+// PeelingLikeCondition check the basic condition of peeling chain (2 txout and 1 txin)
+func PeelingLikeCondition(tx *models.Tx) bool {
 	return len(tx.Vout) == 2 && len(tx.Vin) == 1
 }
 
 // IsPeelingChain returnes true id the transaction is part of a peeling chain
 func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
-	if !LikePeelingChain(tx) {
+	if !PeelingLikeCondition(tx) {
 		return
 	}
 
@@ -30,7 +30,7 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 	if err != nil {
 		return
 	}
-	if LikePeelingChain(&spentTx) {
+	if PeelingLikeCondition(&spentTx) {
 		return true, nil
 	}
 	// Check if future transaction is peeling chain
@@ -40,7 +40,7 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 			err = e
 			return
 		}
-		if LikePeelingChain(&spendingTx) {
+		if PeelingLikeCondition(&spendingTx) {
 			return true, nil
 		}
 	}

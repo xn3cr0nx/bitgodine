@@ -18,9 +18,8 @@ func (suite *TestHeuristicsSuite) TearDownSuite() {
 }
 
 func (suite *TestHeuristicsSuite) TestSetCardinality() {
-	assert.Equal(suite.T(), SetCardinality(), 8)	
+	assert.Equal(suite.T(), SetCardinality(), Heuristic(8))
 }
-
 
 func TestHeuristics(t *testing.T) {
 	suite.Run(t, new(TestHeuristicsSuite))

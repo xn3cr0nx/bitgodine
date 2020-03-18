@@ -1,7 +1,6 @@
 package heuristics
 
 import (
-	"github.com/wcharczuk/go-chart/drawing"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/backward"
@@ -24,13 +23,28 @@ const (
 	Peeling
 	PowerOfTen
 	OptimalChange
-	// ExactAmount
 	AddressType
 	AddressReuse
 	Shadow
 	ClientBehaviour
+
+	ExactAmount
 	Backward
 	Forward
+	h12
+	h13
+	h14
+	h15
+	h16
+
+	Coinbase
+	SelfTransfer
+	OffByOne
+	PeelingLike
+	h21
+	h22
+	h23
+	h24
 )
 
 // SetCardinality returnes the cardinality of the heuristics set
@@ -45,13 +59,26 @@ func (h Heuristic) String() string {
 		"Peeling Chain",
 		"Power of Ten",
 		"Optimal Change",
-		// "Exact Amount",
 		"Address Type",
 		"Address Reuse",
 		"Shadow",
 		"Client Behaviour",
+		"Exact Amount",
 		"Backward",
 		"Forward",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"Coinbase",
+		"SelfTransfer",
+		"OffByOne",
+		"PeelingLike",
+		"",
+		"",
+		"",
+		"",
 	}
 	return heuristics[h]
 }
@@ -63,37 +90,20 @@ func Abbreviation(a string) Heuristic {
 		"peeling":  Peeling,
 		"power":    PowerOfTen,
 		"optimal":  OptimalChange,
-		// "exact":    ExactAmount,
 		"type":     AddressType,
 		"reuse":    AddressReuse,
 		"shadow":   Shadow,
 		"client":   ClientBehaviour,
+		"exact":    ExactAmount,
 		"forward":  Forward,
 		"backward": Backward,
 	}
 	return abbreviations[a]
 }
 
-// Color returnes color corresponding to each heuristic
-func Color(a string) drawing.Color {
-	colors := map[string]drawing.Color{
-		"Locktime":         drawing.Color{R: 235, G: 255, B: 162},
-		"Peeling Chain":    drawing.Color{R: 0, G: 128, B: 128},
-		"Power of Ten":     drawing.Color{R: 141, G: 0, B: 0},
-		"Optimal Change":   drawing.Color{R: 201, G: 152, B: 0},
-		"Exact Amount":     drawing.Color{R: 86, G: 212, B: 101},
-		"Address Type":     drawing.Color{R: 64, G: 0, B: 64},
-		"Address Reuse":    drawing.Color{R: 0, G: 255, B: 159},
-		"Shadow":           drawing.Color{R: 203, G: 12, B: 89},
-		"Client Behaviour": drawing.Color{R: 12, G: 67, B: 131},
-		"Forward":          drawing.Color{R: 234, G: 124, B: 76},
-		"Backward":         drawing.Color{R: 104, G: 52, B: 171},
-	}
-	return colors[a]
-}
-
 // List returnes the list of heuristics
 func List() (heuristics []Heuristic) {
+	// SetCardinality is used in ToList and ToHeuristicsList in mask
 	for h := Heuristic(0); h < SetCardinality(); h++ {
 		heuristics = append(heuristics, h)
 	}
@@ -103,17 +113,30 @@ func List() (heuristics []Heuristic) {
 // Index returns the index corresponding the heuristic
 func Index(h string) Heuristic {
 	functions := map[string](Heuristic){
-		"Locktime":       Locktime,
-		"Peeling Chain":  Peeling,
-		"Power of Ten":   PowerOfTen,
-		"Optimal Change": OptimalChange,
-		// "Exact Amount": 		self.Vulnerable,
+		"Locktime":         Locktime,
+		"Peeling Chain":    Peeling,
+		"Power of Ten":     PowerOfTen,
+		"Optimal Change":   OptimalChange,
 		"Address Type":     AddressType,
 		"Address Reuse":    AddressReuse,
 		"Shadow":           Shadow,
 		"Client Behaviour": ClientBehaviour,
-		"Forward":          Forward,
+		"Exact Amount":     ExactAmount,
 		"Backward":         Backward,
+		"Forward":          Forward,
+		"h12":              h12,
+		"h13":              h13,
+		"h14":              h14,
+		"h15":              h15,
+		"h16":              h16,
+		"Coinbase":         Coinbase,
+		"SelfTransfer":     SelfTransfer,
+		"OffByOne":         OffByOne,
+		"PeelingLike":      PeelingLike,
+		"h21":              h21,
+		"h22":              h22,
+		"h23":              h23,
+		"h24":              h24,
 	}
 	return functions[h]
 }
@@ -121,17 +144,17 @@ func Index(h string) Heuristic {
 // VulnerableFunction returnes vulnerable function to be applied to analysis
 func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
 	functions := map[Heuristic](func(storage.DB, *models.Tx) bool){
-		Locktime:      locktime.Vulnerable,
-		Peeling:       peeling.Vulnerable,
-		PowerOfTen:    power.Vulnerable,
-		OptimalChange: optimal.Vulnerable,
-		// "Exact Amount": 		self.Vulnerable,
+		Locktime:        locktime.Vulnerable,
+		Peeling:         peeling.Vulnerable,
+		PowerOfTen:      power.Vulnerable,
+		OptimalChange:   optimal.Vulnerable,
 		AddressType:     class.Vulnerable,
 		AddressReuse:    reuse.Vulnerable,
 		Shadow:          shadow.Vulnerable,
 		ClientBehaviour: behaviour.Vulnerable,
-		Forward:         forward.Vulnerable,
-		Backward:        backward.Vulnerable,
+		// "Exact Amount": 		self.Vulnerable,
+		Forward:  forward.Vulnerable,
+		Backward: backward.Vulnerable,
 	}
 	return functions[h]
 }
@@ -139,17 +162,28 @@ func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
 // ChangeFunction returnes change output function to be applied to analysis
 func (h Heuristic) ChangeFunction() func(storage.DB, *models.Tx) ([]uint32, error) {
 	functions := map[Heuristic](func(storage.DB, *models.Tx) ([]uint32, error)){
-		Locktime:      locktime.ChangeOutput,
-		Peeling:       peeling.ChangeOutput,
-		PowerOfTen:    power.ChangeOutput,
-		OptimalChange: optimal.ChangeOutput,
-		// "Exact Amount": 		self.ChangeOutput,
+		Locktime:        locktime.ChangeOutput,
+		Peeling:         peeling.ChangeOutput,
+		PowerOfTen:      power.ChangeOutput,
+		OptimalChange:   optimal.ChangeOutput,
 		AddressType:     class.ChangeOutput,
 		AddressReuse:    reuse.ChangeOutput,
 		Shadow:          shadow.ChangeOutput,
 		ClientBehaviour: behaviour.ChangeOutput,
-		Forward:         forward.ChangeOutput,
-		Backward:        backward.ChangeOutput,
+		// "Exact Amount": 		self.ChangeOutput,
+		Forward:  forward.ChangeOutput,
+		Backward: backward.ChangeOutput,
+	}
+	return functions[h]
+}
+
+// ConditionFunction returnes change output function to be applied to analysis
+func (h Heuristic) ConditionFunction() func(*models.Tx) bool {
+	functions := map[Heuristic](func(*models.Tx) bool){
+		Coinbase:     coinbaseCondition,
+		SelfTransfer: selfTransferCondition,
+		OffByOne:     offByOneBugCondition,
+		PeelingLike:  peeling.PeelingLikeCondition,
 	}
 	return functions[h]
 }
@@ -176,7 +210,7 @@ func ApplySet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *Mask) {
 }
 
 // ApplyChange applies the heuristic specified to the passed transaction
-func (h Heuristic) ApplyChange(db storage.DB, tx models.Tx, vuln *map[Heuristic]uint32) {
+func (h Heuristic) ApplyChange(db storage.DB, tx models.Tx, vuln *Map) {
 	c, err := h.ChangeFunction()(db, &tx)
 	if err != nil {
 		return
@@ -187,8 +221,36 @@ func (h Heuristic) ApplyChange(db storage.DB, tx models.Tx, vuln *map[Heuristic]
 }
 
 // ApplyChangeSet applies the set of passed heuristics to the passed transaction
-func ApplyChangeSet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *map[Heuristic]uint32) {
+func ApplyChangeSet(db storage.DB, tx models.Tx, heuristicsList Mask, vuln *Map) {
 	for _, h := range heuristicsList.ToList() {
 		h.ApplyChange(db, tx, vuln)
+	}
+}
+
+// ApplyCondition applies the heuristic specified to the passed transaction
+func (h Heuristic) ApplyCondition(db storage.DB, tx models.Tx, vuln *Mask) {
+	if h.ConditionFunction()(&tx) {
+		vuln.Sum(MaskFromPower(h))
+	}
+}
+
+// ApplyConditionSet applies the set of passed heuristics to the passed transaction
+func ApplyConditionSet(db storage.DB, tx models.Tx, vuln *Mask) {
+	for _, h := range conditionsList() {
+		h.ApplyCondition(db, tx, vuln)
+	}
+}
+
+// ApplyChangeCondition applies the heuristic specified to the passed transaction
+func (h Heuristic) ApplyChangeCondition(db storage.DB, tx models.Tx, vuln *Map) {
+	if h.ConditionFunction()(&tx) {
+		(*vuln)[h] = 1
+	}
+}
+
+// ApplyChangeConditionSet applies the set of passed heuristics to the passed transaction
+func ApplyChangeConditionSet(db storage.DB, tx models.Tx, vuln *Map) {
+	for _, h := range conditionsList() {
+		h.ApplyChangeCondition(db, tx, vuln)
 	}
 }

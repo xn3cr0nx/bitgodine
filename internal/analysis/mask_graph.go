@@ -21,7 +21,7 @@ func (g MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to i
 				continue
 			}
 			for _, v := range g[i] {
-				if v.VulnerableMask(heuristic) {
+				if v.VulnerableMask(heuristic) && !v.IsCoinbase() {
 					counter++
 				}
 			}
@@ -39,7 +39,7 @@ func (g MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range g[i] {
-				if v.VulnerableMask(heuristic) {
+				if v.VulnerableMask(heuristic) && !v.IsCoinbase() {
 					counter++
 				}
 				tot++
@@ -47,6 +47,16 @@ func (g MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from
 		}
 		perc[h] = float64(counter) / float64(tot)
 	}
+	return
+}
+
+// ExtractGlobalOffByOneBug extraction based on output graph mock
+func (g MaskGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	return
+}
+
+// ExtractOffByOneBug extraction based on output graph mock
+func (g MaskGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	return
 }
 

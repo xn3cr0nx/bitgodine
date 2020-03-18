@@ -52,19 +52,33 @@ func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList 
 	return
 }
 
-func generateOutput(vuln Graph, chart string, heuristicsList heuristics.Mask, from, to int32) (err error) {
+func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristics.Mask, from, to int32) (err error) {
 	switch chart {
 	case "timeline":
-		data := vuln.ExtractPercentages(heuristicsList, from, to)
+		var data map[int32][]float64
+		switch criteria {
+		case "offbyone":
+			data = vuln.ExtractOffByOneBug(heuristicsList, from, to)
+		default:
+			data = vuln.ExtractPercentages(heuristicsList, from, to)
+		}
 		err = PlotHeuristicsTimeline(data, from, heuristicsList)
+
 	case "percentage":
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		var data []float64
+		switch criteria {
+		case "offbyone":
+			data = vuln.ExtractGlobalOffByOneBug(heuristicsList, from, to)
+		default:
+			data = vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		}
 		title := "Heuristics percentages"
 		list := heuristicsList.ToList()
 		if len(list) == 1 {
 			title = list[0].String() + " percentage"
 		}
 		err = plot.BarChart(title, heuristicsList.ToHeuristicsList(), data)
+
 	default:
 		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		renderPercentageTable(data, heuristicsList)

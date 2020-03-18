@@ -38,8 +38,8 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 		heuristics.ApplySet(db, tx, heuristicsList, &addr)
 		vuln = addr
 	} else {
-		vuln = make(map[heuristics.Heuristic]uint32)
-		addr := vuln.(map[heuristics.Heuristic]uint32)
+		vuln = make(heuristics.Map)
+		addr := vuln.(heuristics.Map)
 		heuristics.ApplyChangeSet(db, tx, heuristicsList, &addr)
 		vuln = addr
 	}
@@ -48,7 +48,7 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 }
 
 // ExtractLikelihoodOutput function to return most probable output between applied heuristics results
-func ExtractLikelihoodOutput(analyzed HeuristicChangeAnalysis) (vout uint32, err error) {
+func ExtractLikelihoodOutput(analyzed heuristics.Map) (vout uint32, err error) {
 	fmt.Println("from heuristics analysis", analyzed)
 	if len(analyzed) == 0 {
 		return 0, errors.New("No effective analysis")
@@ -97,22 +97,14 @@ type Worker struct {
 // ApplicabilityWorker wrapper to partecipate in task pool
 type ApplicabilityWorker struct {
 	Worker
-	vuln       MaskGraph
-	conditions ConditionsSet
+	vuln MaskGraph
 }
 
 // Work method to make ApplicabilityWorker compatible with task pool worker interface
 func (w *ApplicabilityWorker) Work() (err error) {
-	// excluding coinbase transactions in analysis
-	if coinbaseCondition(w.tx) {
-		// w.lock.Lock()
-		// w.vuln[w.height][w.tx.TxID] = heuristics.MaskFromPower(0)
-		// w.lock.Unlock()
-		return
-	}
-
 	var v heuristics.Mask
 	heuristics.ApplySet(w.db, w.tx, w.heuristicsList, &v)
+	heuristics.ApplyConditionSet(w.db, w.tx, &v)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
@@ -123,26 +115,14 @@ func (w *ApplicabilityWorker) Work() (err error) {
 // ReliabilityWorker wrapper to partecipate in task pool
 type ReliabilityWorker struct {
 	Worker
-	vuln       OutputGraph
-	conditions ConditionsSet
+	vuln OutputGraph
 }
 
 // Work method to make ReliabilityWorker compatible with task pool worker interface
 func (w *ReliabilityWorker) Work() (err error) {
-	for _, condition := range w.conditions {
-		if condition(w.tx) {
-			return
-		}
-	}
-
-	// if len(tx.Vout) == 1 {
-	// 	fmt.Println("Possible self transfer")
-	// 	vout[0] = 0
-	// 	return
-	// }
-
-	v := make(map[heuristics.Heuristic]uint32, len(w.heuristicsList.ToList()))
+	v := make(heuristics.Map, len(w.heuristicsList.ToList()))
 	heuristics.ApplyChangeSet(w.db, w.tx, w.heuristicsList, &v)
+	heuristics.ApplyChangeConditionSet(w.db, w.tx, &v)
 
 	w.lock.Lock()
 	w.vuln[w.height][w.tx.TxID] = v
@@ -179,9 +159,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	ranges := updateRange(from, to, analyzed, force)
 	fmt.Println("updated ranges", ranges)
 
-	// define tx analysis conditions based on analysis type and criteria
-	conditions := newConditionsSet()
-	conditions.fillConditionsSet(criteria)
+	// // define tx analysis conditions based on analysis type and criteria
+	// conditions := newConditionsSet()
+	// conditions.fillConditionsSet(criteria)
 
 	var vuln Graph
 	if analysisType == "applicability" {
@@ -211,7 +191,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 			if analysisType == "applicability" {
 				vuln.(MaskGraph)[block.Height] = make(map[string]heuristics.Mask, len(block.Transactions))
 			} else {
-				vuln.(OutputGraph)[block.Height] = make(map[string]HeuristicChangeAnalysis, len(block.Transactions))
+				vuln.(OutputGraph)[block.Height] = make(map[string]heuristics.Map, len(block.Transactions))
 			}
 			lock.Unlock()
 
@@ -233,13 +213,11 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 					pool.Do(&ApplicabilityWorker{
 						w,
 						vuln.(MaskGraph),
-						conditions,
 					})
 				} else {
 					pool.Do(&ReliabilityWorker{
 						w,
 						vuln.(OutputGraph),
-						conditions,
 					})
 				}
 
@@ -269,6 +247,6 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 		vuln = vuln.mergeChunks(analyzed...).Vulnerabilites
 	}
 
-	err = generateOutput(vuln, chart, heuristicsList, from, to)
+	err = generateOutput(vuln, chart, criteria, heuristicsList, from, to)
 	return
 }

@@ -5,11 +5,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 )
 
-// HeuristicChangeAnalysis analysis output map for heuristics change output
-type HeuristicChangeAnalysis map[heuristics.Heuristic]uint32
-
 // OutputGraph alias for struct describing blockchain graph based on heuristics
-type OutputGraph map[int32]map[string]HeuristicChangeAnalysis
+type OutputGraph map[int32]map[string]heuristics.Map
 
 // ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
 func (g OutputGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
@@ -20,9 +17,32 @@ func (g OutputGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to
 		for h, heuristic := range list {
 			counter := 0
 			for _, v := range g[i] {
-				if change, ok := v[heuristic]; ok {
-					if change == 0 {
+				if !v.IsCoinbase() {
+					if _, ok := v[heuristic]; ok {
 						counter++
+					}
+				}
+				perc[i][h] = float64(counter) / float64(len(g[i]))
+			}
+		}
+	}
+	return
+}
+
+// ExtractOffByOneBug returnes the corresponding map with heuristic percentages for each element in the map (in each block)
+func (g OutputGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
+	perc = make(map[int32][]float64, to-from+1)
+	list := heuristicsList.ToList()
+	for i := from; i <= to; i++ {
+		perc[i] = make([]float64, len(list))
+		for h, heuristic := range list {
+			counter := 0
+			for _, v := range g[i] {
+				if !v.IsCoinbase() && v.IsOffByOneBug() {
+					if _, ok := v[heuristic]; ok {
+						if counter == 0 {
+							counter++
+						}
 					}
 				}
 				perc[i][h] = float64(counter) / float64(len(g[i]))
@@ -40,10 +60,32 @@ func (g OutputGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, fr
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range g[i] {
-				if change, ok := v[heuristic]; ok {
-					// FIXME: here is where I calculated the amount of 0 indexed outputs
-					if change == 0 {
+				if !v.IsCoinbase() {
+					if _, ok := v[heuristic]; ok {
 						counter++
+					}
+				}
+				tot++
+			}
+		}
+		perc[h] = float64(counter) / float64(tot)
+	}
+	return
+}
+
+// ExtractGlobalOffByOneBug returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	list := heuristicsList.ToList()
+	perc = make([]float64, len(list))
+	for h, heuristic := range list {
+		counter, tot := 0, 0
+		for i := from; i <= to; i++ {
+			for _, v := range g[i] {
+				if !v.IsCoinbase() && v.IsOffByOneBug() {
+					if change, ok := v[heuristic]; ok {
+						if change == 0 {
+							counter++
+						}
 					}
 				}
 				tot++
@@ -110,19 +152,11 @@ func (g OutputGraph) updateStoredRanges(kv *badger.Badger, interval int32, analy
 	newGraph := make(OutputGraph, newRange.To-newRange.From+1)
 	for _, a := range analyzed {
 		for i := a.From; i <= a.To; i++ {
-			newGraph[i] = make(map[string]HeuristicChangeAnalysis, len(a.Vulnerabilites.(OutputGraph)[i]))
+			newGraph[i] = make(map[string]heuristics.Map, len(a.Vulnerabilites.(OutputGraph)[i]))
 			for tx, v := range a.Vulnerabilites.(OutputGraph)[i] {
-				newGraph[i][tx] = mergeChangeAnalysis(v, g[i][tx])
+				newGraph[i][tx] = heuristics.MergeMaps(v, g[i][tx])
 			}
 		}
 	}
 	return newGraph
-}
-
-func mergeChangeAnalysis(a, b HeuristicChangeAnalysis) (new HeuristicChangeAnalysis) {
-	new = a
-	for h, c := range b {
-		a[h] = c
-	}
-	return
 }

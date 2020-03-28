@@ -18,14 +18,15 @@ func (g OutputGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, len(list))
 		for h, heuristic := range list {
-			counter := 0
+			counter, tot := 0, 0
 			for _, v := range g[i] {
 				if !v.IsCoinbase() {
 					if _, ok := v[heuristic]; ok {
 						counter++
 					}
+					tot++
 				}
-				perc[i][h] = float64(counter) / float64(len(g[i]))
+				perc[i][h] = float64(counter) / float64(tot)
 			}
 		}
 	}
@@ -39,7 +40,7 @@ func (g OutputGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, len(list))
 		for h, heuristic := range list {
-			counter := 0
+			counter, tot := 0, 0
 			for _, v := range g[i] {
 				if !v.IsCoinbase() && v.IsOffByOneBug() {
 					if _, ok := v[heuristic]; ok {
@@ -47,8 +48,9 @@ func (g OutputGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to
 							counter++
 						}
 					}
+					tot++
 				}
-				perc[i][h] = float64(counter) / float64(len(g[i]))
+				perc[i][h] = float64(counter) / float64(tot)
 			}
 		}
 	}
@@ -67,8 +69,8 @@ func (g OutputGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, fr
 					if _, ok := v[heuristic]; ok {
 						counter++
 					}
+					tot++
 				}
-				tot++
 			}
 		}
 		perc[h] = float64(counter) / float64(tot)
@@ -84,14 +86,16 @@ func (g OutputGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, fr
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range g[i] {
-				if !v.IsCoinbase() && v.IsOffByOneBug() {
-					if change, ok := v[heuristic]; ok {
-						if change == 0 {
-							counter++
+				if !v.IsCoinbase() {
+					if v.IsOffByOneBug() {
+						if change, ok := v[heuristic]; ok {
+							if change == 0 {
+								counter++
+							}
 						}
 					}
+					tot++
 				}
-				tot++
 			}
 		}
 		perc[h] = float64(counter) / float64(tot)
@@ -118,12 +122,16 @@ func (g OutputGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask
 					isShadow = true
 				}
 
-				if !v.IsCoinbase() && (isReuse || isShadow) {
-					if _, ok := v[heuristic]; ok {
-						counter++
+				if !v.IsCoinbase() {
+					if isReuse || isShadow {
+						if _, ok := v[heuristic]; ok {
+							if v[heuristic] == v[5] || v[heuristic] == v[6] {
+								counter++
+							}
+						}
 					}
+					tot++
 				}
-				tot++
 			}
 		}
 		perc[h] = float64(counter) / float64(tot)
@@ -166,8 +174,93 @@ func (g OutputGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mas
 
 			if !v.IsCoinbase() {
 				prev[v.ToMask()[0]] = prev[v.ToMask()[0]] + 1
+				tot++
 			}
-			tot++
+		}
+	}
+	for k, v := range prev {
+		perc[fmt.Sprintf("%b", k)] = v / float64(tot)
+	}
+	return
+}
+
+func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
+	majority := m
+	delete(majority, 5)
+	delete(majority, 6)
+	delete(majority, 9)
+	delete(majority, 10)
+	delete(majority, 11)
+	delete(majority, 17)
+	delete(majority, 18)
+	delete(majority, 19)
+	delete(majority, 20)
+
+	clusters := make(map[uint32][]heuristics.Heuristic)
+	for heuristic, change := range m {
+		clusters[change] = append(clusters[change], heuristic)
+	}
+	if len(clusters) == 0 {
+		return
+	}
+
+	var output uint32
+	var max []heuristics.Heuristic
+	multiple := true
+	for change, cluster := range clusters {
+		if len(cluster) > len(max) {
+			max = cluster
+			output = change
+			multiple = false
+		} else if len(cluster) == len(max) {
+			multiple = true
+		}
+	}
+	if multiple || output != basis {
+		return
+	}
+
+	r = make(heuristics.Map, len(max))
+	for _, heuristic := range max {
+		r[heuristic] = output
+	}
+
+	return
+}
+
+// ExtractGlobalMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	list := heuristicsList.ToList()
+	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
+	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	tot := 0
+	for i := from; i <= to; i++ {
+
+		for _, v := range g[i] {
+			var reuse uint32
+			isReuse := false
+			var shadow uint32
+			isShadow := false
+
+			reuse, ok := v[5]
+			if ok {
+				isReuse = true
+			}
+			shadow, ok = v[6]
+			if ok {
+				isShadow = true
+			}
+
+			if !v.IsCoinbase() && (isReuse || isShadow) {
+				var majority heuristics.Map
+				if isReuse {
+					majority = extractMajorityMask(v, reuse)
+				} else {
+					majority = extractMajorityMask(v, shadow)
+				}
+				prev[majority.ToMask()[0]] = prev[majority.ToMask()[0]] + 1
+				tot++
+			}
 		}
 	}
 	for k, v := range prev {

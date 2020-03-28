@@ -15,17 +15,20 @@ func (g MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to i
 	for i := from; i <= to; i++ {
 		perc[i] = make([]float64, len(list))
 		for h, heuristic := range list {
-			counter := 0
+			counter, tot := 0, 0
 			if len(g[i]) == 0 {
 				perc[i][h] = 0
 				continue
 			}
 			for _, v := range g[i] {
-				if v.VulnerableMask(heuristic) && !v.IsCoinbase() {
-					counter++
+				if !v.IsCoinbase() {
+					if v.VulnerableMask(heuristic) {
+						counter++
+					}
+					tot++
 				}
 			}
-			perc[i][h] = float64(counter) / float64(len(g[i]))
+			perc[i][h] = float64(counter) / float64(tot)
 		}
 	}
 	return
@@ -39,10 +42,12 @@ func (g MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from
 		counter, tot := 0, 0
 		for i := from; i <= to; i++ {
 			for _, v := range g[i] {
-				if v.VulnerableMask(heuristic) && !v.IsCoinbase() {
-					counter++
+				if !v.IsCoinbase() {
+					if v.VulnerableMask(heuristic) {
+						counter++
+					}
+					tot++
 				}
-				tot++
 			}
 		}
 		perc[h] = float64(counter) / float64(tot)
@@ -67,6 +72,11 @@ func (g MaskGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask, 
 
 // ExtractCombinationPercentages extraction based on output graph mock
 func (g MaskGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	return
+}
+
+// ExtractGlobalMajorityVotingPerc extraction based on output graph mock
+func (g MaskGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	return
 }
 

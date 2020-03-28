@@ -94,7 +94,13 @@ func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristic
 		err = plot.BarChart(title, heuristicsList.ToHeuristicsList(), data)
 
 	case "combination":
-		data := vuln.ExtractCombinationPercentages(heuristicsList, from, to)
+		var data map[string]float64
+		switch criteria {
+		case "majorityvoting":
+			data = vuln.ExtractGlobalMajorityVotingPerc(heuristicsList, from, to)
+		default:
+			data = vuln.ExtractCombinationPercentages(heuristicsList, from, to)
+		}
 		renderTable(data, "Combination", "Heuristics combination percentages")
 
 	default:

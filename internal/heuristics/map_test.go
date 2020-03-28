@@ -41,6 +41,12 @@ func (suite *TestMapSuite) TestToHeuristicsList() {
 	assert.Equal(suite.T(), list, []string{Locktime.String(), AddressType.String()})
 }
 
+func (suite *TestMapSuite) TestToMask() {
+	m := MapFromHeuristics(Locktime, AddressType)
+	mask := m.ToMask()
+	assert.Equal(suite.T(), mask, Mask([3]byte{byte(17), byte(0), byte(0)}))
+}
+
 func (suite *TestMapSuite) TestIsCoinbase() {
 	m := MapFromHeuristics(Coinbase)
 	assert.Equal(suite.T(), m.IsCoinbase(), true)

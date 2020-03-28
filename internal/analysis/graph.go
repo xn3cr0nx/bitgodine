@@ -15,4 +15,6 @@ type Graph interface {
 	ExtractGlobalPercentages(heuristics.Mask, int32, int32) []float64
 	ExtractOffByOneBug(heuristics.Mask, int32, int32) map[int32][]float64
 	ExtractGlobalOffByOneBug(heuristics.Mask, int32, int32) []float64
+	ExtractGlobalSecureBasisPerc(heuristics.Mask, int32, int32) []float64
+	ExtractCombinationPercentages(heuristics.Mask, int32, int32) map[string]float64
 }

@@ -1,6 +1,9 @@
 package analysis
 
 import (
+	"fmt"
+	"math"
+
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
 )
@@ -92,6 +95,83 @@ func (g OutputGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, fr
 			}
 		}
 		perc[h] = float64(counter) / float64(tot)
+	}
+	return
+}
+
+// ExtractGlobalSecureBasisPerc returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	list := heuristicsList.ToList()
+	perc = make([]float64, len(list))
+	for h, heuristic := range list {
+		counter, tot := 0, 0
+		for i := from; i <= to; i++ {
+
+			for _, v := range g[i] {
+				isReuse := false
+				isShadow := false
+
+				if _, ok := v[5]; ok {
+					isReuse = true
+				}
+				if _, ok := v[6]; ok {
+					isShadow = true
+				}
+
+				if !v.IsCoinbase() && (isReuse || isShadow) {
+					if _, ok := v[heuristic]; ok {
+						counter++
+					}
+				}
+				tot++
+			}
+		}
+		perc[h] = float64(counter) / float64(tot)
+	}
+	return
+}
+
+func checkOutputs(m heuristics.Map) (r bool) {
+	var list []uint32
+	for heuristic, change := range m {
+		if heuristic > 8 {
+			continue
+		}
+		list = append(list, change)
+	}
+	if len(list) > 0 {
+		first := list[0]
+		for _, e := range list {
+			if e != first {
+				r = true
+				break
+			}
+		}
+	}
+	return
+}
+
+// ExtractCombinationPercentages returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	list := heuristicsList.ToList()
+	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
+	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	tot := 0
+	for i := from; i <= to; i++ {
+		for _, v := range g[i] {
+			// include only if all change outputs are the same
+			if checkOutputs(v) {
+				continue
+			}
+
+			if !v.IsCoinbase() {
+				prev[v.ToMask()[0]] = prev[v.ToMask()[0]] + 1
+			}
+			tot++
+		}
+	}
+	for k, v := range prev {
+		perc[fmt.Sprintf("%b", k)] = v / float64(tot)
 	}
 	return
 }

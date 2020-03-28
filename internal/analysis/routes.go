@@ -53,9 +53,9 @@ func Routes(g *echo.Group) *echo.Group {
 			From     int32    `query:"from" validate:"omitempty,gte=0"`
 			To       int32    `query:"to" validate:"omitempty,gtefield=From"`
 			List     []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-			Plot     string   `query:"plot" validate:"omitempty,oneof=timeline percentage"`
+			Plot     string   `query:"plot" validate:"omitempty,oneof=timeline percentage combination"`
 			Force    bool     `query:"force" validate:"omitempty"`
-			Analysis string   `query:"analysis" validate:"omitempty,oneof=offbyone"`
+			Analysis string   `query:"analysis" validate:"omitempty,oneof=offbyone securebasis"`
 			Type     string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
 		}
 		q := new(Query)

@@ -60,6 +60,16 @@ func (g MaskGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to i
 	return
 }
 
+// ExtractGlobalSecureBasisPerc extraction based on output graph mock
+func (g MaskGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
+	return
+}
+
+// ExtractCombinationPercentages extraction based on output graph mock
+func (g MaskGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	return
+}
+
 func (g MaskGraph) subGraph(from, to int32) (sub Graph) {
 	sub = make(MaskGraph, to-from+1)
 	for h, a := range g {

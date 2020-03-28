@@ -9,7 +9,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
 )
 
-// GlobalPercentages prints a table with percentages of heuristics success rate based on passed analysis
+// renderPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
 func renderPercentageTable(data []float64, heuristicsList heuristics.Mask) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})
@@ -18,6 +18,18 @@ func renderPercentageTable(data []float64, heuristicsList heuristics.Mask) {
 	list := heuristicsList.ToList()
 	for h, perc := range data {
 		table.Append([]string{list[h].String(), fmt.Sprintf("%4.2f", perc*100)})
+	}
+	table.Render()
+}
+
+// renderTable prints a generic two columns table
+func renderTable(data map[string]float64, column, caption string) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{column, "%"})
+	// table.SetBorder(false)
+	table.SetCaption(true, caption)
+	for k, perc := range data {
+		table.Append([]string{k, fmt.Sprintf("%4.2f", perc*100)})
 	}
 	table.Render()
 }
@@ -69,6 +81,8 @@ func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristic
 		switch criteria {
 		case "offbyone":
 			data = vuln.ExtractGlobalOffByOneBug(heuristicsList, from, to)
+		case "securebasis":
+			data = vuln.ExtractGlobalSecureBasisPerc(heuristicsList, from, to)
 		default:
 			data = vuln.ExtractGlobalPercentages(heuristicsList, from, to)
 		}
@@ -79,8 +93,21 @@ func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristic
 		}
 		err = plot.BarChart(title, heuristicsList.ToHeuristicsList(), data)
 
+	case "combination":
+		data := vuln.ExtractCombinationPercentages(heuristicsList, from, to)
+		renderTable(data, "Combination", "Heuristics combination percentages")
+
 	default:
-		data := vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		var data []float64
+		switch criteria {
+		case "offbyone":
+			data = vuln.ExtractGlobalOffByOneBug(heuristicsList, from, to)
+		case "securebasis":
+			data = vuln.ExtractGlobalSecureBasisPerc(heuristicsList, from, to)
+		default:
+			data = vuln.ExtractGlobalPercentages(heuristicsList, from, to)
+		}
+
 		renderPercentageTable(data, heuristicsList)
 	}
 	return

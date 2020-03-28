@@ -41,6 +41,14 @@ func (v Map) ToHeuristicsList() (heuristics []string) {
 	return
 }
 
+// ToMask converts the Map to a Mask ignoring values
+func (v Map) ToMask() (m Mask) {
+	for h := range v {
+		m.Sum(MaskFromPower(h))
+	}
+	return
+}
+
 // IsCoinbase checks if corresponding condition bit is true
 func (v Map) IsCoinbase() bool {
 	return v[Coinbase] == 1

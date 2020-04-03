@@ -11,3 +11,8 @@ type Model struct {
 	Address string `json:"address" validate:"required,btc_addr|btc_addr_bech32" gorm:"index"`
 	Cluster uint64 `json:"cluster" validate:""`
 }
+
+// TableName defines default table name
+func (m Model) TableName() string {
+	return "clusters"
+}

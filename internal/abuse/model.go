@@ -15,3 +15,8 @@ type Model struct {
 	FromCountry     string `json:"from_country"`
 	FromCountryCode string `json:"from_country_code"`
 }
+
+// TableName defines default table name
+func (m Model) TableName() string {
+	return "abuses"
+}

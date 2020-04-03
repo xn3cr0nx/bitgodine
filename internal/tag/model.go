@@ -14,3 +14,8 @@ type Model struct {
 	Link     string `json:"link,omitempty" validate:""`
 	Verified bool   `json:"verified,omitempty" validate:"" gorm:"default:false"`
 }
+
+// TableName defines default table name
+func (m Model) TableName() string {
+	return "tags"
+}

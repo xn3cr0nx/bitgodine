@@ -88,8 +88,8 @@ func (s *Server) Listen() {
 	}))
 
 	s.router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:4200"},
-		AllowMethods: []string{"*"},
+		AllowOrigins: viper.GetStringSlice(("auth.cors")),
+		AllowMethods: viper.GetStringSlice(("auth.methods")),
 	}))
 
 	s.router.Use(middleware.RequestID())

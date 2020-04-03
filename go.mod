@@ -7,6 +7,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-farm v0.0.0-20191112170834-c2139c5d712b // indirect
 	github.com/fatih/color v1.9.0
+	github.com/fatih/structs v1.1.0
 	github.com/fogleman/gg v1.3.0
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
@@ -24,7 +25,7 @@ require (
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
 	github.com/xn3cr0nx/bitgodine_clusterizer v0.0.0-20200308152643-8e1b1e19b249
 	github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad
-	github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200308155258-3fc301a960dd
+	github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200328155242-700bc4b968d2
 	golang.org/x/image v0.0.0-20200119044424-58c23975cae1
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect

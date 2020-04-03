@@ -14,13 +14,14 @@ import (
 	"github.com/xn3cr0nx/bitgodine_server/internal/address"
 	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/block"
+	"github.com/xn3cr0nx/bitgodine_server/internal/cluster"
 	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
 	"github.com/xn3cr0nx/bitgodine_server/internal/trace"
 	"github.com/xn3cr0nx/bitgodine_server/internal/tx"
+	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
-	"github.com/xn3cr0nx/bitgodine_spider/pkg/postgres"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -104,6 +105,7 @@ func (s *Server) Listen() {
 	analysis.Routes(api)
 	trace.Routes(api)
 	tag.Routes(api)
+	cluster.Routes(api)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

@@ -46,8 +46,10 @@ func (cv *CustomValidator) RegisterCustomValidations() {
 func Struct(c *echo.Context, b interface{}) (err error) {
 	// this cannot work passing a point (**struct), but passing by value won't really bind. Loosly approach
 	if err = (*c).Bind(b); err != nil {
-		err = echo.NewHTTPError(http.StatusBadRequest, err)
+		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
-	err = (*c).Validate(b)
+	if err = (*c).Validate(b); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
 	return
 }

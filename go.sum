@@ -96,6 +96,8 @@ github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.9.0 h1:8xPHl4/q1VyqGIPif1F+1V3Y3lSmrq01EabUW3CoW5s=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
+github.com/fatih/structs v1.1.0 h1:Q7juDM0QtcnhCpeyLGQKyg4TOIghuNXrkL32pHAUMxo=
+github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
 github.com/fogleman/gg v1.3.0 h1:/7zJX8F6AaYQc57WQCyN9cAIz+4bCJGO9B+dyW29am8=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
@@ -325,6 +327,8 @@ github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad h1:zmSvS
 github.com/xn3cr0nx/bitgodine_parser v0.0.0-20200211111323-444440d531ad/go.mod h1:WIHGf6YNLur2o+dcyFFEl02P/VtiQNsqZvFB6yqC3Ic=
 github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200308155258-3fc301a960dd h1:VdosHKHcPFt87uIkc0CQMLTAnjt2gn4lpnF7eNZw3Hs=
 github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200308155258-3fc301a960dd/go.mod h1:1Vyt69/oj2yojRzbBWfq4cdkKAzPYV4Hh2Y72LrvfkI=
+github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200328155242-700bc4b968d2 h1:Ll1ZKSqfV9muReWZGlya0deO9I0LL1NeJSkUhk9UCtI=
+github.com/xn3cr0nx/bitgodine_spider v0.0.0-20200328155242-700bc4b968d2/go.mod h1:1Vyt69/oj2yojRzbBWfq4cdkKAzPYV4Hh2Y72LrvfkI=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

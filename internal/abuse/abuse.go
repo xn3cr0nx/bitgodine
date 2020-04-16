@@ -45,7 +45,7 @@ func CreateAbuse(c *echo.Context, t *Model) (err error) {
 // GetAbuse retrieve abuses related to passed address
 func GetAbuse(c *echo.Context, address string, output bool) (abuses []Model, err error) {
 	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Find(&abuses).Where("address = ?", address).Error; err != nil {
+	if err = pg.DB.Where("address = ?", address).Find(&abuses).Error; err != nil {
 		return
 	}
 

@@ -45,7 +45,7 @@ func CreateCluster(c *echo.Context, t *Model) (err error) {
 // GetCluster retrieve clusters related to passed address
 func GetCluster(c *echo.Context, address string, output bool) (clusters []cluster.Cluster, err error) {
 	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Find(&clusters).Where("address = ?", address).Error; err != nil {
+	if err = pg.DB.Where("address = ?", address).Find(&clusters).Error; err != nil {
 		return
 	}
 

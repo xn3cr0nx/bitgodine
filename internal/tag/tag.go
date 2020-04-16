@@ -52,7 +52,7 @@ func CreateTag(c *echo.Context, t *Model) (err error) {
 // GetTag retrieve tags related to passed address
 func GetTag(c *echo.Context, address string, output bool) (tags []Model, err error) {
 	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Find(&tags).Where("address = ?", address).Error; err != nil {
+	if err = pg.DB.Where("address = ?", address).Find(&tags).Error; err != nil {
 		return
 	}
 

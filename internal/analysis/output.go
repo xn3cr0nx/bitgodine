@@ -34,6 +34,71 @@ func renderTable(data map[string]float64, column, caption string) {
 	table.Render()
 }
 
+// renderFullPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
+func renderFullPercentageTable(data AnalysisSet, caption string) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Combination", "secure perc (%)", "# secure set", "total perc (%)", "# total set"})
+	// table.SetBorder(false)
+	table.SetCaption(true, caption)
+	for h, n := range data.Counters {
+		table.Append([]string{fmt.Sprintf("%b", h), fmt.Sprintf("%4.2f", data.LocalPercentages[h]*100), fmt.Sprintf("%4.0f", data.LocalCounters[h]), fmt.Sprintf("%4.2f", data.Percentages[h]*100), fmt.Sprintf("%4.0f", n)})
+	}
+	table.Render()
+}
+
+// renderComparingPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
+func renderComparingPercentageTable(base, data AnalysisSet, caption string) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Combination", "secure perc (%)", "# secure set", "total perc (%)", "# total set"})
+	// table.SetBorder(false)
+	table.SetCaption(true, caption)
+	for h, n := range base.Counters {
+		localSetVar := data.LocalCounters[h] - base.LocalCounters[h]
+		localSet := fmt.Sprintf("%.0f (%.0f)", data.LocalCounters[h], localSetVar)
+
+		localPercVar := data.LocalPercentages[h] - base.LocalPercentages[h]
+		localPerc := fmt.Sprintf("%.2f (%.2f)", data.LocalPercentages[h]*100, localPercVar*100)
+
+		setVar := data.Counters[h] - n
+		set := fmt.Sprintf("%.0f (%.0f)", data.Counters[h], setVar)
+
+		percVar := data.Percentages[h] - base.Percentages[h]
+		perc := fmt.Sprintf("%.2f (%.2f)", data.Percentages[h]*100, percVar*100)
+
+		table.Append([]string{fmt.Sprintf("%b", h), localPerc, localSet, perc, set})
+	}
+	table.Render()
+}
+
+// renderOverlapTable prints a table with percentages of heuristics success rate based on passed analysis
+func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask) {
+	table := tablewriter.NewWriter(os.Stdout)
+	header := []string{"Heuristic"}
+	header = append(header, heuristicsList.ToHeuristicsList()...)
+	table.SetHeader(header)
+	// table.SetBorder(false)
+	table.SetCaption(true, "Heuristics overlap")
+	list := heuristicsList.ToList()
+	for _, h := range list {
+		var overlap [8]float64
+		for k := range data.Counters {
+			mask := heuristics.Mask([3]byte{k, byte(0), byte(0)})
+			for i := heuristics.Heuristic(0); i < 8; i++ {
+				if mask.VulnerableMask(h) && mask.VulnerableMask(i) {
+					overlap[int(i)] = overlap[int(i)] + 1
+				}
+			}
+		}
+
+		row := []string{h.String()}
+		for i := 0; i < 8; i++ {
+			row = append(row, fmt.Sprintf("%.2f", (overlap[i]/float64(len(data.Counters)))*100))
+		}
+		table.Append(row)
+	}
+	table.Render()
+}
+
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
 func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList heuristics.Mask) (err error) {
 	coordinates := make(map[string]plot.Coordinates)
@@ -96,8 +161,28 @@ func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristic
 	case "combination":
 		var data map[string]float64
 		switch criteria {
+		case "fullmajorityanalysis":
+			set := vuln.MajorityFullAnalysis(heuristicsList, from, to)
+			renderFullPercentageTable(set, "Majority voting combination full analysis")
+			return
+		case "reducingmajorityanalysis":
+			full := vuln.MajorityFullAnalysis(heuristicsList, from, to)
+			reducing := []heuristics.Heuristic{0, 1, 2, 3, 4, 7}
+			for _, r := range reducing {
+				set := vuln.MajorityFullAnalysis(heuristicsList, from, to, r)
+				renderComparingPercentageTable(full, set, fmt.Sprintf("Majority voting combination full analysis, reduced by heuristic %s", r.String()))
+			}
+			return
+		case "fullmajorityvoting":
+			data = vuln.ExtractGlobalFullMajorityVotingPerc(heuristicsList, from, to)
 		case "majorityvoting":
 			data = vuln.ExtractGlobalMajorityVotingPerc(heuristicsList, from, to)
+		case "strictmajorityvoting":
+			data = vuln.ExtractGlobalStricMajorityVotingPerc(heuristicsList, from, to)
+		case "overlapping":
+			set := vuln.MajorityFullAnalysis(heuristicsList, from, to)
+			renderOverlapTable(set, heuristicsList)
+			return
 		default:
 			data = vuln.ExtractCombinationPercentages(heuristicsList, from, to)
 		}

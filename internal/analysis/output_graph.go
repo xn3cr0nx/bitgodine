@@ -185,9 +185,13 @@ func (g OutputGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mas
 }
 
 func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
-	majority := m
+	majority := make(heuristics.Map, len(m))
+	for k, v := range m {
+		majority[k] = v
+	}
 	delete(majority, 5)
 	delete(majority, 6)
+	delete(majority, 8)
 	delete(majority, 9)
 	delete(majority, 10)
 	delete(majority, 11)
@@ -197,7 +201,7 @@ func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
 	delete(majority, 20)
 
 	clusters := make(map[uint32][]heuristics.Heuristic)
-	for heuristic, change := range m {
+	for heuristic, change := range majority {
 		clusters[change] = append(clusters[change], heuristic)
 	}
 	if len(clusters) == 0 {
@@ -228,8 +232,8 @@ func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
 	return
 }
 
-// ExtractGlobalMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
-func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+// ExtractGlobalFullMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalFullMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	list := heuristicsList.ToList()
 	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
 	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
@@ -267,6 +271,179 @@ func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.M
 		perc[fmt.Sprintf("%b", k)] = v / float64(tot)
 	}
 	return
+}
+
+// ExtractGlobalMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	list := heuristicsList.ToList()
+	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
+	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	counters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+
+	for i := from; i <= to; i++ {
+		for _, v := range g[i] {
+			var reuse uint32
+			isReuse := false
+			var shadow uint32
+			isShadow := false
+
+			reuse, ok := v[5]
+			if ok {
+				isReuse = true
+			}
+			shadow, ok = v[6]
+			if ok {
+				isShadow = true
+			}
+
+			if !v.IsCoinbase() && (isReuse || isShadow) {
+				var majority heuristics.Map
+				if isReuse {
+					majority = extractMajorityMask(v, reuse)
+				} else {
+					majority = extractMajorityMask(v, shadow)
+				}
+				prev[majority.ToMask()[0]] = prev[majority.ToMask()[0]] + 1
+				counters[v.ToMask()[0]] = counters[v.ToMask()[0]] + 1
+			}
+		}
+	}
+	for k, v := range prev {
+		perc[fmt.Sprintf("%b", k)] = v / counters[k]
+	}
+	return
+}
+func majorityOutput(m heuristics.Map, reducing ...heuristics.Heuristic) (r heuristics.Map, output uint32) {
+	majority := make(heuristics.Map, len(m))
+	for k, v := range m {
+		majority[k] = v
+	}
+
+	delete(majority, 5)
+	delete(majority, 6)
+	delete(majority, 8)
+	delete(majority, 9)
+	delete(majority, 10)
+	delete(majority, 11)
+	delete(majority, 17)
+	delete(majority, 18)
+	delete(majority, 19)
+	delete(majority, 20)
+
+	for _, r := range reducing {
+		delete(majority, r)
+	}
+
+	clusters := make(map[uint32][]heuristics.Heuristic)
+	for heuristic, change := range majority {
+		clusters[change] = append(clusters[change], heuristic)
+	}
+	if len(clusters) == 0 {
+		return
+	}
+
+	var max []heuristics.Heuristic
+	multiple := true
+	for change, cluster := range clusters {
+		if len(cluster) > len(max) {
+			max = cluster
+			output = change
+			multiple = false
+		} else if len(cluster) == len(max) {
+			multiple = true
+		}
+	}
+	if multiple {
+		return
+	}
+
+	r = make(heuristics.Map, len(max))
+	for _, heuristic := range max {
+		r[heuristic] = output
+	}
+
+	return
+}
+
+// ExtractGlobalStricMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) ExtractGlobalStricMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	list := heuristicsList.ToList()
+	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
+	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	counters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+
+	for i := from; i <= to; i++ {
+		for _, v := range g[i] {
+			var reuse uint32
+			isReuse := false
+			var shadow uint32
+			isShadow := false
+
+			reuse, ok := v[5]
+			if ok {
+				isReuse = true
+			}
+			shadow, ok = v[6]
+			if ok {
+				isShadow = true
+			}
+
+			if !v.IsCoinbase() && (isReuse || isShadow) {
+				majority, output := majorityOutput(v)
+				if output == reuse || output == shadow {
+					prev[majority.ToMask()[0]] = prev[majority.ToMask()[0]] + 1
+				}
+				counters[majority.ToMask()[0]] = counters[majority.ToMask()[0]] + 1
+			}
+		}
+	}
+	for k, v := range prev {
+		perc[fmt.Sprintf("%b", k)] = v / counters[k]
+	}
+	return
+}
+
+// MajorityFullAnalysis returnes the corresponding map with global heuristic percentages for each heuristic
+func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, to int32, reducing ...heuristics.Heuristic) AnalysisSet {
+	list := heuristicsList.ToList()
+	localPerc := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	perc := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	counters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	localCounters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+
+	for i := from; i <= to; i++ {
+		for _, v := range g[i] {
+			var reuse uint32
+			isReuse := false
+			var shadow uint32
+			isShadow := false
+
+			reuse, ok := v[5]
+			if ok {
+				isReuse = true
+			}
+			shadow, ok = v[6]
+			if ok {
+				isShadow = true
+			}
+
+			majority, output := majorityOutput(v, reducing...)
+			if !v.IsCoinbase() && (isReuse || isShadow) {
+				if output == reuse || output == shadow {
+					prev[majority.ToMask()[0]] = prev[majority.ToMask()[0]] + 1
+				}
+				localCounters[majority.ToMask()[0]] = localCounters[majority.ToMask()[0]] + 1
+			}
+			counters[majority.ToMask()[0]] = counters[majority.ToMask()[0]] + 1
+		}
+	}
+
+	for k, v := range counters {
+		localPerc[k] = prev[k] / localCounters[k]
+		perc[k] = prev[k] / v
+	}
+	return AnalysisSet{LocalPercentages: localPerc, Percentages: perc, LocalCounters: localCounters, Counters: counters}
 }
 
 func (g OutputGraph) subGraph(from, to int32) (sub Graph) {

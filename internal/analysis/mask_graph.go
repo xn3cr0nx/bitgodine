@@ -75,9 +75,24 @@ func (g MaskGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mask,
 	return
 }
 
+// ExtractGlobalFullMajorityVotingPerc extraction based on output graph mock
+func (g MaskGraph) ExtractGlobalFullMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	return
+}
+
 // ExtractGlobalMajorityVotingPerc extraction based on output graph mock
 func (g MaskGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	return
+}
+
+// ExtractGlobalStricMajorityVotingPerc extraction based on output graph mock
+func (g MaskGraph) ExtractGlobalStricMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
+	return
+}
+
+// MajorityFullAnalysis extraction based on output graph mock
+func (g MaskGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, to int32, reducing ...heuristics.Heuristic) AnalysisSet {
+	return AnalysisSet{}
 }
 
 func (g MaskGraph) subGraph(from, to int32) (sub Graph) {

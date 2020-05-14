@@ -10,4 +10,6 @@ profiling
 *.png
 *.pdf
 *.test
+*.csv
+*.txt
 /config

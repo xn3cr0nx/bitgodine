@@ -61,9 +61,6 @@ func traceAddress(c *echo.Context, address string) (*Flow, error) {
 
 	}
 
-	fmt.Println("address occurences", occurences)
-	fmt.Println("final flow", flow)
-
 	return flow, nil
 }
 

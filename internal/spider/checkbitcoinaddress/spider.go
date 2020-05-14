@@ -22,8 +22,8 @@ type Spider struct {
 // NewSpider instance new spider object
 func NewSpider(pg *postgres.Pg) Spider {
 	return Spider{
-		crawler: colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("cache"))),
-		target:  viper.GetString("checkbitcoinaddress.url"),
+		crawler: colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("spider.cache"))),
+		target:  viper.GetString("spider.checkbitcoinaddress.url"),
 		pg:      pg,
 	}
 }
@@ -41,7 +41,7 @@ func (s *Spider) Sync() (err error) {
 	category = "submitted-links"
 	last = &tag.Model{Type: category}
 	s.pg.DB.Where(last).First(last)
-	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("cache")))
+	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("spider.cache")))
 	submittedLinks, err := s.ExtractSubmittedLinks(strings.Join([]string{s.target, category}, "/"), category, last)
 	if err != nil {
 		return
@@ -50,7 +50,7 @@ func (s *Spider) Sync() (err error) {
 	category = "bitcoin-otc-profiles"
 	last = &tag.Model{Type: category}
 	s.pg.DB.Where(last).First(last)
-	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("cache")))
+	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("spider.cache")))
 	otcProfiles, err := s.ExtractOTCProfiles(strings.Join([]string{s.target, category}, "/"), category, last)
 	if err != nil {
 		return
@@ -59,7 +59,7 @@ func (s *Spider) Sync() (err error) {
 	category = "forum-profiles"
 	last = &tag.Model{Type: category}
 	s.pg.DB.Where(last).First(last)
-	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("cache")))
+	s.crawler = colly.NewCollector(colly.Async(true), colly.CacheDir(viper.GetString("spider.cache")))
 	forumProfiles, err := s.ExtractForumProfiles(strings.Join([]string{s.target, category}, "/"), category, last)
 	if err != nil {
 		return

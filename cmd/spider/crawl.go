@@ -43,6 +43,23 @@ resources, and sync the library of address tags with new reports.`,
 			os.Exit(-1)
 		}
 
+		if !viper.GetBool("cron") {
+			btcabuse := bitcoinabuse.NewSpider(pg)
+			if err := btcabuse.Sync(); err != nil {
+				logger.Error("Spider", err, logger.Params{})
+				os.Exit(-1)
+			}
+			logger.Info("Spider", "bitcoinabuse sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com", "crontime": viper.GetString("spider.crontime")})
+
+			checkbtcaddr := checkbitcoinaddress.NewSpider(pg)
+			if err := checkbtcaddr.Sync(); err != nil {
+				logger.Error("Spider", err, logger.Params{})
+				os.Exit(-1)
+			}
+			logger.Info("Spider", "checkbitcoinaddress sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com", "crontime": viper.GetString("spider.crontime")})
+			return
+		}
+
 		c := cron.New()
 		defer c.Stop()
 

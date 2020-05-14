@@ -50,7 +50,7 @@ run:
 
 .PHONY: spider
 spider:
-	$(GORUN) $(SPIDER) crawl
+	$(GORUN) $(SPIDER) crawl --cron=false
 
 
 

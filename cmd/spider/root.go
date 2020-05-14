@@ -10,7 +10,9 @@ import (
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 )
 
-var debug bool
+var (
+	debug, cr bool
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "spider",
@@ -36,12 +38,16 @@ func init() {
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
+	rootCmd.PersistentFlags().BoolVar(&cr, "cron", true, "Sets if spider should be started as cron or just run once")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	viper.SetDefault("debug", false)
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+
+	viper.SetDefault("cron", true)
+	viper.BindPFlag("cron", rootCmd.PersistentFlags().Lookup("cron"))
 
 	viper.SetEnvPrefix("spider")
 	viper.AutomaticEnv()

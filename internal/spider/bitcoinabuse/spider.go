@@ -25,7 +25,7 @@ type Spider struct {
 
 // NewSpider instance new spider object
 func NewSpider(pg *postgres.Pg) Spider {
-	target := fmt.Sprintf("%s/%s?api_token=%s", viper.GetString("bitcoinabuse.url"), viper.GetString("bitcoinabuse.period"), viper.GetString("bitcoinabuse.api"))
+	target := fmt.Sprintf("%s/%s?api_token=%s", viper.GetString("spider.bitcoinabuse.url"), viper.GetString("spider.bitcoinabuse.period"), viper.GetString("spider.bitcoinabuse.api"))
 	return Spider{
 		target,
 		pg,
@@ -34,7 +34,7 @@ func NewSpider(pg *postgres.Pg) Spider {
 
 // updatePeriod replace period url param
 func (s *Spider) updatePeriod(period string) {
-	s.target = strings.Replace(s.target, viper.GetString("bitcoinabuse.period"), period, 1)
+	s.target = strings.Replace(s.target, viper.GetString("spider.bitcoinabuse.period"), period, 1)
 }
 
 // Sync visits the spider's target and extract address tags
@@ -75,7 +75,7 @@ func (s *Spider) Sync() (err error) {
 		if e != nil {
 			return e
 		}
-		created, e := time.Parse("2006-01-02 03:04:05", r[8])
+		created, e := time.Parse("2006-01-02 15:04:05", r[8])
 		if e != nil {
 			return e
 		}

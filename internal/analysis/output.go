@@ -52,12 +52,14 @@ func renderComparingPercentageTable(base, data AnalysisSet, caption string) {
 	table.SetHeader([]string{"Combination", "secure perc (%)", "# secure set", "total perc (%)", "# total set"})
 	// table.SetBorder(false)
 	table.SetCaption(true, caption)
+	localVars := make([]float64, 0)
 	for h, n := range base.Counters {
 		localSetVar := data.LocalCounters[h] - base.LocalCounters[h]
 		localSet := fmt.Sprintf("%.0f (%.0f)", data.LocalCounters[h], localSetVar)
 
 		localPercVar := data.LocalPercentages[h] - base.LocalPercentages[h]
 		localPerc := fmt.Sprintf("%.2f (%.2f)", data.LocalPercentages[h]*100, localPercVar*100)
+		localVars = append(localVars, localPercVar)
 
 		setVar := data.Counters[h] - n
 		set := fmt.Sprintf("%.0f (%.0f)", data.Counters[h], setVar)
@@ -68,10 +70,16 @@ func renderComparingPercentageTable(base, data AnalysisSet, caption string) {
 		table.Append([]string{fmt.Sprintf("%b", h), localPerc, localSet, perc, set})
 	}
 	table.Render()
+
+	tot := float64(0)
+	for _, e := range localVars {
+		tot += e
+	}
+	fmt.Println("Secure Perc offset mean", tot/float64(len(localVars))*100)
 }
 
 // renderOverlapTable prints a table with percentages of heuristics success rate based on passed analysis
-func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask) {
+func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask, wide string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	header := []string{"Heuristic"}
 	header = append(header, heuristicsList.ToHeuristicsList()...)
@@ -79,20 +87,35 @@ func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask) {
 	// table.SetBorder(false)
 	table.SetCaption(true, "Heuristics overlap")
 	list := heuristicsList.ToList()
+	set := data.LocalCounters
+	if wide == "majority" {
+		set = data.Counters
+	}
+	if wide == "full" {
+		set = data.Combinations
+	}
 	for _, h := range list {
 		var overlap [8]float64
-		for k := range data.Counters {
+		counter := 0
+		for k := range set {
 			mask := heuristics.Mask([3]byte{k, byte(0), byte(0)})
-			for i := heuristics.Heuristic(0); i < 8; i++ {
-				if mask.VulnerableMask(h) && mask.VulnerableMask(i) {
-					overlap[int(i)] = overlap[int(i)] + 1
+			if mask.VulnerableMask(h) {
+				counter++
+				for i := heuristics.Heuristic(0); i < 8; i++ {
+					if mask.VulnerableMask(i) {
+						overlap[int(i)] = overlap[int(i)] + 1
+					}
 				}
 			}
 		}
 
+		if counter == 0 {
+			table.Append([]string{h.String(), "0", "0", "0", "0", "0", "0", "0", "0"})
+			continue
+		}
 		row := []string{h.String()}
 		for i := 0; i < 8; i++ {
-			row = append(row, fmt.Sprintf("%.2f", (overlap[i]/float64(len(data.Counters)))*100))
+			row = append(row, fmt.Sprintf("%.2f", (overlap[i]/float64(counter))*100))
 		}
 		table.Append(row)
 	}
@@ -181,7 +204,9 @@ func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristic
 			data = vuln.ExtractGlobalStricMajorityVotingPerc(heuristicsList, from, to)
 		case "overlapping":
 			set := vuln.MajorityFullAnalysis(heuristicsList, from, to)
-			renderOverlapTable(set, heuristicsList)
+			renderOverlapTable(set, heuristicsList, "")
+			renderOverlapTable(set, heuristicsList, "majority")
+			renderOverlapTable(set, heuristicsList, "full")
 			return
 		default:
 			data = vuln.ExtractCombinationPercentages(heuristicsList, from, to)

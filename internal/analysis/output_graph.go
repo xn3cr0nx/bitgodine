@@ -189,16 +189,9 @@ func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
 	for k, v := range m {
 		majority[k] = v
 	}
-	delete(majority, 5)
-	delete(majority, 6)
-	delete(majority, 8)
-	delete(majority, 9)
-	delete(majority, 10)
-	delete(majority, 11)
-	delete(majority, 17)
-	delete(majority, 18)
-	delete(majority, 19)
-	delete(majority, 20)
+	for _, n := range []heuristics.Heuristic{5, 6, 8, 9, 10, 11, 17, 18, 19, 20} {
+		delete(majority, n)
+	}
 
 	clusters := make(map[uint32][]heuristics.Heuristic)
 	for heuristic, change := range majority {
@@ -313,22 +306,16 @@ func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.M
 	}
 	return
 }
+
 func majorityOutput(m heuristics.Map, reducing ...heuristics.Heuristic) (r heuristics.Map, output uint32) {
 	majority := make(heuristics.Map, len(m))
 	for k, v := range m {
 		majority[k] = v
 	}
 
-	delete(majority, 5)
-	delete(majority, 6)
-	delete(majority, 8)
-	delete(majority, 9)
-	delete(majority, 10)
-	delete(majority, 11)
-	delete(majority, 17)
-	delete(majority, 18)
-	delete(majority, 19)
-	delete(majority, 20)
+	for _, n := range []heuristics.Heuristic{5, 6, 8, 9, 10, 11, 17, 18, 19, 20} {
+		delete(majority, n)
+	}
 
 	for _, r := range reducing {
 		delete(majority, r)
@@ -360,6 +347,12 @@ func majorityOutput(m heuristics.Map, reducing ...heuristics.Heuristic) (r heuri
 	r = make(heuristics.Map, len(max))
 	for _, heuristic := range max {
 		r[heuristic] = output
+	}
+
+	// add reduced heurstics to the mask again in order to avoid it to fallback to a reduced group
+	// in such a way to keep track of improvements on the majority set
+	for _, reduced := range reducing {
+		r[reduced] = 1
 	}
 
 	return
@@ -409,6 +402,7 @@ func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, 
 	localPerc := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
 	perc := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
 	prev := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
+	combinations := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
 	counters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
 	localCounters := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
 
@@ -436,6 +430,7 @@ func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, 
 				localCounters[majority.ToMask()[0]] = localCounters[majority.ToMask()[0]] + 1
 			}
 			counters[majority.ToMask()[0]] = counters[majority.ToMask()[0]] + 1
+			combinations[v.ToMask()[0]] = combinations[v.ToMask()[0]] + 1
 		}
 	}
 
@@ -443,7 +438,7 @@ func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, 
 		localPerc[k] = prev[k] / localCounters[k]
 		perc[k] = prev[k] / v
 	}
-	return AnalysisSet{LocalPercentages: localPerc, Percentages: perc, LocalCounters: localCounters, Counters: counters}
+	return AnalysisSet{LocalPercentages: localPerc, Percentages: perc, LocalCounters: localCounters, Counters: counters, Combinations: combinations}
 }
 
 func (g OutputGraph) subGraph(from, to int32) (sub Graph) {

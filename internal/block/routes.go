@@ -30,7 +30,7 @@ func Routes(g *echo.Group) *echo.Group {
 			}
 			return err
 		}
-		return c.JSON(http.StatusOK, b.ID)
+		return c.JSON(http.StatusOK, b)
 	})
 
 	r := g.Group("/block")

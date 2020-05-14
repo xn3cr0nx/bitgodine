@@ -19,6 +19,8 @@ type Trace struct {
 	Vout     uint32  `json:"vout"`
 	Amount   float64 `json:"amount"`
 	Next     string  `json:"next"`
+	Weight   float64 `json:"weight"`
+	Analysis string  `json:"analysis"`
 }
 
 // Flow list of maps creating monetary flow
@@ -44,14 +46,19 @@ func traceAddress(c *echo.Context, address string) (*Flow, error) {
 		if err != nil {
 			return nil, err
 		}
+		for _, output := range tx.Vout {
+			if output.ScriptpubkeyAddress == address {
+				spending, err := db.GetFollowingTx(tx.TxID, output.Index)
+				if err != nil {
+					return nil, err
+				}
+				if err := followFlow(c, db, flow, spending); err != nil {
+					return nil, err
+				}
 
-		err = followFlow(c, db, flow, tx, address)
-		if err != nil {
-			if err.Error() == "No effective analysis" {
-				continue
 			}
-			return nil, err
 		}
+
 	}
 
 	fmt.Println("address occurences", occurences)
@@ -60,54 +67,47 @@ func traceAddress(c *echo.Context, address string) (*Flow, error) {
 	return flow, nil
 }
 
-func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, address string) error {
-	if address == "" {
-		changes, e := analysis.AnalyzeTx(c, tx.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
-		if e != nil {
-			if e.Error() == "Not feasible transaction" {
-				return nil
-			}
-			return e
+func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx) (err error) {
+	changes, err := analysis.AnalyzeTx(c, tx.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
+	if err != nil {
+		if err.Error() == "Not feasible transaction" {
+			return nil
 		}
-		output, e := analysis.ExtractLikelihoodOutput(changes.(heuristics.Map))
-		if e != nil {
-			if e.Error() == "No effective analysis" {
-				flow.Traces[tx.TxID] = Trace{
-					TxID:     tx.TxID,
-					Next:     "?",
-					Receiver: "?",
-				}
-				return nil
-			}
-			return e
+		return
+	}
+	likelihood, err := analysis.MajorityVotingOutput(changes.(heuristics.Map))
+	if err != nil {
+		if err.Error() == "Not feasible transaction" {
+			return nil
 		}
-		address = tx.Vout[int(output)].ScriptpubkeyAddress
-		fmt.Println("NEXT ADDRESS", address)
+		return err
 	}
 
-	for _, output := range tx.Vout {
-		if output.ScriptpubkeyAddress == address {
-			spending, e := db.GetFollowingTx(tx.TxID, output.Index)
-			if e != nil {
-				if e.Error() == "Key not found" {
-					continue
-				}
-				return e
+	for output, percentages := range likelihood {
+		spending, e := db.GetFollowingTx(tx.TxID, output)
+		if e != nil {
+			if e.Error() == "Key not found" {
+				continue
 			}
-
+			return e
+		}
+		for mask, percentage := range percentages {
 			flow.Traces[tx.TxID] = Trace{
 				TxID:     tx.TxID,
-				Vout:     output.Index,
-				Receiver: output.ScriptpubkeyAddress,
-				Amount:   satToBtc(output.Value),
+				Vout:     output,
+				Receiver: tx.Vout[output].ScriptpubkeyAddress,
+				Amount:   satToBtc(tx.Vout[output].Value),
 				Next:     spending.TxID,
+				Weight:   percentage,
+				Analysis: fmt.Sprintf("%b", mask[0]),
 			}
-			err := followFlow(c, db, flow, spending, "")
+			err := followFlow(c, db, flow, spending)
 			if err != nil {
 				return err
 			}
 			break
 		}
+
 	}
 	return nil
 }

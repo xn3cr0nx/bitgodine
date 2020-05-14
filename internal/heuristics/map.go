@@ -68,3 +68,107 @@ func (v Map) IsOffByOneBug() bool {
 func (v Map) IsPeelingLike() bool {
 	return v[PeelingLike] == 1
 }
+
+// MajorityOutput extract the majority output set from map
+func (v Map) MajorityOutput(reducing ...Heuristic) (r Map, output uint32) {
+	majority := make(Map, len(v))
+	for key, value := range v {
+		majority[key] = value
+	}
+
+	for _, n := range []Heuristic{5, 6, 8, 9, 10, 11, 17, 18, 19, 20} {
+		delete(majority, n)
+	}
+
+	for _, r := range reducing {
+		delete(majority, r)
+	}
+
+	clusters := make(map[uint32][]Heuristic)
+	for heuristic, change := range majority {
+		clusters[change] = append(clusters[change], heuristic)
+	}
+	if len(clusters) == 0 {
+		return
+	}
+
+	var max []Heuristic
+	multiple := true
+	for change, cluster := range clusters {
+		if len(cluster) > len(max) {
+			max = cluster
+			output = change
+			multiple = false
+		} else if len(cluster) == len(max) {
+			multiple = true
+		}
+	}
+	if multiple {
+		return
+	}
+
+	r = make(Map, len(max))
+	for _, heuristic := range max {
+		r[heuristic] = output
+	}
+
+	// // add reduced heurstics to the mask again in order to avoid it to fallback to a reduced group
+	// // in such a way to keep track of improvements on the majority set
+	// for _, reduced := range reducing {
+	// 	r[reduced] = m[reduced]
+	// }
+
+	return
+}
+
+// MajorityLikelihood mapp to define majority voting probability
+var MajorityLikelihood = map[byte]float64{
+	byte(0b10010111): 49.23,
+	byte(0b10001100): 53.45,
+	byte(0b10011):    100.00,
+	byte(0b10000):    99.31,
+	byte(0b10000111): 50.41,
+	byte(0b10101):    99.62,
+	byte(0b10100):    99.16,
+	byte(0b10000100): 18.03,
+	byte(0b10001101): 51.76,
+	byte(0b10000110): 27.61,
+	byte(0b10110):    100.00,
+	byte(0b10001):    97.92,
+	byte(0b111):      99.29,
+	byte(0b0):        72.63,
+	byte(0b10010010): 79.88,
+	byte(0b10010110): 56.37,
+	byte(0b10):       96.06,
+	byte(0b10001001): 52.50,
+	byte(0b10010101): 52.19,
+	byte(0b1000):     89.43,
+	byte(0b11001):    100.00,
+	byte(0b10010000): 61.63,
+	byte(0b10111):    100.00,
+	byte(0b100):      61.35,
+	byte(0b10011101): 100.00,
+	byte(0b10011000): 100.00,
+	byte(0b10000010): 48.04,
+	byte(0b11101):    100.00,
+	byte(0b11000):    100.00,
+	byte(0b10011001): 100.00,
+	byte(0b10011100): 100.00,
+	byte(0b1101):     99.37,
+	byte(0b110):      92.72,
+	byte(0b10000000): 44.70,
+	byte(0b10010100): 60.08,
+	byte(0b1):        52.88,
+	byte(0b10010011): 48.54,
+	byte(0b10000011): 49.76,
+	byte(0b10010001): 53.65,
+	byte(0b10000001): 50.57,
+	byte(0b10010):    100.00,
+	byte(0b11100):    100.00,
+	byte(0b10001000): 65.27,
+	byte(0b1100):     82.28,
+	byte(0b101):      93.27,
+	byte(0b11):       99.86,
+	byte(0b10000101): 50.94,
+	byte(0b1001):     89.21,
+}

@@ -10,6 +10,7 @@ type AnalysisSet struct {
 	Percentages      map[byte]float64
 	LocalCounters    map[byte]float64
 	Counters         map[byte]float64
+	Combinations     map[byte]float64
 }
 
 // Graph interface to manage analysis result

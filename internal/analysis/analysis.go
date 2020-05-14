@@ -85,6 +85,85 @@ func ExtractLikelihoodOutput(analyzed heuristics.Map) (vout uint32, err error) {
 	return
 }
 
+func recursive(prefix heuristics.Mask, h []heuristics.Heuristic, result []heuristics.Mask) []heuristics.Mask {
+	for i, e := range h {
+		mask := heuristics.MaskFromPower(e)
+		if prefix[0] > 0 {
+			mask = heuristics.MergeMasks(mask, prefix)
+		}
+		result = append(result, mask)
+		recursive(mask, h[i+1:], result)
+	}
+	return result
+}
+
+func getCombinations(h []heuristics.Heuristic) (result []heuristics.Mask) {
+	result = recursive(heuristics.Mask{}, h, result)
+	return
+}
+
+// MajorityLikelihood extract majority output sets with likelihood percentages
+func MajorityLikelihood(v heuristics.Map) (likelihood map[uint32]map[heuristics.Mask]float64) {
+	majority := make(heuristics.Map, len(v))
+	for key, value := range v {
+		majority[key] = value
+	}
+
+	for _, n := range []heuristics.Heuristic{5, 6, 8, 9, 10, 11, 17, 18, 19, 20} {
+		delete(majority, n)
+	}
+
+	clusters := make(map[uint32][]heuristics.Heuristic)
+	for heuristic, change := range majority {
+		clusters[change] = append(clusters[change], heuristic)
+	}
+	if len(clusters) == 0 {
+		return
+	}
+
+	likelihood = make(map[uint32]map[heuristics.Mask]float64, len(clusters))
+	for output, list := range clusters {
+		combinations := getCombinations(list)
+		max := float64(-1)
+		index := 0
+		for i, combination := range combinations {
+			if perc, ok := heuristics.MajorityLikelihood[combination[0]]; ok {
+				if max < perc {
+					index = i
+					max = perc
+				}
+			}
+		}
+		if max > 0 {
+			likelihood[output] = make(map[heuristics.Mask]float64, 1)
+			likelihood[output][combinations[index]] = max
+		}
+	}
+
+	return
+}
+
+// MajorityVotingOutput return map with probability of change output for each output
+func MajorityVotingOutput(analyzed heuristics.Map) (likelihood map[uint32]map[heuristics.Mask]float64, err error) {
+	if len(analyzed) == 0 {
+		return nil, errors.New("Not feasible transaction")
+	}
+	likelihood = make(map[uint32]map[heuristics.Mask]float64, 1)
+	if out, ok := analyzed[heuristics.Index("Address Reuse")]; ok {
+		likelihood[out] = make(map[heuristics.Mask]float64, 1)
+		likelihood[out][heuristics.MaskFromPower(heuristics.Index("Address Reuse"))] = 100
+		return
+	}
+	if out, ok := analyzed[heuristics.Index("Shadow")]; ok {
+		likelihood[out] = make(map[heuristics.Mask]float64, 1)
+		likelihood[out][heuristics.MaskFromPower(heuristics.Index("Shadow"))] = 100
+		return
+	}
+
+	likelihood = MajorityLikelihood(analyzed)
+	return
+}
+
 // Worker basic worker to partecipate in task pool
 type Worker struct {
 	db             storage.DB

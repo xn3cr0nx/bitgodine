@@ -9,6 +9,7 @@ MAKE=make
 
 BUILD_PATH=build
 ENTRY=./cmd/bitgodine
+SPIDER=./cmd/spider
 BINARY_NAME=bitgodine
 SCRIPTS_PATH=scripts
 
@@ -46,6 +47,10 @@ install:
 .PHONY: run
 run:
 	reflex -r '\.go$$' -s -- sh -c "$(GORUN) $(ENTRY) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis"
+
+.PHONY: spider
+spider:
+	$(GORUN) $(SPIDER) crawl
 
 
 

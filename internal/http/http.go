@@ -18,7 +18,7 @@ type Error struct {
 	Type   string `json:"type,omitempty"`
 }
 
-func parseResponse(res *http.Response) (string, error) {
+func ParseResponse(res *http.Response) (string, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", err
@@ -56,7 +56,7 @@ func GET(url string, headers map[string]string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	res, err := parseResponse(resp)
+	res, err := ParseResponse(resp)
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +84,7 @@ func POST(url string, obj interface{}, headers map[string]string) (string, error
 		return "", err
 	}
 	defer resp.Body.Close()
-	res, err := parseResponse(resp)
+	res, err := ParseResponse(resp)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func PUT(url string, obj interface{}, headers map[string]string) (string, error)
 		return "", err
 	}
 	defer resp.Body.Close()
-	res, err := parseResponse(resp)
+	res, err := ParseResponse(resp)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +132,7 @@ func DELETE(url string, headers map[string]string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	res, err := parseResponse(resp)
+	res, err := ParseResponse(resp)
 	if err != nil {
 		return "", err
 	}
@@ -160,7 +160,7 @@ func PATCH(url string, obj interface{}, headers map[string]string) (string, erro
 		return "", err
 	}
 	defer resp.Body.Close()
-	res, err := parseResponse(resp)
+	res, err := ParseResponse(resp)
 	if err != nil {
 		return "", err
 	}

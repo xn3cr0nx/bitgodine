@@ -22,12 +22,8 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 
-		db := c.Get("db")
-		b, err := db.(storage.DB).GetBlockFromHeight(int32(height))
+		b, err := GetBlockFromHeight(c.Get("db").(storage.DB), int32(height))
 		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound)
-			}
 			return err
 		}
 		return c.JSON(http.StatusOK, b)
@@ -40,12 +36,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		b, err := db.(storage.DB).GetBlockFromHash(hash)
+		b, err := GetBlockFromHashWithTxs(c.Get("db").(storage.DB), hash)
 		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
 			return err
 		}
 		return c.JSON(http.StatusOK, b)
@@ -80,12 +72,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		b, err := db.(storage.DB).GetBlockFromHash(hash)
+		b, err := GetBlockFromHash(c.Get("db").(storage.DB), hash)
 		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
 			return err
 		}
 		// TODO: fetch txs
@@ -106,14 +94,11 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		b, err := db.(storage.DB).GetBlockFromHash(hash)
+		b, err := GetBlockFromHash(c.Get("db").(storage.DB), hash)
 		if err != nil {
-			if err.Error() == "Block not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
 			return err
 		}
+
 		var txids []string
 		for _, tx := range b.Transactions {
 			txids = append(txids, tx)
@@ -146,8 +131,7 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/height", func(c echo.Context) error {
-		db := c.Get("db")
-		b, err := db.(storage.DB).LastBlock()
+		b, err := GetLastBlock(c.Get("db").(storage.DB))
 		if err != nil {
 			return err
 		}
@@ -155,8 +139,7 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/hash", func(c echo.Context) error {
-		db := c.Get("db")
-		b, err := db.(storage.DB).LastBlock()
+		b, err := GetLastBlock(c.Get("db").(storage.DB))
 		if err != nil {
 			return err
 		}

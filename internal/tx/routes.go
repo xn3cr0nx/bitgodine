@@ -18,12 +18,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		t, err := db.(storage.DB).GetTx(txid)
+		t, err := GetTxFromHash(c.Get("db").(storage.DB), txid)
 		if err != nil {
-			if err.Error() == "transaction not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
 			return err
 		}
 		return c.JSON(http.StatusOK, t)
@@ -34,12 +30,8 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		t, err := db.(storage.DB).GetTx(txid)
+		t, err := GetTxFromHash(c.Get("db").(storage.DB), txid)
 		if err != nil {
-			if err.Error() == "transaction not found" {
-				return echo.NewHTTPError(http.StatusNotFound, err)
-			}
 			return err
 		}
 		return c.JSON(http.StatusOK, t.Status)

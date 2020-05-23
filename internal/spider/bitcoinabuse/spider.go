@@ -100,6 +100,9 @@ func (s *Spider) Sync() (err error) {
 		}
 		newResource = true
 		if res := s.pg.DB.Create(a); res.Error != nil {
+			if strings.Contains(res.Error.Error(), "invalid byte sequence") {
+				continue
+			}
 			return res.Error
 		}
 	}

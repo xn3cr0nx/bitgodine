@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
+	"golang.org/x/sync/errgroup"
 )
 
 // // Trace between ouput and spending tx for tracing
@@ -49,45 +51,46 @@ func traceAddress(c *echo.Context, address string) (*Flow, error) {
 	flow := &Flow{
 		Traces: make(map[string]Trace),
 	}
+	lock := sync.RWMutex{}
 
 	db := (*c).Get("db").(storage.DB)
 	occurences, err := db.GetAddressOccurences(address)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("ADDRESS OCCURENCES", occurences)
+	fmt.Println("Address Occurences", occurences)
 
+	var g errgroup.Group
 	for _, occurence := range occurences {
-		occurence = strings.Replace(occurence, address+"_", "", 1)
-		tx, err := db.GetTx(occurence)
-		if err != nil {
-			return nil, err
-		}
-		if err := followFlow(c, db, flow, tx); err != nil {
-			return nil, err
-		}
-		// for _, output := range tx.Vout {
-		// 	if output.ScriptpubkeyAddress == address {
-		// 		spending, err := db.GetFollowingTx(tx.TxID, output.Index)
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		if err := followFlow(c, db, flow, spending); err != nil {
-		// 			return nil, err
-		// 		}
-
-		// 	}
-		// }
-
+		g.Go(func() error {
+			occurence = strings.Replace(occurence, address+"_", "", 1)
+			tx, err := db.GetTx(occurence)
+			if err != nil {
+				return err
+			}
+			if err := followFlow(c, db, flow, tx, &lock); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	if err = g.Wait(); err != nil {
+		return nil, err
 	}
 
 	return flow, nil
 }
 
-func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx) (err error) {
+func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *sync.RWMutex) (err error) {
 	changes, err := analysis.AnalyzeTx(c, tx.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
+			lock.Lock()
+			flow.Traces[tx.TxID] = Trace{
+				TxID: tx.TxID,
+				Next: []Next{},
+			}
+			lock.Unlock()
 			return nil
 		}
 		return
@@ -95,73 +98,66 @@ func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx) (err e
 	likelihood, err := analysis.MajorityVotingOutput(changes.(heuristics.Map))
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
+			lock.Lock()
+			flow.Traces[tx.TxID] = Trace{
+				TxID: tx.TxID,
+				Next: []Next{},
+			}
+			lock.Unlock()
 			return nil
 		}
 		return err
 	}
 
-	// for output, percentages := range likelihood {
-	// 	spending, e := db.GetFollowingTx(tx.TxID, output)
-	// 	if e != nil {
-	// 		if e.Error() == "Key not found" {
-	// 			continue
-	// 		}
-	// 		return e
-	// 	}
-	// 	for mask, percentage := range percentages {
-	// 		flow.Traces[tx.TxID] = Trace{
-	// 			TxID:     tx.TxID,
-	// 			Vout:     output,
-	// 			Receiver: tx.Vout[output].ScriptpubkeyAddress,
-	// 			Amount:   satToBtc(tx.Vout[output].Value),
-	// 			Next:     spending.TxID,
-	// 			Weight:   percentage,
-	// 			Analysis: fmt.Sprintf("%b", mask[0]),
-	// 		}
-	// 		err := followFlow(c, db, flow, spending)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		break
-	// 	}
-	// }
-
+	var g errgroup.Group
 	var next []Next
+	nextLock := sync.RWMutex{}
 	for output, percentages := range likelihood {
-		spending, e := db.GetFollowingTx(tx.TxID, output)
-		if e != nil {
-			if e.Error() == "Key not found" {
-				continue
+		g.Go(func() error {
+			spending, e := db.GetFollowingTx(tx.TxID, output)
+			if e != nil {
+				if e.Error() == "Key not found" {
+					// continue
+					return nil
+				}
+				return e
 			}
-			return e
-		}
-		// var likely Next
-		var localNext []Next
-		for mask, percentage := range percentages {
-			// if likely.TxID == "" || percentage > likely.Weight {
-			// likely = Next{
-			localNext = append(localNext, Next{
-				TxID:     spending.TxID,
-				Vout:     output,
-				Receiver: tx.Vout[output].ScriptpubkeyAddress,
-				Amount:   satToBtc(tx.Vout[output].Value),
-				Weight:   percentage,
-				Analysis: fmt.Sprintf("%b", mask[0]),
-			})
-			// }
-			err := followFlow(c, db, flow, spending)
-			if err != nil {
-				return err
+			// var likely Next
+			var localNext []Next
+			for mask, percentage := range percentages {
+				// if likely.TxID == "" || percentage > likely.Weight {
+				// likely = Next{
+				localNext = append(localNext, Next{
+					TxID:     spending.TxID,
+					Vout:     output,
+					Receiver: tx.Vout[output].ScriptpubkeyAddress,
+					Amount:   satToBtc(tx.Vout[output].Value),
+					Weight:   percentage,
+					Analysis: fmt.Sprintf("%b", mask[0]),
+				})
+				// }
+				err := followFlow(c, db, flow, spending, lock)
+				if err != nil {
+					return err
+				}
+				// }
 			}
-			// }
-		}
-		// next = append(next, likely)
-		next = append(next, localNext...)
+			// next = append(next, likely)
+			nextLock.Lock()
+			next = append(next, localNext...)
+			nextLock.Unlock()
+			return nil
+		})
 	}
+	if err = g.Wait(); err != nil {
+		return
+	}
+	lock.Lock()
 	flow.Traces[tx.TxID] = Trace{
 		TxID: tx.TxID,
 		Next: next,
 	}
+	lock.Unlock()
 
 	return nil
 }

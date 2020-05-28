@@ -43,34 +43,45 @@ type Next struct {
 
 // Flow list of maps creating monetary flow
 type Flow struct {
-	Traces map[string]Trace `json:"traces"`
+	Traces     []map[string]Trace `json:"traces"`
+	Occurences []string           `json:"occurences"`
 }
 
-func traceAddress(c *echo.Context, address string) (*Flow, error) {
+func traceAddress(c *echo.Context, address string, limit int, skip int) (tracing *Flow, err error) {
 	fmt.Println("Tracing address", address)
-	flow := &Flow{
-		Traces: make(map[string]Trace),
-	}
-	lock := sync.RWMutex{}
 
 	db := (*c).Get("db").(storage.DB)
 	occurences, err := db.GetAddressOccurences(address)
 	if err != nil {
-		return nil, err
+		return
 	}
-	fmt.Println("Address Occurences", occurences)
+	tracing = &Flow{
+		Traces:     make([]map[string]Trace, limit),
+		Occurences: occurences,
+	}
 
 	var g errgroup.Group
-	for _, occurence := range occurences {
+	for i, occurence := range occurences {
+		if i < limit*skip || i > skip*limit+(limit-1) {
+			continue
+		}
+
+		occ := occurence
+		flow := make(map[string]Trace)
+
+		lock := sync.RWMutex{}
+		index := i
+
 		g.Go(func() error {
-			occurence = strings.Replace(occurence, address+"_", "", 1)
-			tx, err := db.GetTx(occurence)
+			occ = strings.Replace(occ, address+"_", "", 1)
+			tx, err := db.GetTx(occ)
 			if err != nil {
 				return err
 			}
-			if err := followFlow(c, db, flow, tx, &lock); err != nil {
+			if err := followFlow(c, db, flow, tx, 0, 0, &lock); err != nil {
 				return err
 			}
+			tracing.Traces[index%limit] = flow
 			return nil
 		})
 	}
@@ -78,15 +89,15 @@ func traceAddress(c *echo.Context, address string) (*Flow, error) {
 		return nil, err
 	}
 
-	return flow, nil
+	return
 }
 
-func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *sync.RWMutex) (err error) {
+func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
 	changes, err := analysis.AnalyzeTx(c, tx.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
 			lock.Lock()
-			flow.Traces[tx.TxID] = Trace{
+			flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
 				TxID: tx.TxID,
 				Next: []Next{},
 			}
@@ -99,7 +110,7 @@ func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
 			lock.Lock()
-			flow.Traces[tx.TxID] = Trace{
+			flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
 				TxID: tx.TxID,
 				Next: []Next{},
 			}
@@ -112,21 +123,19 @@ func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *
 	var g errgroup.Group
 	var next []Next
 	nextLock := sync.RWMutex{}
-	for output, percentages := range likelihood {
+	for out, perc := range likelihood {
+		output := out
+		percentages := perc
 		g.Go(func() error {
 			spending, e := db.GetFollowingTx(tx.TxID, output)
 			if e != nil {
 				if e.Error() == "Key not found" {
-					// continue
 					return nil
 				}
 				return e
 			}
-			// var likely Next
 			var localNext []Next
 			for mask, percentage := range percentages {
-				// if likely.TxID == "" || percentage > likely.Weight {
-				// likely = Next{
 				localNext = append(localNext, Next{
 					TxID:     spending.TxID,
 					Vout:     output,
@@ -135,14 +144,11 @@ func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *
 					Weight:   percentage,
 					Analysis: fmt.Sprintf("%b", mask[0]),
 				})
-				// }
-				err := followFlow(c, db, flow, spending, lock)
+				err := followFlow(c, db, flow, spending, output, depth+1, lock)
 				if err != nil {
 					return err
 				}
-				// }
 			}
-			// next = append(next, likely)
 			nextLock.Lock()
 			next = append(next, localNext...)
 			nextLock.Unlock()
@@ -153,7 +159,7 @@ func followFlow(c *echo.Context, db storage.DB, flow *Flow, tx models.Tx, lock *
 		return
 	}
 	lock.Lock()
-	flow.Traces[tx.TxID] = Trace{
+	flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
 		TxID: tx.TxID,
 		Next: next,
 	}

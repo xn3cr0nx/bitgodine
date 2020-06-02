@@ -9,7 +9,7 @@ import (
 type Model struct {
 	gorm.Model
 	Address string `json:"address" validate:"required,btc_addr|btc_addr_bech32" gorm:"index"`
-	Cluster uint64 `json:"cluster" validate:""`
+	Cluster uint64 `json:"cluster" validate:"" gorm:"index"`
 }
 
 // TableName defines default table name

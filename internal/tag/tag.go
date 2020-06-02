@@ -75,7 +75,7 @@ func GetTaggedCluster(c *echo.Context, address string) (clusters []TaggedCluster
 		FROM tags t 
 		RIGHT JOIN clusters c 
 		ON t.address = c.address 
-		WHERE t.address = ?`, address).Find(&clusters).Error
+		WHERE t.address = ?`, address).Scan(&clusters).Error
 	return
 }
 
@@ -90,10 +90,16 @@ func GetTaggedClusterSet(c *echo.Context, address string) (clusters []TaggedClus
 		err = echo.NewHTTPError(404, "cluster not found")
 		return
 	}
-	err = pg.DB.Raw(`SELECT c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
+	err = pg.DB.Raw(`SELECT t.id, t.created_at, t.updated_at, t.deleted_at, c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
 		FROM tags t 
 		RIGHT JOIN clusters c 
 		ON t.address = c.address 
-		WHERE c.cluster = ?`, cluster[0].Cluster).Find(&clusters).Error
+		WHERE c.cluster = ?`, cluster[0].Cluster).Scan(&clusters).Error
 	return
 }
+
+// insert into tags (address, message, nickname, type) values ('18VaKMJciWuk61MjPraRouiAqvoPQmrCmc', 'test1', 'binance', 1);
+// insert into tags (address, message, nickname, type) values ('1CYxSkLRUqe3cpVDLa8u9UKdetyfEM5gby', 'test2', 'bitfinxe', 1);
+// insert into tags (address, message, nickname, type) values ('1vXfhQpD7adQuNePT3k3pnRKFjP58EdpC', 'test3', 'okex', 1);
+// insert into tags (address, message, nickname, type) values ('1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF', 'test4', 'jeez', 1);
+// insert into clusters (address, cluster) values ('1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF', 250538);

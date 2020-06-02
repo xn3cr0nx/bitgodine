@@ -68,7 +68,7 @@ func GetAbusedCluster(c *echo.Context, address string) (clusters []AbusedCluster
 		FROM abuses t 
 		RIGHT JOIN clusters c 
 		ON t.address = c.address 
-		WHERE t.address = ?`, address).Find(&clusters).Error
+		WHERE t.address = ?`, address).Scan(&clusters).Error
 	return
 }
 
@@ -83,10 +83,10 @@ func GetAbusedClusterSet(c *echo.Context, address string) (clusters []AbusedClus
 		err = echo.NewHTTPError(404, "cluster not found")
 		return
 	}
-	err = pg.DB.Raw(`SELECT c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
+	err = pg.DB.Raw(`SELECT t.id, t.created_at, t.updated_at, t.deleted_at, c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
 		FROM abuses t 
 		RIGHT JOIN clusters c 
 		ON t.address = c.address 
-		WHERE c.cluster = ?`, cluster[0].Cluster).Find(&clusters).Error
+		WHERE c.cluster = ?`, cluster[0].Cluster).Scan(&clusters).Error
 	return
 }

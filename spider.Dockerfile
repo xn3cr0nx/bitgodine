@@ -1,4 +1,4 @@
-FROM golang:1.13.8 as builder
+FROM golang:1.14.4 as builder
 LABEL maintainer="Patrick Jusic <patrick.jusic@protonmail.com>"
 
 WORKDIR /spider
@@ -20,7 +20,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./build/spider -v ./cmd/spider
 
-FROM alpine:latest
+FROM golang:alpine
 
 WORKDIR /root/
 RUN mkdir /root/.bitgodine

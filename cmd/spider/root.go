@@ -12,6 +12,7 @@ import (
 
 var (
 	debug, cr bool
+	target    string
 )
 
 var rootCmd = &cobra.Command{
@@ -39,6 +40,7 @@ func init() {
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
 	rootCmd.PersistentFlags().BoolVar(&cr, "cron", true, "Sets if spider should be started as cron or just run once")
+	rootCmd.PersistentFlags().StringVar(&target, "target", "", "Sets if spider should run once with a specific target")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -48,6 +50,9 @@ func initConfig() {
 
 	viper.SetDefault("cron", true)
 	viper.BindPFlag("cron", rootCmd.PersistentFlags().Lookup("cron"))
+
+	viper.SetDefault("target", "")
+	viper.BindPFlag("target", rootCmd.PersistentFlags().Lookup("target"))
 
 	viper.SetEnvPrefix("spider")
 	viper.AutomaticEnv()

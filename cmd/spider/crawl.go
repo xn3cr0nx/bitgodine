@@ -10,6 +10,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine_server/internal/spider/bitcoinabuse"
 	"github.com/xn3cr0nx/bitgodine_server/internal/spider/checkbitcoinaddress"
+	"github.com/xn3cr0nx/bitgodine_server/internal/spider/walletexplorer"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/migration"
 	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
 )
@@ -43,6 +44,39 @@ resources, and sync the library of address tags with new reports.`,
 			os.Exit(-1)
 		}
 
+		target := viper.GetString("target")
+		if target != "" {
+			if target == "bitcoinabuse" {
+				btcabuse := bitcoinabuse.NewSpider(pg)
+				if err := btcabuse.Sync(); err != nil {
+					logger.Error("Spider", err, logger.Params{})
+					os.Exit(-1)
+				}
+				logger.Info("Spider", "bitcoinabuse sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com"})
+				return
+			}
+
+			if target == "checkbitcoinaddress" {
+				checkbtcaddr := checkbitcoinaddress.NewSpider(pg)
+				if err := checkbtcaddr.Sync(); err != nil {
+					logger.Error("Spider", err, logger.Params{})
+					os.Exit(-1)
+				}
+				logger.Info("Spider", "checkbitcoinaddress sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com"})
+				return
+			}
+
+			if target == "walletexplorer" {
+				wexplorer := walletexplorer.NewSpider(pg)
+				if err := wexplorer.Sync(); err != nil {
+					logger.Error("Spider", err, logger.Params{})
+					os.Exit(-1)
+				}
+				logger.Info("Spider", "walletexplorer sync ended, waiting for next schedule", logger.Params{"target": "walletexplorer.com"})
+				return
+			}
+		}
+
 		if !viper.GetBool("cron") {
 			btcabuse := bitcoinabuse.NewSpider(pg)
 			if err := btcabuse.Sync(); err != nil {
@@ -57,6 +91,13 @@ resources, and sync the library of address tags with new reports.`,
 				os.Exit(-1)
 			}
 			logger.Info("Spider", "checkbitcoinaddress sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com", "crontime": viper.GetString("spider.crontime")})
+
+			wexplorer := walletexplorer.NewSpider(pg)
+			if err := wexplorer.Sync(); err != nil {
+				logger.Error("Spider", err, logger.Params{})
+				os.Exit(-1)
+			}
+			logger.Info("Spider", "walletexplorer sync ended, waiting for next schedule", logger.Params{"target": "walletexplorer.com", "crontime": viper.GetString("spider.crontime")})
 			return
 		}
 
@@ -84,6 +125,19 @@ resources, and sync the library of address tags with new reports.`,
 				os.Exit(-1)
 			}
 			logger.Info("Spider", "checkbitcoinaddress sync ended, waiting for next schedule", logger.Params{"target": "bitcoinabuse.com", "crontime": viper.GetString("spider.crontime")})
+		}); err != nil {
+			logger.Error("Spider", err, logger.Params{})
+			os.Exit(-1)
+		}
+
+		logger.Info("Spider", "Scheduling spider crawler", logger.Params{"target": "walletexplorer.com", "crontime": viper.GetString("spider.crontime")})
+		if _, err = c.AddFunc(viper.GetString("spider.crontime"), func() {
+			wexplorer := walletexplorer.NewSpider(pg)
+			if err := wexplorer.Sync(); err != nil {
+				logger.Error("Spider", err, logger.Params{})
+				os.Exit(-1)
+			}
+			logger.Info("Spider", "walletexplorer sync ended, waiting for next schedule", logger.Params{"target": "walletexplorer.com", "crontime": viper.GetString("spider.crontime")})
 		}); err != nil {
 			logger.Error("Spider", err, logger.Params{})
 			os.Exit(-1)

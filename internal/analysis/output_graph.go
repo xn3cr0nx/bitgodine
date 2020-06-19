@@ -112,20 +112,32 @@ func (g OutputGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask
 		for i := from; i <= to; i++ {
 
 			for _, v := range g[i] {
+				var reuse uint32
 				isReuse := false
+				var shadow uint32
 				isShadow := false
-
-				if _, ok := v[5]; ok {
+				reuse, ok := v[heuristics.Index("Address Reuse")]
+				if ok {
 					isReuse = true
 				}
-				if _, ok := v[6]; ok {
+
+				shadow, ok = v[heuristics.Index("Shadow")]
+				// Check on vout length cause if shadow applies, the reused address is most likely provided
+				// to receive a payment, hence the change address is not the already used address, but the other
+				// and we can be sure about this condition just when vout length is exactly 2
+				if ok && v[heuristics.Index("OffByOne")] == 0 {
 					isShadow = true
+					if shadow == 0 {
+						shadow = 1
+					} else {
+						shadow = 0
+					}
 				}
 
 				if !v.IsCoinbase() {
 					if isReuse || isShadow {
 						if _, ok := v[heuristic]; ok {
-							if v[heuristic] == v[5] || v[heuristic] == v[6] {
+							if v[heuristic] == reuse || v[heuristic] == shadow {
 								counter++
 							}
 						}
@@ -239,13 +251,21 @@ func (g OutputGraph) ExtractGlobalFullMajorityVotingPerc(heuristicsList heuristi
 			var shadow uint32
 			isShadow := false
 
-			reuse, ok := v[5]
+			reuse, ok := v[heuristics.Index("Address Reuse")]
 			if ok {
 				isReuse = true
 			}
-			shadow, ok = v[6]
-			if ok {
+			shadow, ok = v[heuristics.Index("Shadow")]
+			// Check on vout length cause if shadow applies, the reused address is most likely provided
+			// to receive a payment, hence the change address is not the already used address, but the other
+			// and we can be sure about this condition just when vout length is exactly 2
+			if ok && v[heuristics.Index("OffByOne")] == 0 {
 				isShadow = true
+				if shadow == 0 {
+					shadow = 1
+				} else {
+					shadow = 0
+				}
 			}
 
 			if !v.IsCoinbase() && (isReuse || isShadow) {
@@ -280,13 +300,21 @@ func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.M
 			var shadow uint32
 			isShadow := false
 
-			reuse, ok := v[5]
+			reuse, ok := v[heuristics.Index("Address Reuse")]
 			if ok {
 				isReuse = true
 			}
-			shadow, ok = v[6]
-			if ok {
+			shadow, ok = v[heuristics.Index("Shadow")]
+			// Check on vout length cause if shadow applies, the reused address is most likely provided
+			// to receive a payment, hence the change address is not the already used address, but the other
+			// and we can be sure about this condition just when vout length is exactly 2
+			if ok && v[heuristics.Index("OffByOne")] == 0 {
 				isShadow = true
+				if shadow == 0 {
+					shadow = 1
+				} else {
+					shadow = 0
+				}
 			}
 
 			if !v.IsCoinbase() && (isReuse || isShadow) {
@@ -372,13 +400,21 @@ func (g OutputGraph) ExtractGlobalStricMajorityVotingPerc(heuristicsList heurist
 			var shadow uint32
 			isShadow := false
 
-			reuse, ok := v[5]
+			reuse, ok := v[heuristics.Index("Address Reuse")]
 			if ok {
 				isReuse = true
 			}
-			shadow, ok = v[6]
-			if ok {
+			shadow, ok = v[heuristics.Index("Shadow")]
+			// Check on vout length cause if shadow applies, the reused address is most likely provided
+			// to receive a payment, hence the change address is not the already used address, but the other
+			// and we can be sure about this condition just when vout length is exactly 2
+			if ok && v[heuristics.Index("OffByOne")] == 0 {
 				isShadow = true
+				if shadow == 0 {
+					shadow = 1
+				} else {
+					shadow = 0
+				}
 			}
 
 			if !v.IsCoinbase() && (isReuse || isShadow) {
@@ -413,13 +449,22 @@ func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, 
 			var shadow uint32
 			isShadow := false
 
-			reuse, ok := v[5]
+			reuse, ok := v[heuristics.Index("Address Reuse")]
 			if ok {
 				isReuse = true
 			}
-			shadow, ok = v[6]
-			if ok {
+
+			shadow, ok = v[heuristics.Index("Shadow")]
+			// Check on vout length cause if shadow applies, the reused address is most likely provided
+			// to receive a payment, hence the change address is not the already used address, but the other
+			// and we can be sure about this condition just when vout length is exactly 2
+			if ok && v[heuristics.Index("OffByOne")] == 0 {
 				isShadow = true
+				if shadow == 0 {
+					shadow = 1
+				} else {
+					shadow = 0
+				}
 			}
 
 			majority, output := majorityOutput(v, reducing...)

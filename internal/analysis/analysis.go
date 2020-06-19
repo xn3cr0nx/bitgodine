@@ -36,11 +36,13 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 		vuln = heuristics.FromListToMask(nil)
 		addr := vuln.(heuristics.Mask)
 		heuristics.ApplySet(db, tx, heuristicsList, &addr)
+		heuristics.ApplyConditionSet(db, tx, &addr)
 		vuln = addr
 	} else {
 		vuln = make(heuristics.Map)
 		addr := vuln.(heuristics.Map)
 		heuristics.ApplyChangeSet(db, tx, heuristicsList, &addr)
+		heuristics.ApplyChangeConditionSet(db, tx, &addr)
 		vuln = addr
 	}
 
@@ -155,8 +157,15 @@ func MajorityVotingOutput(analyzed heuristics.Map) (likelihood map[uint32]map[he
 		return
 	}
 	if out, ok := analyzed[heuristics.Index("Shadow")]; ok {
-		likelihood[out] = make(map[heuristics.Mask]float64, 1)
-		likelihood[out][heuristics.MaskFromPower(heuristics.Index("Shadow"))] = 100
+		if off, ok := analyzed[heuristics.Index("OffByOne")]; ok && off == 0 {
+			if out == 0 {
+				likelihood[1] = make(map[heuristics.Mask]float64, 1)
+				likelihood[1][heuristics.MaskFromPower(heuristics.Index("Shadow"))] = 100
+			} else {
+				likelihood[0] = make(map[heuristics.Mask]float64, 1)
+				likelihood[0][heuristics.MaskFromPower(heuristics.Index("Shadow"))] = 100
+			}
+		}
 		return
 	}
 

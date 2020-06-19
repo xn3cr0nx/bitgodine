@@ -9,21 +9,21 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
 	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+
+	"github.com/xn3cr0nx/bitgodine_server/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
 	"golang.org/x/sync/errgroup"
 )
 
-// // Trace between ouput and spending tx for tracing
-// type Trace struct {
-// 	TxID     string  `json:"txid"`
-// 	Receiver string  `json:"receiver"`
-// 	Vout     uint32  `json:"vout"`
-// 	Amount   float64 `json:"amount"`
-// 	Next     string  `json:"next"`
-// 	Weight   float64 `json:"weight"`
-// 	Analysis string  `json:"analysis"`
-// }
+// Cluster struct to classify the address in a certain cluster
+type Cluster struct {
+	Type     string `json:"type,omitempty"`
+	Message  string `json:"message,omitempty"`
+	Nickname string `json:"nickname,omitempty"`
+	Verified bool   `json:"verified,omitempty"`
+}
 
 // Trace between ouput and spending tx for tracing
 type Trace struct {
@@ -33,12 +33,13 @@ type Trace struct {
 
 // Next spending tx info
 type Next struct {
-	TxID     string  `json:"txid"`
-	Receiver string  `json:"receiver"`
-	Vout     uint32  `json:"vout"`
-	Amount   float64 `json:"amount"`
-	Weight   float64 `json:"weight"`
-	Analysis string  `json:"analysis"`
+	TxID     string    `json:"txid"`
+	Receiver string    `json:"receiver"`
+	Vout     uint32    `json:"vout"`
+	Amount   float64   `json:"amount"`
+	Weight   float64   `json:"weight"`
+	Analysis string    `json:"analysis"`
+	Clusters []Cluster `json:"clusters"`
 }
 
 // Flow list of maps creating monetary flow
@@ -78,7 +79,16 @@ func traceAddress(c *echo.Context, address string, limit int, skip int) (tracing
 			if err != nil {
 				return err
 			}
-			if err := followFlow(c, db, flow, tx, 0, 0, &lock); err != nil {
+
+			// find output with sought address
+			vout := uint32(0)
+			for o, out := range tx.Vout {
+				if out.ScriptpubkeyAddress == address {
+					vout = uint32(o)
+				}
+			}
+
+			if err := followFlow(c, db, flow, tx, vout, 0, &lock); err != nil {
 				return err
 			}
 			tracing.Traces[index%limit] = flow
@@ -136,6 +146,36 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 			}
 			var localNext []Next
 			for mask, percentage := range percentages {
+				clusters := []Cluster{}
+				tags, err := tag.GetTaggedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+				if err != nil {
+					if !strings.Contains(err.Error(), "cluster not found") {
+						return err
+					}
+				}
+				for _, tag := range tags {
+					clusters = append(clusters, Cluster{
+						Type:     tag.Type,
+						Message:  tag.Message + " " + tag.Link,
+						Nickname: tag.Nickname,
+						Verified: tag.Verified,
+					})
+				}
+				abuses, err := abuse.GetAbusedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+				if err != nil {
+					if !strings.Contains(err.Error(), "cluster not found") {
+						return err
+					}
+				}
+				for _, abuse := range abuses {
+					clusters = append(clusters, Cluster{
+						Type:     "abuse",
+						Message:  abuse.Description,
+						Nickname: abuse.Abuser,
+						Verified: false,
+					})
+				}
+
 				localNext = append(localNext, Next{
 					TxID:     spending.TxID,
 					Vout:     output,
@@ -143,8 +183,9 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 					Amount:   satToBtc(tx.Vout[output].Value),
 					Weight:   percentage,
 					Analysis: fmt.Sprintf("%b", mask[0]),
+					Clusters: clusters,
 				})
-				err := followFlow(c, db, flow, spending, output, depth+1, lock)
+				err = followFlow(c, db, flow, spending, output, depth+1, lock)
 				if err != nil {
 					return err
 				}

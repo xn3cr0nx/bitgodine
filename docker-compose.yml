@@ -46,8 +46,8 @@ services:
   bitgodine_parser:
     container_name: parser
     build:
-      context: ./bitgodine_parser
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: parser.Dockerfile
       args:
         GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
     command: ./bitgodine start --debug -r=false --dgHost dgraph_server --db /badger --blocksDir /bitcoin --utxo /bolt/utxoset.db
@@ -61,8 +61,8 @@ services:
   bitgodine_server:
     container_name: server
     build:
-      context: ./bitgodine_server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server.Dockerfile
       args:
         GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
     ports:
@@ -78,8 +78,8 @@ services:
   bitgodine_clusterizer:
     container_name: clusterizer
     build:
-      context: ./bitgodine_clusterizer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: clusterizer.Dockerfile
       args:
         GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
     command: ./bitgodine start --debug -r=false --dgHost dgraph_server --utxo /utxoset/utxoset.db -o /utxoset
@@ -94,7 +94,7 @@ services:
   bitgodine_spider:
     container_name: spider
     build:
-      context: ./bitgodine_server
+      context: .
       dockerfile: spider.Dockerfile
       args:
         GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
@@ -105,15 +105,15 @@ services:
     networks:
      - bitgodine
 
-  bitgodine_plotter:
-    container_name: plotter
-    build:
-      context: ./bitgodine_plotter
-      dockerfile: Dockerfile
-    ports:
-      - 5000:5000
-    networks:
-     - bitgodine
+  # bitgodine_plotter:
+  #   container_name: plotter
+  #   build:
+  #     context: ./bitgodine_plotter
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 5000:5000
+  #   networks:
+  #    - bitgodine
 
 volumes:
   dgraph:

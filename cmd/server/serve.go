@@ -7,13 +7,13 @@ import (
 	// "github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/server"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/migration"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/server"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/migration"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 var (

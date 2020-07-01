@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
+	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 )
 
 // Routes mounts all /cluster based routes on the main group

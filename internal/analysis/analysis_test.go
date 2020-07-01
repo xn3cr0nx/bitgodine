@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 func BenchmarkAnalyzeBlocks(t *testing.B) {

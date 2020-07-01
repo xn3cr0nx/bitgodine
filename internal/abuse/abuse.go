@@ -1,13 +1,15 @@
 package abuse
 
 import (
+	"errors"
 	"os"
 
 	"github.com/fatih/structs"
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine_server/internal/cluster"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 func printAbusesTable(abuses []Model) {
@@ -73,20 +75,23 @@ func GetAbusedCluster(c *echo.Context, address string) (clusters []AbusedCluster
 }
 
 // GetAbusedClusterSet retrieves crossed data between clusters and abuses
-func GetAbusedClusterSet(c *echo.Context, address string) (clusters []AbusedCluster, err error) {
+func GetAbusedClusterSet(c *echo.Context, address string) (clusters []Model, err error) {
+	ch := (*c).Get("cache").(*cache.Cache)
+	if cached, ok := ch.Get("ca_" + address); ok {
+		clusters = cached.([]Model)
+		return
+	}
+
 	pg := (*c).Get("pg").(*postgres.Pg)
-	cluster, err := cluster.GetCluster(c, address, false)
-	if err != nil {
-		return
+	err = pg.DB.Raw(`SELECT abuses.abuser FROM "abuses" 
+		LEFT JOIN "clusters" 
+		ON abuses.address=clusters.address 
+		WHERE clusters.cluster=(
+		SELECT cluster FROM clusters WHERE address = ? LIMIT 1
+	) GROUP BY abuses.abuser`, address).Scan(&clusters).Error
+
+	if !ch.Set("ca_"+address, clusters, 1) {
+		logger.Error("Cache", errors.New("error caching"), logger.Params{"address": address})
 	}
-	if len(cluster) == 0 {
-		err = echo.NewHTTPError(404, "cluster not found")
-		return
-	}
-	err = pg.DB.Raw(`SELECT t.id, t.created_at, t.updated_at, t.deleted_at, c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
-		FROM abuses t 
-		RIGHT JOIN clusters c 
-		ON t.address = c.address 
-		WHERE c.cluster = ?`, cluster[0].Cluster).Scan(&clusters).Error
 	return
 }

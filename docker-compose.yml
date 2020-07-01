@@ -1,0 +1,128 @@
+version: "3.7"
+
+services:
+  bitcoind:
+    image: kylemanna/bitcoind
+    container_name: bitcoind
+    volumes:
+      - bitcoind-data:/bitcoin
+    ports:
+      - 8333:8333
+      - 127.0.0.1:8332:8332
+    networks:
+      - bitgodine
+
+  postgresql:
+    image: postgres
+    container_name: postgresql
+    restart: always
+    environment:
+      # - POSTGRES_HOST=bitgodine
+      - POSTGRES_USER=bitgodine
+      - POSTGRES_PASSWORD=bitgodine
+      - POSTGRES_DB=bitgodine
+    ports:
+      - 5432:5432
+    volumes:
+      # - ~/.bitgodine/postgresql:/var/lib/postgresql
+      - postgres/:/var/lib/postgresql
+    networks:
+      - bitgodine
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 9876:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
+      - PGADMIN_DEFAULT_PASSWORD=bitgodine
+    links:
+      - postgresql
+    logging:
+      driver: none
+    networks:
+      - bitgodine
+
+  bitgodine_parser:
+    container_name: parser
+    build:
+      context: ./bitgodine_parser
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+    command: ./bitgodine start --debug -r=false --dgHost dgraph_server --db /badger --blocksDir /bitcoin --utxo /bolt/utxoset.db
+    volumes:
+      - bitcoind-data:/bitcoin
+      - badger:/badger
+      - bolt:/bolt
+    networks:
+      - bitgodine
+
+  bitgodine_server:
+    container_name: server
+    build:
+      context: ./bitgodine_server
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+    ports:
+      - 3000:3000
+    volumes:
+      - badger:/badger
+      - analysis:/analysis
+    depends_on:
+      - postgresql
+    networks:
+     - bitgodine
+
+  bitgodine_clusterizer:
+    container_name: clusterizer
+    build:
+      context: ./bitgodine_clusterizer
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+    command: ./bitgodine start --debug -r=false --dgHost dgraph_server --utxo /utxoset/utxoset.db -o /utxoset
+    volumes:
+      - utxoset:/utxoset
+      - badger:/badger
+    depends_on:
+      - postgresql
+    networks:
+      - bitgodine
+
+  bitgodine_spider:
+    container_name: spider
+    build:
+      context: ./bitgodine_server
+      dockerfile: spider.Dockerfile
+      args:
+        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+    volumes:
+      - ./bitgodine_spider/config:/root/config
+    depends_on:
+      - postgresql
+    networks:
+     - bitgodine
+
+  bitgodine_plotter:
+    container_name: plotter
+    build:
+      context: ./bitgodine_plotter
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    networks:
+     - bitgodine
+
+volumes:
+  dgraph:
+  badger:
+  analysis:
+  bolt:
+  utxoset:
+  bitcoind-data:
+  postgres:
+
+networks:
+  bitgodine:

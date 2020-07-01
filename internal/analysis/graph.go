@@ -1,8 +1,8 @@
 package analysis
 
 import (
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger"
 )
 
 type AnalysisSet struct {

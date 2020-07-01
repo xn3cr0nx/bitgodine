@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 // Config instance of Postgres configuration details

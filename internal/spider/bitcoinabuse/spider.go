@@ -11,10 +11,10 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/abuse"
-	chttp "github.com/xn3cr0nx/bitgodine_server/internal/http"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/abuse"
+	chttp "github.com/xn3cr0nx/bitgodine/internal/http"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // Spider creates a web spider with predefined url to crawl

@@ -3,9 +3,9 @@ package analysis
 import (
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/encoding"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32, analysisType string) (intervals []Chunk) {

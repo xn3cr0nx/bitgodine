@@ -10,8 +10,8 @@ package peeling
 import (
 	"errors"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // PeelingLikeCondition check the basic condition of peeling chain (2 txout and 1 txin)

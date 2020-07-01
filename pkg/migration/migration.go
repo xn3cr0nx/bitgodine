@@ -1,10 +1,10 @@
 package migration
 
 import (
-	"github.com/xn3cr0nx/bitgodine_server/internal/abuse"
-	"github.com/xn3cr0nx/bitgodine_server/internal/cluster"
-	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/abuse"
+	"github.com/xn3cr0nx/bitgodine/internal/cluster"
+	"github.com/xn3cr0nx/bitgodine/internal/tag"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // Migration sets up initial migration of tags involved tables

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/gocolly/colly/v2"
-	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/tag"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // Spider creates a web spider with predefined url to crawl

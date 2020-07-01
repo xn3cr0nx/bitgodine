@@ -7,9 +7,9 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/badger/kv"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 func InitTestDB() (db storage.DB, err error) {

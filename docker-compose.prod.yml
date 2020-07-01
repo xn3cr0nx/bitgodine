@@ -1,0 +1,114 @@
+version: "3.7"
+
+services:
+  bitcoind:
+    image: kylemanna/bitcoind
+    container_name: bitcoind
+    volumes:
+      - bitcoind-data:/bitcoin
+    ports:
+      - 8333:8333
+      - 127.0.0.1:8332:8332
+    networks:
+      - bitgodine
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    environment:
+      # - POSTGRES_HOST=bitgodine
+      - POSTGRES_USER=bitgodine
+      - POSTGRES_PASSWORD=bitgodine
+      - POSTGRES_DB=bitgodine
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql
+    networks:
+      - bitgodine
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 9876:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
+      - PGADMIN_DEFAULT_PASSWORD=bitgodine
+    links:
+      - postgres
+    logging:
+      driver: none
+    networks:
+      - bitgodine
+
+  bitgodine_parser:
+    container_name: parser
+    image: xn3cr0nx/bitgodine_parser
+    command: ./bitgodine start --debug -r=false --db /badger --blocksDir /bitcoin --skipped 300000 --file 1000 --restored 20000000
+    volumes:
+      - bitcoind-data:/bitcoin
+      - bolt:/bolt
+      - badger:/badger
+    networks:
+      - bitgodine
+    restart: always
+
+  bitgodine_server:
+    container_name: server
+    image: xn3cr0nx/bitgodine_server
+    ports:
+      - 3000:3000
+    volumes:
+      - badger:/badger
+      - analysis:/analysis
+    networks:
+      - bitgodine
+
+  bitgodine_clusterizer:
+    container_name: clusterizer
+    image: xn3cr0nx/bitgodine_clusterizer
+    command: ./bitgodine start --debug -r=false --utxo /utxoset/utxoset.db -o /utxoset
+    #command: ./bitgodine cluster export --dgHost dgraph_server -o /utxoset
+    volumes:
+      - utxoset:/utxoset
+      - badger:/badger
+    networks:
+      - bitgodine
+
+  bitgodine_spider:
+    container_name: spider
+    image: xn3cr0nx/bitgodine_spider
+    volumes:
+      - ./config:/root/config
+    depends_on:
+      - postgres
+    networks:
+      - bitgodine
+
+volumes:
+  dgraph:
+  badger:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /mnt/sdd1
+      o: bind
+  analysis:
+  bolt:
+  utxoset:
+  postgresql:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /mnt/sdc1
+      o: bind
+  bitcoind-data:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /mnt/sdb1
+      o: bind
+
+networks:
+  bitgodine:

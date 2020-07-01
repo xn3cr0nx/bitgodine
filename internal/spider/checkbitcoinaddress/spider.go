@@ -7,9 +7,9 @@ import (
 
 	"github.com/gocolly/colly/v2"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/tag"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // Spider creates a web spider with predefined url to crawl

@@ -1,14 +1,18 @@
 package tag
 
 import (
+	"errors"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/fatih/structs"
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine_server/internal/cluster"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+
+	// "github.com/xn3cr0nx/bitgodine/internal/cluster"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 func printTagsTable(tags []Model) {
@@ -80,21 +84,24 @@ func GetTaggedCluster(c *echo.Context, address string) (clusters []TaggedCluster
 }
 
 // GetTaggedClusterSet retrieves crossed data between clusters and tags
-func GetTaggedClusterSet(c *echo.Context, address string) (clusters []TaggedCluster, err error) {
+func GetTaggedClusterSet(c *echo.Context, address string) (clusters []Model, err error) {
+	ch := (*c).Get("cache").(*cache.Cache)
+	if cached, ok := ch.Get("ct_" + address); ok {
+		clusters = cached.([]Model)
+		return
+	}
+
 	pg := (*c).Get("pg").(*postgres.Pg)
-	cluster, err := cluster.GetCluster(c, address, false)
-	if err != nil {
-		return
+	err = pg.DB.Raw(`SELECT tags.message, tags.type FROM "tags" 
+		LEFT JOIN "clusters" 
+		ON tags.address=clusters.address 
+		WHERE clusters.cluster=(
+			SELECT cluster FROM clusters WHERE address = ? LIMIT 1
+		) GROUP BY tags.message, tags.type`, address).Scan(&clusters).Error
+
+	if !ch.Set("ct_"+address, clusters, 1) {
+		logger.Error("Cache", errors.New("error caching"), logger.Params{"address": address})
 	}
-	if len(cluster) == 0 {
-		err = echo.NewHTTPError(404, "cluster not found")
-		return
-	}
-	err = pg.DB.Raw(`SELECT t.id, t.created_at, t.updated_at, t.deleted_at, c.cluster, c.address, t.message, t.nickname, t.type, t.link, t.verified
-		FROM tags t 
-		RIGHT JOIN clusters c 
-		ON t.address = c.address 
-		WHERE c.cluster = ?`, cluster[0].Cluster).Scan(&clusters).Error
 	return
 }
 

@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // ChangeOutput returnes the index of the output which address type corresponds to input addresses type

@@ -1,18 +1,18 @@
 package heuristics
 
 import (
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/backward"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/behaviour"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/forward"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/locktime"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/optimal"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/peeling"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/power"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/reuse"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/shadow"
-	class "github.com/xn3cr0nx/bitgodine_server/internal/heuristics/type"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/backward"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/behaviour"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/forward"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/locktime"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/optimal"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/peeling"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/power"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/reuse"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/shadow"
+	class "github.com/xn3cr0nx/bitgodine/internal/heuristics/type"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Heuristic type define a enum on implemented heuristics

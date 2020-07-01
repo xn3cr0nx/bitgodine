@@ -7,12 +7,12 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine_server/internal/spider/bitcoinabuse"
-	"github.com/xn3cr0nx/bitgodine_server/internal/spider/checkbitcoinaddress"
-	"github.com/xn3cr0nx/bitgodine_server/internal/spider/walletexplorer"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/migration"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/spider/bitcoinabuse"
+	"github.com/xn3cr0nx/bitgodine/internal/spider/checkbitcoinaddress"
+	"github.com/xn3cr0nx/bitgodine/internal/spider/walletexplorer"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/migration"
+	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // crawlCmd represents the crawl command

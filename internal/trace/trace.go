@@ -7,13 +7,13 @@ import (
 	"sync"
 
 	"github.com/labstack/echo/v4"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
-	"github.com/xn3cr0nx/bitgodine_server/internal/abuse"
-	"github.com/xn3cr0nx/bitgodine_server/internal/analysis"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_server/internal/tag"
+	"github.com/xn3cr0nx/bitgodine/internal/abuse"
+	"github.com/xn3cr0nx/bitgodine/internal/analysis"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -147,33 +147,44 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 			var localNext []Next
 			for mask, percentage := range percentages {
 				clusters := []Cluster{}
-				tags, err := tag.GetTaggedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
-				if err != nil {
-					if !strings.Contains(err.Error(), "cluster not found") {
-						return err
+
+				var g errgroup.Group
+				g.Go(func() (err error) {
+					tags, err := tag.GetTaggedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+					if err != nil {
+						if !strings.Contains(err.Error(), "cluster not found") {
+							return err
+						}
 					}
-				}
-				for _, tag := range tags {
-					clusters = append(clusters, Cluster{
-						Type:     tag.Type,
-						Message:  tag.Message + " " + tag.Link,
-						Nickname: tag.Nickname,
-						Verified: tag.Verified,
-					})
-				}
-				abuses, err := abuse.GetAbusedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
-				if err != nil {
-					if !strings.Contains(err.Error(), "cluster not found") {
-						return err
+					for _, tag := range tags {
+						clusters = append(clusters, Cluster{
+							Type:     tag.Type,
+							Message:  tag.Message + " " + tag.Link,
+							Nickname: tag.Nickname,
+							Verified: tag.Verified,
+						})
 					}
-				}
-				for _, abuse := range abuses {
-					clusters = append(clusters, Cluster{
-						Type:     "abuse",
-						Message:  abuse.Description,
-						Nickname: abuse.Abuser,
-						Verified: false,
-					})
+					return
+				})
+				g.Go(func() (err error) {
+					abuses, err := abuse.GetAbusedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+					if err != nil {
+						if !strings.Contains(err.Error(), "cluster not found") {
+							return err
+						}
+					}
+					for _, abuse := range abuses {
+						clusters = append(clusters, Cluster{
+							Type:     "abuse",
+							Message:  abuse.Description,
+							Nickname: abuse.Abuser,
+							Verified: false,
+						})
+					}
+					return
+				})
+				if err = g.Wait(); err != nil {
+					return err
 				}
 
 				localNext = append(localNext, Next{

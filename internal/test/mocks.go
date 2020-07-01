@@ -9,7 +9,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 func VulnerableFunctions(heuristic string) string {

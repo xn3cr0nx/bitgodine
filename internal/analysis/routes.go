@@ -3,8 +3,8 @@ package analysis
 import (
 	"net/http"
 
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_server/pkg/validator"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
 )

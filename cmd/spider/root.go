@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 var (

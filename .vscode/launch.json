@@ -5,13 +5,22 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Serve",
+			"name": "Sync",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceRoot}/cmd/bitgodine/",
 			"env": {},
-			"args": ["serve", "--badger", "/home/xn3cr0nx/.bitgodine/badger", "--analysis", "/home/xn3cr0nx/.bitgodine/analysis", "--port", "4000"]
+			"args": ["sync"]
+		},
+		{
+			"name": "TestWalk",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${workspaceRoot}/internal/parser",
+			"env": {},
+			"args": ["-test.run", "TestWalk", "-test.v"]
 		},
 		{
 			"name": "TestTransactions",

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine_server/internal/plot"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/internal/plot"
 )
 
 // renderPercentageTable prints a table with percentages of heuristics success rate based on passed analysis

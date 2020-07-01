@@ -1,8 +1,8 @@
 package heuristics
 
 import (
-	"github.com/xn3cr0nx/bitgodine_parser/pkg/models"
-	"github.com/xn3cr0nx/bitgodine_server/internal/heuristics/peeling"
+	"github.com/xn3cr0nx/bitgodine/internal/heuristics/peeling"
+	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // Condition function signature for condition definition

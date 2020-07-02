@@ -1,44 +1,85 @@
-<img src="./assets/bitgodine.png" width="150">
+# Bitgodine
 
+<img src="./assets/bitgodine_finder.png" width="150">
 
-[**bitgodine**](https://github.com/xn3cr0nx/bitgodine) is a Go implementation of a Bitcoin forensic analysis tool that enable you to explore the Bitcoin blockchain and analyze the transactions with a set of heuristics.
+Chain analysis is the attempt to deanonymize pseudo confidential transactions in Bitcoin’s blockchain. This work is usually made by companies working with big institutions, and their techniques are largely unknown. Chain analysis should be open in order to help the technology to establish the best practices and mitigate these techniques.
 
-Bitgodine provides an advanced cli to interact with all its functionalities. We foresee to provide soon a user interface to make the user experience easier to non developer users.
+[**bitgodine**](https://github.com/xn3cr0nx/bitgodine) is a new open source Bitcoin chain analysis platform, based on previous Politecnico's work, Bitiodine.
+This work leverages previous work on chain analysis' heuristics to provide a new Bitcoin’s flows tracing approach, based on probabilistic reliability of heuristics on secure basis heuristics.
+In this way we provide a convenient platform to trace Bitcoin's flows specifying their probability and entities tagging.
+
+## Architecture
+
+Bitgodine is composed by different services
+
+### Parser
+
+Parser is in charge of parsing .dat blockchain files, indexing the chain and storing it in a convenient way for following analysis.
+
+### Clusterizer
+
+Clusterizer generates persistent clusters of addresses, exploiting the common input heuristic and a disjoint set structure. Clusters can identify groups of addresses related to identities in order to expand semantic tagging to an entire group of addresses.
+
+### Server
+
+Server exposes a REST API proving both endpoints about chain exploring and analysis. [bitgodine_dashboard](https://github.com/xn3cr0nx/bitgodine_dashboard) is the most convenient way to use bitgodine explorer and tracing service.
+
+### Spider
+
+Spider is a web crawler scraping different websites to build a sematinc tags database in order to cross tags and clusters adding info on tracing flows.
 
 ## Requirements
 
-Bitgodine need external data layers to be able to parse and store the blockchain and associated metadata. The repository is provided with a docker-compose file to bootstrap the environment. The docker-compose file contains:
+As decribed, Bitgodine is composed by different movign pieces. We highly recommend running the platform using Docker in order to deploy the entire infrastructure easily.
 
-- Dgraph: graph database to store the blockchain and clusters (3 instances, web UI, server, and grpc service)
+### Docker
+
+The code provides both a Dockerfile for each services and docker-compose files to bootstrap the platform locally and in production. Production docker-compose file is provided to use official images and external disk to have enough space available. Development docker-compose file will build services locally.
+
+First, install [docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-convenience-script) and [docker-compose](https://docs.docker.com/compose/install/#install-compose).
+
+In order to bootstrap the infrastructure with Docker you just need to type:
+
+```bash
+docker-compose up -d
+```
+
+To run the production version:
+
+```bash
+docker-compose up -d -f docker-compose.prod.yml
+```
+
+### Locally
+
+If you want to run bitgodine on bare locally you will need to install some dependency to run the platform. First install [go](https://golang.org/doc/install).
+
+The docker-compose file includes the following services you will need to install locally in order to setup the system:
+
+- bitcoind: Bitcoin core full node. Use [Bitcoin Core installation guide](https://bitcoin.org/en/full-node) to install locally, Bitgodine will automatically look for data files in default bitcoind directory.
 - Postgres: database to store tags and clusters relations
-- Pgadmin: web UI to manage Postgres
+- Pgadmin: (optional) web UI to manage Postgres
 
-It's recommended the use of docker. You can install docker [here](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-convenience-script) and docker-compose [here](https://docs.docker.com/compose/install/#install-compose).
+### Build
 
-Docker doesn't acctually spins up anything about blockchain, hence to be able to use the tool you have to be able to read the Bitcoin blockchain stored somewhere. If you don't know how to install a Bitcoin full node check the [Bitcoin Core installation guide](https://bitcoin.org/en/full-node). Bitgodine will automatically look for data files in default bitcoin directory.
-
-## Installing
-
-<!-- Install it with:
-
-```
-go get -u github.com/xn3cr0nx/bitgodine
-``` -->
-Currently you have to clone repository, but installation and launch of docker-compose will be automated. Clone the respository and install the binary:
+You can use go to build each service. Bitgodine provides a convenient Makefile to manage these operations. The easiest way to build services is using:
 
 ```bash
-make install
+make build
 ```
 
-## Getting Started
+This will build *server*, *parser*, *clusterizer*, *spider* binaries in `build` folder.
+In order to install services to be able to run them as part of the PATH use install cmd instead.
 
-Once you have at least a part of the blockchain synced you can start bitgodine:
+### Getting Started
+
+Once you have at least a part of the blockchain synced through the node you can start the parser:
 
 ```bash
-bitgodine start
+parser start
 ```
 
-You will see the sync process going on and a log line every 100 synced blocks. You can stop the process in wherever moment with Ctrl+C, bitgodine will handle it gracefully. You will be able to restart the process in another moment from where you stopped. You can add *--debug* flag for a more verbose output.
+You will see the sync process going on and a log line every 100 synced blocks. You can stop the process in wherever moment with `Ctrl+C`, bitgodine will handle it gracefully. The process is persistent, hence you will be able to restart the process in another moment from where you stopped. You can add _--debug_ flag for a more verbose output.
 
 Check the current synced block height with:
 
@@ -46,7 +87,7 @@ Check the current synced block height with:
 bitgodine block height
 ```
 
-### Analysis
+## Analysis
 
 Once you have some part of the blockchain synced in bitgodine you can use the analysis command in the cli. Try:
 
@@ -110,38 +151,15 @@ Exporting to Postgres database in necessaire to enable joined operation with sto
 bitgodine cluster tag <address || tagname>
 ```
 
-### Explorer
-
-You can use bitgodine as a cli explorer to fast check some info about block and transaction. Check it out:
-
-```bash
-bitgodine block height 10 --verbose
-```
-
-### Recovery and startup
-
-You are able in every moment to deleted synced data and restart the process using:
-
-```bash
-bitgodine rm
-```
-
-In case the persistent set corrupts you can restore it using
-
-```bash
-bitgodine cluster recovery
-```
-
 ## How to contribute
 
 You can find all the info about contributing to this project (every help is welcomed) in the CONTRIBUTING.md file.
 
 ## Roadmap
 
+- [ ] Testing
 - [x] Graceful shutdown
 - [x] Persistent clusters
-- [ ] Bitgodine as a daemon
 - [ ] Coinjoin entropy analysis
 - [ ] Multisignature addresses support
 - [ ] Realtime syncing
-- [ ] Multicurrency parser

@@ -5,39 +5,28 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/xn3cr0nx/bitgodine/internal/blocks"
-	txs "github.com/xn3cr0nx/bitgodine/internal/transactions"
-	"github.com/xn3cr0nx/bitgodine/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
 )
 
-var _ = Describe("Testing with Ginkgo", func() {
-	It("blocks", func() {
-
-		suite.Run(GinkgoT(), new(TestBlocksSuite))
-	})
-})
-
 type TestBlocksSuite struct {
 	suite.Suite
-	dgraph *dgo.Dgraph
+	db storage.DB
 }
 
 func (suite *TestBlocksSuite) SetupSuite() {
 	logger.Setup()
-	DgConf := &dgraph.Config{
-		Host: "localhost",
-		Port: 9080,
-	}
-	suite.dgraph = dgraph.Instance(DgConf)
-	dgraph.Setup(suite.dgraph)
 
+	db, err := test.InitTestDB()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(db).ToNot(BeNil())
+	suite.db = db
 }
 
 func (suite *TestBlocksSuite) Setup() {
@@ -86,27 +75,4 @@ func (suite *TestBlocksSuite) TestCoinbaseValue() {
 	assert.Equal(suite.T(), blocks.CoinbaseValue(210000), int64(2500000000))
 	assert.Equal(suite.T(), blocks.CoinbaseValue(420000), int64(1250000000))
 	assert.Equal(suite.T(), blocks.CoinbaseValue(1260000), int64(78125000))
-}
-
-func (suite *TestBlocksSuite) TestGenerateBlock() {
-	blockExample, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
-	blockExample.SetHeight(181)
-	assert.Equal(suite.T(), err, nil)
-	transactions, err := txs.PrepareTransactions(blockExample.Transactions())
-	assert.Equal(suite.T(), err, nil)
-
-	block := dgraph.Block{
-		Hash:         blockExample.Hash().String(),
-		Height:       blockExample.Height(),
-		MerkleRoot:   blockExample.MsgBlock().Header.MerkleRoot.String(),
-		PrevBlock:    blockExample.MsgBlock().Header.PrevBlock.String(),
-		Nonce:        blockExample.MsgBlock().Header.Nonce,
-		Timestamp:    blockExample.MsgBlock().Header.Timestamp,
-		Version:      blockExample.MsgBlock().Header.Version,
-		Bits:         blockExample.MsgBlock().Header.Bits,
-		Transactions: transactions,
-	}
-	genBlock, err := blocks.GenerateBlock(&block)
-	assert.Equal(suite.T(), err, nil)
-	assert.Equal(suite.T(), genBlock.Hash().IsEqual(blockExample.Hash()), true)
 }

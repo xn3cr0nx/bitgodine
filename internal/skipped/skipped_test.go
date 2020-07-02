@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/blocks"
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 
 	. "github.com/onsi/ginkgo"
@@ -23,11 +22,8 @@ var _ = Describe("Testing with Ginkgo", func() {
 
 	BeforeEach(func() {
 		logger.Setup()
-		conf := &badger.Config{
-			Dir: filepath.Join(".", "test"),
-		}
 		var err error
-		s = skipped.NewSkipped(conf)
+		s = skipped.NewSkipped()
 		Expect(s).ToNot(BeNil())
 
 		if !s.IsStored(chaincfg.MainNetParams.GenesisHash) {

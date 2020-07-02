@@ -8,12 +8,17 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/server"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/migration"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
+	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
+
+	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/pkg/tikv"
 )
 
 var (
@@ -52,19 +57,38 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	db, err := kv.NewKV(kv.Conf(viper.GetString("badger")), c, false)
-	if err != nil {
-		logger.Error("Bitgodine", err, logger.Params{})
-		os.Exit(-1)
-	}
-	defer db.Close()
+	var db storage.DB
+	var kvdb kv.KV
+	if viper.GetString("db") == "tikv" {
+		db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		defer db.Close()
 
-	bdg, err := badger.NewBadger(badger.Conf(viper.GetString("analysis")), false)
-	if err != nil {
-		logger.Error("Bitgodine", err, logger.Params{})
-		os.Exit(-1)
+		kvdb, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		defer kvdb.Close()
+
+	} else if viper.GetString("db") == "badger" {
+		db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		defer db.Close()
+
+		kvdb, err := badger.NewBadger(badger.Conf(viper.GetString("clusterizer.disjoint")), false)
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+		defer kvdb.Close()
 	}
-	defer bdg.Close()
 
 	pg, err := postgres.NewPg(postgres.Conf())
 	if err != nil {
@@ -81,6 +105,6 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	s := server.Instance(viper.GetInt("http.port"), db, c, bdg, pg)
+	s := server.Instance(viper.GetInt("server.http.port"), db, c, kvdb, pg)
 	s.Listen()
 }

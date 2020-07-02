@@ -7,15 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
-	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	db     *kv.KV
+	db     storage.DB
 	target models.Tx
 }
 
@@ -24,7 +23,7 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 
 	db, err := test.InitTestDB()
 	require.Nil(suite.T(), err)
-	suite.db = db.(*kv.KV)
+	suite.db = db.(storage.DB)
 
 	suite.Setup()
 }
@@ -66,33 +65,22 @@ func (suite *TestAddressReuseSuite) Setup() {
 		TxID:     "30902fb75974281fe7081b540d08b7f149ee362f4fe4589600477d7491572338",
 		Locktime: 429991,
 	}
-	serialized, err := encoding.Marshal(spentTx)
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(tx.TxID+"_"+string(uint32(0)), []byte(spentTx.TxID))
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(spentTx.TxID, serialized)
+	block := models.Block{ID: "", Height: 0}
+	err := suite.db.StoreBlock(block, []models.Tx{tx, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = models.Tx{
 		TxID:     "e724ed4ae72779fc7ad4a02789143b6c92c3276a38b592a60c51aa0433750aa0",
 		Locktime: 430003,
 	}
-	serialized, err = encoding.Marshal(spentTx)
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(tx.TxID+"_"+string(uint32(1)), []byte(spentTx.TxID))
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(spentTx.TxID, serialized)
+	err = suite.db.StoreBlock(block, []models.Tx{tx, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = models.Tx{
 		TxID:     "0664032cd4330937e9d28fe2cf614c76494db4d5a3208b37a4957adc3171069a",
 		Locktime: 0,
 	}
-	serialized, err = encoding.Marshal(spentTx)
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(tx.TxID+"_"+string(uint32(2)), []byte(spentTx.TxID))
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(spentTx.TxID, serialized)
+	err = suite.db.StoreBlock(block, []models.Tx{tx, spentTx})
 	require.Nil(suite.T(), err)
 }
 

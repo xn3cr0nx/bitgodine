@@ -10,9 +10,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
+	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
 var verbose bool
@@ -32,10 +34,22 @@ var BlockCmd = &cobra.Command{
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
-		dg, err := kv.NewKV(kv.Conf(viper.GetString("db")), c, false)
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
+		var db storage.DB
+		if viper.GetString("db") == "tikv" {
+			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
+
+		} else if viper.GetString("db") == "badger" {
+			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
 		}
 
 		height, err := strconv.Atoi(args[0])
@@ -43,7 +57,7 @@ var BlockCmd = &cobra.Command{
 			logger.Error("Block", errors.New("Cannot parse passed height"), logger.Params{})
 			os.Exit(-1)
 		}
-		block, err := dg.GetBlockFromHeight(int32(height))
+		block, err := db.GetBlockFromHeight(int32(height))
 		if err != nil {
 			logger.Error("Block", err, logger.Params{})
 			os.Exit(-1)

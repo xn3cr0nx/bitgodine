@@ -6,10 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	. "github.com/xn3cr0nx/bitgodine/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -20,16 +18,6 @@ var _ = Describe("Blockchain", func() {
 
 	BeforeEach(func() {
 		logger.Setup()
-
-		dg := dgraph.Instance(&dgraph.Config{
-			Host: "localhost",
-			Port: 9080,
-		})
-		err := dgraph.Setup(dg)
-		Expect(err).ShouldNot(HaveOccurred())
-		bc = Instance(chaincfg.MainNetParams)
-		err = bc.Read()
-		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	Context("Load blockchain data files", func() {

@@ -13,9 +13,10 @@ import (
 	. "github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Integration tests on blockchain parsing. Taking into consideration to have bitcoin data dir
@@ -24,7 +25,7 @@ var _ = Describe("Blockchain", func() {
 		// bp   *Parser
 		b    *blockchain.Blockchain
 		utxo *utxoset.UtxoSet
-		db   *kv.KV
+		db   storage.DB
 	)
 
 	BeforeSuite(func() {
@@ -32,15 +33,15 @@ var _ = Describe("Blockchain", func() {
 
 		ca, err := cache.NewCache(nil)
 		Expect(err).ToNot(HaveOccurred())
-		conf := &kv.Config{
+		conf := &badgerStorage.Config{
 			Dir: filepath.Join(".", "test"),
 		}
-		db, err = kv.NewKV(conf, ca, false)
+		db, err = badgerStorage.NewKV(conf, ca, false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(db).ToNot(BeNil())
 		Expect(err).ToNot(HaveOccurred())
 
-		skippedBlocksStorage := skipped.NewSkipped(nil)
+		skippedBlocksStorage := skipped.NewSkipped()
 		utxo = utxoset.Instance(utxoset.Conf("", false))
 		b = blockchain.Instance(db, chaincfg.MainNetParams)
 		b.Read("")
@@ -50,9 +51,7 @@ var _ = Describe("Blockchain", func() {
 
 	AfterEach(func() {
 		viper.SetDefault("dbDir", filepath.Join(".", "test"))
-		err := (*db).Close()
-		Expect(err).ToNot(HaveOccurred())
-		err = (*db).Empty()
+		err := db.Empty()
 		Expect(err).ToNot(HaveOccurred())
 	})
 

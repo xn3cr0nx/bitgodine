@@ -6,7 +6,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
 	"github.com/xn3cr0nx/bitgodine/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
 )
 
 // Skipped instance of key value store designed to treat block structs
@@ -15,12 +14,13 @@ type Skipped struct {
 }
 
 // NewSkipped creates a new instance of Skipped
-func NewSkipped(conf *badger.Config) (s *Skipped) {
+func NewSkipped() (s *Skipped) {
 	b := make(map[chainhash.Hash]blocks.Block)
 	s = &Skipped{b}
 	return
 }
 
+// Len returnes number of stored blocks
 func (s *Skipped) Len() int {
 	return len(s.blocks)
 }

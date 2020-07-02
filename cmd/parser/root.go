@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/xn3cr0nx/bitgodine/cmd/parser/address"
 	"github.com/xn3cr0nx/bitgodine/cmd/parser/block"
@@ -20,10 +21,10 @@ import (
 )
 
 var (
-	cfgFile, network, bitgodineDir, blocksDir, storage, db, dbDir, dgHost, boltFile, btcClientHost, btcClientEp, btcClientUser, btcClientPass, btcClientCerts string
-	dgPort, skippedLimit, startFile, restoredBlocks                                                                                                           int
-	debug, realtime                                                                                                                                           bool
-	BitcoinNet                                                                                                                                                chaincfg.Params
+	cfgFile, network, bitgodineDir, blocksDir, db, dbDir, btcClientHost, btcClientEp, btcClientUser, btcClientPass, btcClientCerts string
+	skippedLimit, startFile, restoredBlocks                                                                                        int
+	debug, realtime                                                                                                                bool
+	BitcoinNet                                                                                                                     chaincfg.Params
 )
 
 var rootCmd = &cobra.Command{
@@ -83,14 +84,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&blocksDir, "blocksDir", "b", hd, "Sets the path to the bitcoind blocks directory")
 
-	rootCmd.PersistentFlags().StringVar(&storage, "storage", "disk", "Select the kind of data layer between disk a graph [default: disk]")
 	rootCmd.PersistentFlags().StringVar(&db, "db", filepath.Join(bitgodineFolder, "badger"), "Sets the path to the indexing db files")
 	rootCmd.PersistentFlags().StringVar(&dbDir, "dbDir", filepath.Join(bitgodineFolder, "badger", "skipped"), "Sets the path to the indexing db files")
-
-	rootCmd.PersistentFlags().StringVar(&dgHost, "dgHost", "localhost", "Sets the of host the indexing graph db")
-	rootCmd.PersistentFlags().IntVar(&dgPort, "dgPort", 9080, "Sets the port  the indexing db files")
-
-	rootCmd.PersistentFlags().StringVar(&boltFile, "utxo", filepath.Join(bitgodineFolder, "boltdb", "utxoset.db"), "Sets bolt utxo set storage file")
 
 	rootCmd.PersistentFlags().StringVar(&btcClientHost, "btcHost", "localhost:8333", "Specify bitcoin client host")
 	rootCmd.PersistentFlags().StringVar(&btcClientEp, "btcEp", "ws", "Specify bitcoin client endpoint protocol")
@@ -113,14 +108,10 @@ func initConfig() {
 	viper.SetDefault("debug", false)
 	viper.SetDefault("realtime", false)
 	viper.SetDefault("network", chaincfg.MainNetParams.Name)
-	viper.SetDefault("dgHost", "localhost")
-	viper.SetDefault("dgPort", 9080)
 	viper.SetDefault("bitgodineDir", bitgodineFolder)
 	viper.SetDefault("blocksDir", hd)
-	viper.SetDefault("storage", "disk")
 	viper.SetDefault("db", filepath.Join(bitgodineFolder, "badger"))
 	viper.SetDefault("dbDir", filepath.Join(bitgodineFolder, "badger", "skipped"))
-	viper.SetDefault("utxo", filepath.Join(bitgodineFolder, "boltdb", "utxoset.db"))
 	viper.SetDefault("btcHost", "localhost:8333")
 	viper.SetDefault("btcEp", "ws")
 	viper.SetDefault("btcUser", "bitcoinrpc")
@@ -135,12 +126,8 @@ func initConfig() {
 	viper.BindPFlag("network", rootCmd.PersistentFlags().Lookup("network"))
 	viper.BindPFlag("bitgodineDir", rootCmd.PersistentFlags().Lookup("bitgodineDir"))
 	viper.BindPFlag("blocksDir", rootCmd.PersistentFlags().Lookup("blocksDir"))
-	viper.BindPFlag("storage", rootCmd.PersistentFlags().Lookup("storage"))
 	viper.BindPFlag("db", rootCmd.PersistentFlags().Lookup("db"))
 	viper.BindPFlag("dbDir", rootCmd.PersistentFlags().Lookup("dbDir"))
-	viper.BindPFlag("dgHost", rootCmd.PersistentFlags().Lookup("dgHost"))
-	viper.BindPFlag("dgPort", rootCmd.PersistentFlags().Lookup("dgPort"))
-	viper.BindPFlag("utxo", rootCmd.PersistentFlags().Lookup("utxo"))
 	viper.BindPFlag("bitcoin.client.btcHost", rootCmd.PersistentFlags().Lookup("btcHost"))
 	viper.BindPFlag("bitcoin.client.btcEp", rootCmd.PersistentFlags().Lookup("btcEp"))
 	viper.BindPFlag("bitcoin.client.btcUser", rootCmd.PersistentFlags().Lookup("btcUser"))
@@ -150,25 +137,23 @@ func initConfig() {
 	viper.BindPFlag("file", rootCmd.PersistentFlags().Lookup("file"))
 	viper.BindPFlag("restored", rootCmd.PersistentFlags().Lookup("restored"))
 
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+	viper.SetEnvPrefix("parser")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if value, ok := os.LookupEnv("CONFIG_FILE"); ok {
+		viper.SetConfigFile(value)
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		// Search config in home directory with name ".bitgodine" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".bitgodine")
+		viper.SetConfigName("config")
+		viper.AddConfigPath("/etc/server/")
+		viper.AddConfigPath("$HOME/.bitgodine/server")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./config")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	viper.ReadInConfig()
+	f := viper.ConfigFileUsed()
+	if f != "" {
+		fmt.Printf("Found configuration file: %s \n", f)
 	}
 }

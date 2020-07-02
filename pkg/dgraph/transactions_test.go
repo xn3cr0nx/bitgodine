@@ -27,7 +27,7 @@ var _ = Describe("Dgraph transactions", func() {
 		_, err = cache.NewCache(nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = dg.Store(TxMock)
+		err = dg.Store(TxMock)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -74,7 +74,7 @@ var _ = Describe("Dgraph transactions", func() {
 	It("Should get a list of stored transactions hash", func() {
 		n := 3
 		for i := 0; i < n; i++ {
-			_, err := dg.Store(TxMock)
+			err := dg.Store(TxMock)
 			Expect(err).ToNot(HaveOccurred())
 		}
 

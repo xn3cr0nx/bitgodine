@@ -16,8 +16,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine/pkg/storage"
@@ -37,7 +37,7 @@ type (
 		router *echo.Echo
 		db     storage.DB
 		cache  *cache.Cache
-		kv     *badger.Badger
+		kv     kv.KV
 		pg     *postgres.Pg
 	}
 )
@@ -45,7 +45,7 @@ type (
 var server *Server
 
 // Instance singleton pattern that returnes pointer to server
-func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger, pg *postgres.Pg) *Server {
+func Instance(port int, db storage.DB, c *cache.Cache, kvdb kv.KV, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}
@@ -54,7 +54,7 @@ func Instance(port int, db storage.DB, c *cache.Cache, bdg *badger.Badger, pg *p
 		router: echo.New(),
 		db:     db,
 		cache:  c,
-		kv:     bdg,
+		kv:     kvdb,
 		pg:     pg,
 	}
 	return server

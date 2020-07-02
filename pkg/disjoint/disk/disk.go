@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -17,18 +17,11 @@ type DisjointSet struct {
 	parent  []uint64
 	rank    []uint64
 	hashMap sync.Map
-	storage *badger.Badger
+	storage kv.KV
 }
 
 // NewDisjointSet creates a new instance of DisjointSet
-func NewDisjointSet(conf *badger.Config, disk, memory bool) (d DisjointSet, err error) {
-	var db *badger.Badger
-	if disk {
-		db, err = badger.NewBadger(conf, false)
-		if err != nil {
-			return
-		}
-	}
+func NewDisjointSet(db kv.KV, disk, memory bool) (d DisjointSet, err error) {
 	const CAPACITY uint64 = 2147483647
 	d = DisjointSet{
 		size:    0,

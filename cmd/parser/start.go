@@ -14,10 +14,11 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
 // startCmd represents the start command
@@ -40,21 +41,32 @@ data representation to analyze the blockchain.`,
 			os.Exit(-1)
 		}
 
-		dg, err := kv.NewKV(kv.Conf(viper.GetString("db")), c, false)
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		defer dg.Close()
+		var db storage.DB
+		if viper.GetString("db") == "tikv" {
+			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
 
-		skippedBlocksStorage := skipped.NewSkipped(badger.Conf(viper.GetString("dbDir")))
+		} else if viper.GetString("db") == "badger" {
+			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
+		}
+
+		skippedBlocksStorage := skipped.NewSkipped()
 		utxoset := utxoset.Instance(utxoset.Conf("", true))
 
-		b := blockchain.Instance(dg, BitcoinNet)
+		b := blockchain.Instance(db, BitcoinNet)
 		b.Read("")
 
 		var client *rpcclient.Client
-		if viper.GetBool("realtime") {
+		if viper.GetBool("parser.realtime") {
 			client, err = bitcoin.NewClient()
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
@@ -69,7 +81,7 @@ data representation to analyze the blockchain.`,
 		interrupt := make(chan int)
 		done := make(chan int)
 
-		bp := bitcoin.NewParser(b, client, dg, skippedBlocksStorage, utxoset, c, interrupt, done)
+		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, utxoset, c, interrupt, done)
 
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)

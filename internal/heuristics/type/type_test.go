@@ -7,15 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
-	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	db     *kv.KV
+	db     storage.DB
 	target models.Tx
 }
 
@@ -24,7 +23,7 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 
 	db, err := test.InitTestDB()
 	require.Nil(suite.T(), err)
-	suite.db = db.(*kv.KV)
+	suite.db = db.(storage.DB)
 
 	suite.Setup()
 }
@@ -33,7 +32,7 @@ func (suite *TestAddressReuseSuite) Setup() {
 	tx := models.Tx{
 		TxID: test.VulnerableFunctions("Address Type"),
 		Vin: []models.Input{
-			models.Input{
+			{
 				TxID:         "5c8a9134b185c747cc7ecd9aec35d4358b199412c0db763c2854f33c25f142a2",
 				Vout:         1,
 				IsCoinbase:   false,
@@ -42,14 +41,14 @@ func (suite *TestAddressReuseSuite) Setup() {
 			},
 		},
 		Vout: []models.Output{
-			models.Output{
+			{
 				Index:               0,
 				ScriptpubkeyAddress: "33WgwFrQukgEoQ1hXFLvbjqpVH7Bk29Gj2",
 				Scriptpubkey:        "a91413fc3de764b9c19f3d53193a9fbeafc7959bb35087",
 				ScriptpubkeyAsm:     "OP_HASH160 OP_PUSHBYTES_20 13fc3de764b9c19f3d53193a9fbeafc7959bb350 OP_EQUAL",
 				ScriptpubkeyType:    "P2SH",
 			},
-			models.Output{
+			{
 				Index:               1,
 				ScriptpubkeyAddress: "1FfzzAhMFVFqTEfVgkRTHdjpiwhKy91yas",
 				Scriptpubkey:        "76a914a0f1f8b3f9e242b2caf9c4aae7db6bedfdbd608a88ac",
@@ -63,8 +62,8 @@ func (suite *TestAddressReuseSuite) Setup() {
 	spentTx := models.Tx{
 		TxID: "5c8a9134b185c747cc7ecd9aec35d4358b199412c0db763c2854f33c25f142a2",
 		Vout: []models.Output{
-			models.Output{},
-			models.Output{
+			{},
+			{
 				Index:               1,
 				ScriptpubkeyAddress: "1FfzzAhMFVFqTEfVgkRTHdjpiwhKy91yas",
 				Scriptpubkey:        "76a914a0f1f8b3f9e242b2caf9c4aae7db6bedfdbd608a88ac",
@@ -73,9 +72,9 @@ func (suite *TestAddressReuseSuite) Setup() {
 			},
 		},
 	}
-	serialized, err := encoding.Marshal(spentTx)
-	require.Nil(suite.T(), err)
-	err = suite.db.Store(spentTx.TxID, serialized)
+
+	block := models.Block{ID: "", Height: 0}
+	err := suite.db.StoreBlock(block, []models.Tx{tx, spentTx})
 	require.Nil(suite.T(), err)
 }
 

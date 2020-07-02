@@ -2,11 +2,12 @@ package disk_test
 
 import (
 	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	. "github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -19,8 +20,14 @@ var _ = Describe("Disk disjoint set", func() {
 	BeforeEach(func() {
 		logger.Setup()
 
-		conf := badger.Conf("test")
-		d, err := NewDisjointSet(conf, true, true)
+		conf := &badgerStorage.Config{
+			Dir: filepath.Join(".", "test"),
+		}
+		db, err := badgerStorage.NewKV(conf, nil, false)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(db).ToNot(BeNil())
+
+		d, err := NewDisjointSet(db, true, true)
 		Expect(err).ToNot(HaveOccurred())
 		set = &d
 	})

@@ -8,11 +8,15 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/clusterizer/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger/kv"
+	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
+	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/tikv"
+	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
 // exportCmd represents the export command
@@ -31,14 +35,40 @@ var exportCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		db, err := kv.NewKV(kv.Conf(viper.GetString("badger")), c, false)
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		defer db.Close()
+		var db storage.DB
+		var kvdb kv.KV
+		if viper.GetString("db") == "tikv" {
+			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
 
-		set, err := disk.NewDisjointSet(badger.Conf(viper.GetString("disjoint")), true, true)
+			kvdb, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer kvdb.Close()
+
+		} else if viper.GetString("db") == "badger" {
+			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
+
+			kvdb, err := badger.NewBadger(badger.Conf(viper.GetString("clusterizer.disjoint")), false)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer kvdb.Close()
+		}
+
+		set, err := disk.NewDisjointSet(kvdb, true, true)
 		if err != nil {
 			logger.Error("export", err, logger.Params{})
 			os.Exit(-1)

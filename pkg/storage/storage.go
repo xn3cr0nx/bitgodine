@@ -25,6 +25,7 @@ type DB interface {
 	IsSpent(string, uint32) bool
 
 	// Blocks methods
+	IsStored(string) bool
 	StoreBlock(interface{}, interface{}) error
 	GetBlockFromHash(string) (models.Block, error)
 	GetBlockFromHeight(int32) (models.Block, error)

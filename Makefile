@@ -87,6 +87,12 @@ build_spider:
 install_spider:
 	$(GOINSTALL) $(SPIDER)
 
+.PHONY: build
+build: build_parser build_server build_clusterizer build_spider
+
+.PHONY: install
+install: install_parser install_server install_clusterizer install_spider
+
 
 # # Cross compilation
 # linux: $(LNX_BUILD)

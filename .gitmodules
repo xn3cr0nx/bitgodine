@@ -1,3 +1,0 @@
-[submodule "pkg/tikv/kv/tikv"]
-	path = pkg/tikv/kv/tikv
-	url = git@github.com:pingcap/tidb-docker-compose.git

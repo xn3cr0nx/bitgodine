@@ -1,0 +1,7 @@
+tikv/*
+scripts/*
+build/*
+assets/*
+.vscode/*
+*.csv
+*.pdf

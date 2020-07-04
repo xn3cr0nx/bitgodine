@@ -141,7 +141,7 @@ func initConfig() {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	if value, ok := os.LookupEnv("CONFIG_FILE"); ok {
+	if value, ok := os.LookupEnv("config"); ok {
 		viper.SetConfigFile(value)
 	} else {
 		viper.SetConfigName("config")

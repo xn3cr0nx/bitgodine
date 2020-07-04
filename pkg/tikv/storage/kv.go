@@ -14,24 +14,24 @@ type KV struct {
 
 // Config strcut containing initialization fields
 type Config struct {
-	Dir string
+	URL string
 }
 
 // Conf returnes default config struct
 func Conf(path string) *Config {
-	dir := viper.GetString("db")
+	url := viper.GetString("tikv")
 	if path != "" {
-		dir = path
+		url = path
 	}
 
 	return &Config{
-		Dir: dir,
+		URL: url,
 	}
 }
 
 // NewKV creates a new instance of KV
 func NewKV(conf *Config, c *cache.Cache) (*KV, error) {
-	db, err := tikv.NewTiKV(&tikv.Config{})
+	db, err := tikv.NewTiKV(&tikv.Config{URL: conf.URL})
 	if err != nil {
 		return nil, err
 	}

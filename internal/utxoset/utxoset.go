@@ -29,7 +29,7 @@ type Config struct {
 	Disk bool
 }
 
-// Conf exports the Config object to initialize indexing dgraph
+// Conf exports the Config object to initialize indexing Utxoset
 func Conf(file string, disk bool) *Config {
 	if file == "" {
 		file = viper.GetString("utxo")
@@ -47,7 +47,7 @@ var instance *UtxoSet
 func Instance(conf *Config) *UtxoSet {
 	if instance == nil {
 		if conf == nil {
-			logger.Panic("DGraph", errors.New("missing configuration"), logger.Params{})
+			logger.Panic("Utxoset", errors.New("missing configuration"), logger.Params{})
 		}
 
 		instance = &UtxoSet{
@@ -247,7 +247,7 @@ func (u *UtxoSet) Close() error {
 }
 
 // // UpdateUtxoSet update spent transaction outputs after block is correctly stored.
-// // Consistency risk if software carshes between this operations. to avoid consistency errors using dgraph call
+// // Consistency risk if software carshes between this operations. to avoid consistency errors using Utxoset call
 // // Operations are all concurrently executed since utxoset is lock safe
 // func UpdateUtxoSet(utxoset *utxoset.UtxoSet, transactions []models.Tx, uids *map[string]map[uint32]string) (err error) {
 // 	errAlarm := make(chan error, 1)

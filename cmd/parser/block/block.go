@@ -36,7 +36,7 @@ var BlockCmd = &cobra.Command{
 		}
 		var db storage.DB
 		if viper.GetString("db") == "tikv" {
-			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
@@ -44,7 +44,7 @@ var BlockCmd = &cobra.Command{
 			defer db.Close()
 
 		} else if viper.GetString("db") == "badger" {
-			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)

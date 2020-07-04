@@ -73,6 +73,7 @@ services:
     volumes:
       - utxoset:/utxoset
       - badger:/badger
+      - disjoint:/disjoint
     networks:
       - bitgodine
 

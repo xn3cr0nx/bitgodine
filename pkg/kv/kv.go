@@ -15,4 +15,5 @@ type KV interface {
 
 	Delete(string) error
 	Empty() error
+	Close() error
 }

@@ -37,7 +37,7 @@ func NewTiKV(conf *Config) (*TiKV, error) {
 	return &TiKV{storage}, err
 }
 
-// Store insert new key-value in badger
+// Store insert new key-value in tikv
 func (t *TiKV) Store(key string, value []byte) (err error) {
 	tx, err := t.Begin()
 	if err != nil {
@@ -50,7 +50,7 @@ func (t *TiKV) Store(key string, value []byte) (err error) {
 	return tx.Commit(ctx.Background())
 }
 
-// StoreBatch insert new key-value in badger
+// StoreBatch insert new key-value in tikv
 func (t *TiKV) StoreBatch(batch interface{}) (err error) {
 	tx, err := t.Begin()
 	if err != nil {
@@ -58,8 +58,7 @@ func (t *TiKV) StoreBatch(batch interface{}) (err error) {
 	}
 	series := batch.(map[string][]byte)
 	for key, value := range series {
-		err = tx.Set([]byte(key), value)
-		if err != nil {
+		if err = tx.Set([]byte(key), value); err != nil {
 			return
 		}
 	}
@@ -89,7 +88,7 @@ func (t *TiKV) Read(key string) (value []byte, err error) {
 	if err != nil {
 		return
 	}
-	value, err = tx.Get([]byte(key))
+	value, err = tx.Get(ctx.Background(), []byte(key))
 	return
 }
 
@@ -229,7 +228,7 @@ func (t *TiKV) Delete(key string) (err error) {
 	return tx.Commit(ctx.Background())
 }
 
-// Empty empties the badger store
+// Empty empties the tikv store
 func (t *TiKV) Empty() (err error) {
 	keys, err := t.ReadKeys()
 	if err != nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -11,13 +12,13 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
 	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	redisStorage "github.com/xn3cr0nx/bitgodine/pkg/redis/storage"
 	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
@@ -43,7 +44,7 @@ data representation to analyze the blockchain.`,
 
 		var db storage.DB
 		if viper.GetString("db") == "tikv" {
-			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
@@ -51,16 +52,26 @@ data representation to analyze the blockchain.`,
 			defer db.Close()
 
 		} else if viper.GetString("db") == "badger" {
-			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			defer db.Close()
+		} else if viper.GetString("db") == "redis" {
+			db, err = redisStorage.NewKV(redisStorage.Conf(viper.GetString("redis")), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 		}
+		fmt.Println("DB INITIALIZED", db)
 
 		skippedBlocksStorage := skipped.NewSkipped()
-		utxoset := utxoset.Instance(utxoset.Conf("", true))
+		fmt.Println("SKIPPED INITIALIZED")
+		// utxoset := utxoset.Instance(utxoset.Conf("", true))
+		// fmt.Println("UTXOSET INITIALIZED")
 
 		b := blockchain.Instance(db, BitcoinNet)
 		b.Read("")
@@ -81,11 +92,14 @@ data representation to analyze the blockchain.`,
 		interrupt := make(chan int)
 		done := make(chan int)
 
-		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, utxoset, c, interrupt, done)
+		// bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, utxoset, c, interrupt, done)
+		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, nil, c, interrupt, done)
 
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)
 		go handleInterrupt(ch, interrupt, done)
+
+		fmt.Println("CONFIGURATION DONE GOING WITH WALK")
 
 		skipped := viper.GetInt("skipped")
 		for {

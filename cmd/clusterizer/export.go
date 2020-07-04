@@ -38,14 +38,14 @@ var exportCmd = &cobra.Command{
 		var db storage.DB
 		var kvdb kv.KV
 		if viper.GetString("db") == "tikv" {
-			db, err := tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 
-			kvdb, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+			kvdb, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
@@ -53,14 +53,14 @@ var exportCmd = &cobra.Command{
 			defer kvdb.Close()
 
 		} else if viper.GetString("db") == "badger" {
-			db, err := badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 
-			kvdb, err := badger.NewBadger(badger.Conf(viper.GetString("clusterizer.disjoint")), false)
+			kvdb, err = badger.NewBadger(badger.Conf(viper.GetString("clusterizer.disjoint")), false)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)

@@ -14,6 +14,7 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fatih/structs v1.1.0
+	github.com/go-redis/redis/v8 v8.0.0-beta.6
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/jinzhu/gorm v1.9.14
 	github.com/json-iterator/go v1.1.10
@@ -40,7 +41,7 @@ require (
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
 	golang.org/x/text v0.3.3 // indirect
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.30.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
@@ -49,6 +50,5 @@ replace (
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
 )
-
 
 go 1.14

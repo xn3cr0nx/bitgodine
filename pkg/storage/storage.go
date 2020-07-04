@@ -39,4 +39,6 @@ type DB interface {
 
 	StoreFileParsed(int) error
 	GetFileParsed() (int, error)
+
+	Close() error
 }

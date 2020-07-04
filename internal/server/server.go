@@ -150,6 +150,10 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 				m = err.Error()
 			}
 		}
+	} else {
+		if err.Error() == "Key not found" {
+			code = http.StatusNotFound
+		}
 	}
 
 	message := map[string]interface{}{"code": code, "error": http.StatusText(code)}

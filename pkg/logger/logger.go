@@ -4,6 +4,8 @@ import (
 	"errors"
 	"runtime"
 
+	"github.com/fatih/color"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -19,6 +21,8 @@ var Log *logrus.Logger
 
 // Setup creates the new logger with custom configuration
 func Setup() {
+	printTitle()
+
 	// This is mainly done to export the logger in test
 	Log = logrus.New()
 	Log.Formatter = &logrus.TextFormatter{
@@ -30,6 +34,20 @@ func Setup() {
 	if viper.GetBool("debug") {
 		Log.SetLevel(logrus.DebugLevel)
 	}
+}
+
+func printTitle() {
+	c := color.New(color.FgHiCyan)
+	ascii := `
+ _           _                      _                  
+| |     _  _| |_                   | | _               
+| |__  |_||_   _| _____  _____   __| ||_| _____  _____ 
+|  _ \ | |  | |  |  _  ||  _  | / _  || ||  _  ||  __ |
+| |_) || |  | |  | |_| || |_| || (_| || || | | ||  ___/
+|____/ |_|  |_|   \___ ||_____| \____||_||_| |_||_____|
+                   __| |                               
+                  |____|                               `
+	c.Println(ascii)
 }
 
 func withFields(fields Fields) *logrus.Entry {

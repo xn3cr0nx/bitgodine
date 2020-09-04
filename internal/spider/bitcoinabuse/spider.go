@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	chttp "github.com/xn3cr0nx/bitgodine/internal/http"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
+	"gorm.io/gorm"
 )
 
 // Spider creates a web spider with predefined url to crawl
@@ -39,10 +39,10 @@ func (s *Spider) updatePeriod(period string) {
 
 // Sync visits the spider's target and extract address tags
 func (s *Spider) Sync() (err error) {
-	var count int
+	var count int64
 	s.pg.DB.Model(&abuse.Model{}).Count(&count)
 	fmt.Println("count abuses", count)
-	if count <= viper.GetInt("bitcoinabuse.reported_abuses") {
+	if count <= int64(viper.GetInt("bitcoinabuse.reported_abuses")) {
 		s.updatePeriod("forever")
 	}
 

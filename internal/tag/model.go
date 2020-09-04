@@ -1,7 +1,7 @@
 package tag
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 // Model of tag struct with validation

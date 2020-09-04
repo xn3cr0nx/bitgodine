@@ -38,7 +38,6 @@ resources, and sync the library of address tags with new reports.`,
 			logger.Error("Spider", err, logger.Params{})
 			os.Exit(-1)
 		}
-		defer pg.Close()
 		if err := migration.Migration(pg); err != nil {
 			logger.Error("Spider", err, logger.Params{})
 			os.Exit(-1)

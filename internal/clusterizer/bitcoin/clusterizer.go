@@ -10,11 +10,11 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
 	"github.com/xn3cr0nx/bitgodine/pkg/task"
+	"gorm.io/gorm"
 )
 
 const zeroHash = "0000000000000000000000000000000000000000000000000000000000000000"

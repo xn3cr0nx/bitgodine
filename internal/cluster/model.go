@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/gorm"
 )
 
 // Model cluster struct with validation

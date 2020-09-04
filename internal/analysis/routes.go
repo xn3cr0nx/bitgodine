@@ -76,7 +76,7 @@ func Routes(g *echo.Group) *echo.Group {
 				return echo.NewHTTPError(http.StatusBadRequest, "out of off by one bug range")
 			}
 			if q.From == 0 && q.To == 0 {
-				q.To = 220250
+				q.To = 600000
 			}
 		}
 

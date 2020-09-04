@@ -1,7 +1,7 @@
 package abuse
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 // Model of abuse struct with validation

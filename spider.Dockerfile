@@ -1,4 +1,4 @@
-FROM golang:1.14.4 as builder
+FROM golang:1.15.1 as builder
 LABEL maintainer="Patrick Jusic <patrick.jusic@protonmail.com>"
 
 WORKDIR /spider

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 // Config instance of Postgres configuration details
@@ -76,18 +77,18 @@ func (c *Config) MigrationString() string {
 // Connect open postgres connection using configuration details provided in conf field
 func (pg *Pg) Connect() error {
 	conStr := pg.conf.String()
-	db, err := gorm.Open("postgres", conStr)
+	level := gormLogger.Error
+	if pg.conf.Debug {
+		level = gormLogger.Info
+	}
+
+	db, err := gorm.Open(postgres.Open(conStr), &gorm.Config{
+		Logger: gormLogger.Default.LogMode(level),
+	})
 	if err != nil {
 		return err
 	}
 	pg.DB = db
 
-	pg.DB.LogMode(pg.conf.Debug)
-
 	return nil
-}
-
-// Close interrupts the connection with the postgres instance
-func (pg *Pg) Close() {
-	pg.DB.Close()
 }

@@ -9,14 +9,14 @@ import (
 
 // Migration sets up initial migration of tags involved tables
 func Migration(pg *postgres.Pg) (err error) {
-	if !pg.DB.HasTable("tags") {
-		err = pg.DB.CreateTable(&tag.Model{}).Error
+	if !pg.DB.Migrator().HasTable("tags") {
+		err = pg.DB.Migrator().CreateTable(&tag.Model{})
 	}
-	if !pg.DB.HasTable("abuses") {
-		err = pg.DB.CreateTable(&abuse.Model{}).Error
+	if !pg.DB.Migrator().HasTable("abuses") {
+		err = pg.DB.Migrator().CreateTable(&abuse.Model{})
 	}
-	if !pg.DB.HasTable("clusters") {
-		err = pg.DB.CreateTable(&cluster.Model{}).Error
+	if !pg.DB.Migrator().HasTable("clusters") {
+		err = pg.DB.Migrator().CreateTable(&cluster.Model{})
 	}
 	return
 }

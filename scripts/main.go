@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 // Tag of tag struct with validation

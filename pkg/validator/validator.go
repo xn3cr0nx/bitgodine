@@ -49,7 +49,7 @@ func Struct(c *echo.Context, b interface{}) (err error) {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 	if err = (*c).Validate(b); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return err
 	}
 	return
 }

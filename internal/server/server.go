@@ -12,7 +12,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/cluster"
-	chttp "github.com/xn3cr0nx/bitgodine/internal/http"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
@@ -134,19 +133,16 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 
 	code := http.StatusInternalServerError
 	m := ""
+
 	if e, ok := err.(*echo.HTTPError); ok {
 		code = e.Code
 		if httpError, ok := e.Message.(*echo.HTTPError); ok {
 			m = httpError.Message.(string)
 		} else if _, ok := e.Message.(v.ValidationErrors); ok {
-			m = "Bad Request"
 		} else {
-			if customError, ok := e.Message.(chttp.Error); ok {
-				m = customError.Type
-			} else if stringError, ok := e.Message.(string); ok {
+			if stringError, ok := e.Message.(string); ok {
 				m = stringError
 			} else {
-				// TODO: manipulate string and extract just message
 				m = err.Error()
 			}
 		}

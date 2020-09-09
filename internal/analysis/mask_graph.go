@@ -28,7 +28,11 @@ func (g MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to i
 					tot++
 				}
 			}
-			perc[i][h] = float64(counter) / float64(tot)
+			if tot == 0 {
+				perc[i][h] = 0
+			} else {
+				perc[i][h] = float64(counter) / float64(tot)
+			}
 		}
 	}
 	return

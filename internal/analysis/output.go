@@ -7,10 +7,12 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine/internal/plot"
+	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 // renderPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
 func renderPercentageTable(data []float64, heuristicsList heuristics.Mask) {
+	logger.Info("Output", "Rendering percentage table", logger.Params{"heuristics": heuristicsList.ToList()})
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Heuristic", "%"})
 	// table.SetBorder(false)
@@ -24,6 +26,7 @@ func renderPercentageTable(data []float64, heuristicsList heuristics.Mask) {
 
 // renderTable prints a generic two columns table
 func renderTable(data map[string]float64, column, caption string) {
+	logger.Info("Output", "Rendering table", logger.Params{})
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{column, "%"})
 	// table.SetBorder(false)
@@ -36,6 +39,7 @@ func renderTable(data map[string]float64, column, caption string) {
 
 // renderFullPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
 func renderFullPercentageTable(data AnalysisSet, caption string) {
+	logger.Info("Output", "Rendering full percentage table", logger.Params{})
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Combination", "secure perc (%)", "# secure set", "total perc (%)", "# total set"})
 	// table.SetBorder(false)
@@ -48,6 +52,7 @@ func renderFullPercentageTable(data AnalysisSet, caption string) {
 
 // renderComparingPercentageTable prints a table with percentages of heuristics success rate based on passed analysis
 func renderComparingPercentageTable(base, data AnalysisSet, caption string) {
+	logger.Info("Output", "Rendering comparing percentage table", logger.Params{})
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Combination", "secure perc (%)", "# secure set", "total perc (%)", "# total set"})
 	// table.SetBorder(false)
@@ -80,6 +85,7 @@ func renderComparingPercentageTable(base, data AnalysisSet, caption string) {
 
 // renderOverlapTable prints a table with percentages of heuristics success rate based on passed analysis
 func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask, wide string) {
+	logger.Info("Output", "Rendering overlap table", logger.Params{"heuristics": heuristicsList.ToList()})
 	table := tablewriter.NewWriter(os.Stdout)
 	header := []string{"Heuristic"}
 	header = append(header, heuristicsList.ToHeuristicsList()...)
@@ -124,6 +130,7 @@ func renderOverlapTable(data AnalysisSet, heuristicsList heuristics.Mask, wide s
 
 // PlotHeuristicsTimeline plots timeseries of heuristics percentage effectiveness for each block representing time series
 func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList heuristics.Mask) (err error) {
+	logger.Info("Output", "Generating heuristics timeline plot", logger.Params{"from": min, "heuristics": heuristicsList.ToList()})
 	coordinates := make(map[string]plot.Coordinates)
 	x := make([]float64, len(data))
 	for height := range data {
@@ -153,6 +160,7 @@ func PlotHeuristicsTimeline(data map[int32][]float64, min int32, heuristicsList 
 }
 
 func generateOutput(vuln Graph, chart, criteria string, heuristicsList heuristics.Mask, from, to int32) (err error) {
+	logger.Info("Output", "Generating output", logger.Params{"from": from, "to": to, "chart": chart, "criteria": criteria, "heuristics": heuristicsList.ToList()})
 	switch chart {
 	case "timeline":
 		var data map[int32][]float64

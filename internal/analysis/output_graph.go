@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 )
 
 // OutputGraph alias for struct describing blockchain graph based on heuristics

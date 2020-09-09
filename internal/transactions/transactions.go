@@ -9,8 +9,8 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/task"

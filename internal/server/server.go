@@ -12,14 +12,13 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/cluster"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/pprof"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -36,7 +35,7 @@ type (
 		router *echo.Echo
 		db     storage.DB
 		cache  *cache.Cache
-		kv     kv.KV
+		kv     storage.KV
 		pg     *postgres.Pg
 	}
 )
@@ -44,7 +43,7 @@ type (
 var server *Server
 
 // NewServer singleton pattern that returnes pointer to server
-func NewServer(port int, db storage.DB, c *cache.Cache, kvdb kv.KV, pg *postgres.Pg) *Server {
+func NewServer(port int, db storage.DB, c *cache.Cache, kvdb storage.KV, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}

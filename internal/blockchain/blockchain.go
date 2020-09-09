@@ -9,9 +9,9 @@ import (
 	mmap "github.com/edsrzf/mmap-go"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Blockchain data structure composed by the memory mapped files in array of mmaps and network conofiguration

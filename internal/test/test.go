@@ -6,21 +6,23 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // InitTestDB setup badger db for test
 func InitTestDB() (db storage.DB, err error) {
-	conf := &badgerStorage.Config{
+	conf := &badger.Config{
 		Dir: filepath.Join(".", "test"),
 	}
 	ca, err := cache.NewCache(nil)
 	if err != nil {
 		return
 	}
-	db, err = badgerStorage.NewKV(conf, ca, false)
+
+	bdg, err := badger.NewBadger(conf, false)
+	db, err = badger.NewKV(bdg, ca)
 	if err != nil {
 		return
 	}
@@ -39,7 +41,8 @@ func InitDB() (db storage.DB, err error) {
 	if err != nil {
 		return
 	}
-	db, err = badgerStorage.NewKV(badgerStorage.Conf(filepath.Join(bitgodineFolder, "badger")), ca, false)
+	bdg, err := badger.NewBadger(badger.Conf(filepath.Join(bitgodineFolder, "badger")), false)
+	db, err = badger.NewKV(bdg, ca)
 	if err != nil {
 		return
 	}

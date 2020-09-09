@@ -1,4 +1,4 @@
-package kv
+package storage
 
 // KV interface implements methods for a generic key value storage db
 type KV interface {

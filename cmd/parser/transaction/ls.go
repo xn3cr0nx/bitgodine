@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine/pkg/dgraph"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 

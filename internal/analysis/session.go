@@ -3,7 +3,7 @@ package analysis
 import (
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )

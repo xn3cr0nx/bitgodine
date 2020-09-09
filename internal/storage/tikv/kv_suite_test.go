@@ -1,4 +1,4 @@
-package storage_test
+package tikv_test
 
 import (
 	"testing"

@@ -6,8 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -21,13 +20,12 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		os.Exit(-1)
 	}
 
-	db, err := badgerStorage.NewKV(badgerStorage.Conf("/home/xn3cr0nx/.bitgodine/badger"), c, false)
+	bdg, err := badger.NewBadger(badger.Conf("/home/xn3cr0nx/.bitgodine/analysis"), false)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)
 	}
-
-	bdg, err := badger.NewBadger(badger.Conf("/home/xn3cr0nx/.bitgodine/analysis"), false)
+	db, err := badger.NewKV(bdg, c)
 	if err != nil {
 		logger.Error("Bitgodine", err, logger.Params{})
 		os.Exit(-1)

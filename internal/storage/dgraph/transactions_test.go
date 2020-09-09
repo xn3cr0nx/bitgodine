@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine/pkg/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 

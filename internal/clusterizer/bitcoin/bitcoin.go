@@ -4,8 +4,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/disjoint"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Clusterizer defines the objects involved in the generation of clusters

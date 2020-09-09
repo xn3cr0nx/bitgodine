@@ -12,11 +12,11 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/blocks"
 	. "github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Integration tests on blockchain parsing. Taking into consideration to have bitcoin data dir
@@ -33,10 +33,11 @@ var _ = Describe("Blockchain", func() {
 
 		ca, err := cache.NewCache(nil)
 		Expect(err).ToNot(HaveOccurred())
-		conf := &badgerStorage.Config{
+		conf := &badger.Config{
 			Dir: filepath.Join(".", "test"),
 		}
-		db, err = badgerStorage.NewKV(conf, ca, false)
+		bdg, err := badger.NewBadger(conf, false)
+		db, err = badger.NewKV(bdg, ca)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(db).ToNot(BeNil())
 		Expect(err).ToNot(HaveOccurred())

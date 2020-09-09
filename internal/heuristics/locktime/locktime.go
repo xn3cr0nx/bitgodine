@@ -9,8 +9,8 @@ package locktime
 import (
 	"sync"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -8,11 +8,11 @@ import (
 
 	"github.com/btcsuite/btcutil"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	txs "github.com/xn3cr0nx/bitgodine/internal/transactions"
 	"github.com/xn3cr0nx/bitgodine/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Block composition to enhance btcutil.Block with other receivers

@@ -15,10 +15,10 @@ import (
 	"github.com/labstack/echo/v4"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites

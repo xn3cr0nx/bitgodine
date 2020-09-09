@@ -8,19 +8,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/server"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/migration"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
-	redisStorage "github.com/xn3cr0nx/bitgodine/pkg/redis/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
-	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
-
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	"github.com/xn3cr0nx/bitgodine/pkg/redis"
-	"github.com/xn3cr0nx/bitgodine/pkg/tikv"
 )
 
 var (
@@ -60,9 +55,10 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	var db storage.DB
-	var kvdb kv.KV
+	var kvdb storage.KV
 	if viper.GetString("db") == "tikv" {
-		db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+		t, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+		db, err = tikv.NewKV(t, c)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
@@ -77,7 +73,8 @@ func start(cmd *cobra.Command, args []string) {
 		defer kvdb.Close()
 
 	} else if viper.GetString("db") == "badger" {
-		db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+		bdg, err := badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
+		db, err = badger.NewKV(bdg, c)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
@@ -91,7 +88,8 @@ func start(cmd *cobra.Command, args []string) {
 		}
 		defer kvdb.Close()
 	} else if viper.GetString("db") == "redis" {
-		db, err = redisStorage.NewKV(redisStorage.Conf(viper.GetString("redis")), c)
+		r, err := redis.NewRedis(redis.Conf(viper.GetString("redis")))
+		db, err = redis.NewKV(r, c)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)

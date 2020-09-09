@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic

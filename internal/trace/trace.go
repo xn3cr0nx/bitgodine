@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/labstack/echo/v4"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"

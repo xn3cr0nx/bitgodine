@@ -6,8 +6,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Parser defines the objects involved in the parsing of Bitcoin blockchain

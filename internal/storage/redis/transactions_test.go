@@ -1,4 +1,4 @@
-package storage_test
+package redis_test
 
 import (
 	"path/filepath"
@@ -10,8 +10,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

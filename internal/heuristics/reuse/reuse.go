@@ -11,8 +11,8 @@ import (
 
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 func contains(recipient []string, element string) bool {

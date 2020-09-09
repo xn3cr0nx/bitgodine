@@ -11,8 +11,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics/reuse"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics/shadow"
 	class "github.com/xn3cr0nx/bitgodine/internal/heuristics/type"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 )
 
 // Heuristic type define a enum on implemented heuristics

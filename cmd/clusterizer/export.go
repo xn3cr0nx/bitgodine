@@ -7,16 +7,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/clusterizer/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/pkg/badger"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
-	"github.com/xn3cr0nx/bitgodine/pkg/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/tikv"
-	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
 // exportCmd represents the export command
@@ -35,40 +33,36 @@ var exportCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
+		var kv storage.KV
 		var db storage.DB
-		var kvdb kv.KV
 		if viper.GetString("db") == "tikv" {
-			db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			kv, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+			db, err = tikv.NewKV(kv.(*tikv.TiKV), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
-
-			kvdb, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			defer kvdb.Close()
 
 		} else if viper.GetString("db") == "badger" {
-			db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			kv, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
+			db, err = badger.NewKV(kv.(*badger.Badger), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
-
-			kvdb, err = badger.NewBadger(badger.Conf(viper.GetString("clusterizer.disjoint")), false)
+		} else if viper.GetString("db") == "redis" {
+			kv, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
+			db, err = redis.NewKV(kv.(*redis.Redis), c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
-			defer kvdb.Close()
+			defer db.Close()
 		}
 
-		set, err := disk.NewDisjointSet(kvdb, true, true)
+		set, err := disk.NewDisjointSet(kv, true, true)
 		if err != nil {
 			logger.Error("export", err, logger.Params{})
 			os.Exit(-1)

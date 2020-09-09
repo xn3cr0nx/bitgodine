@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
 
 	"github.com/xn3cr0nx/bitgodine/internal/skipped"
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
-	redisStorage "github.com/xn3cr0nx/bitgodine/pkg/redis/storage"
-	tikvStorage "github.com/xn3cr0nx/bitgodine/pkg/tikv/storage"
 )
 
 // startCmd represents the start command
@@ -44,7 +44,8 @@ data representation to analyze the blockchain.`,
 
 		var db storage.DB
 		if viper.GetString("db") == "tikv" {
-			db, err = tikvStorage.NewKV(tikvStorage.Conf(viper.GetString("tikv")), c)
+			t, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+			db, err = tikv.NewKV(t, c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
@@ -52,24 +53,24 @@ data representation to analyze the blockchain.`,
 			defer db.Close()
 
 		} else if viper.GetString("db") == "badger" {
-			db, err = badgerStorage.NewKV(badgerStorage.Conf(viper.GetString("badger")), c, false)
+			bdg, err := badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
+			db, err = badger.NewKV(bdg, c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 		} else if viper.GetString("db") == "redis" {
-			db, err = redisStorage.NewKV(redisStorage.Conf(viper.GetString("redis")), c)
+			r, err := redis.NewRedis(redis.Conf(viper.GetString("redis")))
+			db, err = redis.NewKV(r, c)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 		}
-		fmt.Println("DB INITIALIZED", db)
 
 		skippedBlocksStorage := skipped.NewSkipped()
-		fmt.Println("SKIPPED INITIALIZED")
 		// utxoset := utxoset.Instance(utxoset.Conf("", true))
 		// fmt.Println("UTXOSET INITIALIZED")
 

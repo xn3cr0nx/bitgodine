@@ -3,7 +3,7 @@ package tx
 import (
 	"net/http"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"

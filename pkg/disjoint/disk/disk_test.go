@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	badgerStorage "github.com/xn3cr0nx/bitgodine/pkg/badger/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	. "github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -20,10 +20,11 @@ var _ = Describe("Disk disjoint set", func() {
 	BeforeEach(func() {
 		logger.Setup()
 
-		conf := &badgerStorage.Config{
+		conf := &badger.Config{
 			Dir: filepath.Join(".", "test"),
 		}
-		db, err := badgerStorage.NewKV(conf, nil, false)
+		bdg, err := badger.NewBadger(conf, false)
+		db, err := badger.NewKV(bdg, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(db).ToNot(BeNil())
 

@@ -16,14 +16,14 @@ type BlockResp struct {
 	Blk []struct{ models.Block }
 }
 
-// StoreBlock returnes the hash of the block retrieving it based on its height
+// StoreBlock returns the hash of the block retrieving it based on its height
 func (d *Dgraph) StoreBlock(v interface{}) (err error) {
 	b := v.(*models.Block)
 	err = d.Store(b)
 	return
 }
 
-// GetBlockFromHash returnes the hash of the block retrieving it based on its height
+// GetBlockFromHash returns the hash of the block retrieving it based on its height
 func (d *Dgraph) GetBlockFromHash(hash string) (block models.Block, err error) {
 	if cached, ok := d.cache.Get(hash); ok {
 		block = cached.(models.Block)
@@ -102,7 +102,7 @@ func (d *Dgraph) GetBlockFromHash(hash string) (block models.Block, err error) {
 	return
 }
 
-// GetBlockFromHeight returnes the hash of the block retrieving it based on its height
+// GetBlockFromHeight returns the hash of the block retrieving it based on its height
 func (d *Dgraph) GetBlockFromHeight(height int32) (block models.Block, err error) {
 	if cached, ok := d.cache.Get(height); ok {
 		block = cached.(models.Block)
@@ -181,7 +181,7 @@ func (d *Dgraph) GetBlockFromHeight(height int32) (block models.Block, err error
 	return
 }
 
-// GetBlockFromHeightRange returnes the hash of the block retrieving it based on its height
+// GetBlockFromHeightRange returns the hash of the block retrieving it based on its height
 func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blocks []models.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($d: int, $f: int) {
@@ -252,7 +252,7 @@ func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blocks []mode
 	return
 }
 
-// GetLastBlockHeight returnes the height of the last block synced by Bitgodine
+// GetLastBlockHeight returns the height of the last block synced by Bitgodine
 func (d *Dgraph) GetLastBlockHeight() (height int32, err error) {
 	resp, err := d.NewReadOnlyTxn().Query(context.Background(), `{
 		var(func: has(previousblockhash)) {
@@ -288,7 +288,7 @@ func (d *Dgraph) GetLastBlockHeight() (height int32, err error) {
 	return
 }
 
-// LastBlock returnes the last block synced by Bitgodine
+// LastBlock returns the last block synced by Bitgodine
 func (d *Dgraph) LastBlock() (block models.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().Query(context.Background(), `{
 		var(func: has(previousblockhash)) {
@@ -392,7 +392,7 @@ func (d *Dgraph) RemoveLastBlock() (err error) {
 	return
 }
 
-// getBlockUIDFromHeight returnes the dgraph uid of the block stored at the passed height
+// getBlockUIDFromHeight returns the dgraph uid of the block stored at the passed height
 func (d *Dgraph) getBlockUIDFromHeight(height int32) (uids []string, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `{
 		block(func: eq(height, $d)) {

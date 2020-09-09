@@ -39,7 +39,7 @@ func (s *Spider) Sync() (err error) {
 	return nil
 }
 
-// ExtractAddresses returnes the list of signed messages
+// ExtractAddresses returns the list of signed messages
 func (s *Spider) ExtractAddresses(target string) (tags []tag.Model, err error) {
 	// NOT CURRENTLY IMPLEMENTED
 	return

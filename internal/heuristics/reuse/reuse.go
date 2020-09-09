@@ -43,7 +43,7 @@ func (w *Worker) Work() (err error) {
 	return
 }
 
-// ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
+// ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	inputAddresses := make([]string, len(tx.Vin))
 	pool := task.New(runtime.NumCPU() / 2)
@@ -66,7 +66,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	c, err := ChangeOutput(db, tx)
 	return err == nil && len(c) > 0

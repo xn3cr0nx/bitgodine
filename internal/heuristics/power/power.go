@@ -9,7 +9,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
-// ChangeOutput returnes the index of the output which value is power of ten, if there is any and only one
+// ChangeOutput returns the index of the output which value is power of ten, if there is any and only one
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	for k, out := range tx.Vout {
 		if (out.Value % 10) == 0 {
@@ -19,7 +19,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to power heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to power heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	c, err := ChangeOutput(db, tx)
 	return err == nil && len(c) > 0

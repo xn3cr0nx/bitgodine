@@ -1,4 +1,4 @@
-package blocks
+package bitcoin
 
 import (
 	"time"

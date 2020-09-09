@@ -16,7 +16,7 @@ type DisjointSet struct {
 	hashMap sync.Map
 }
 
-// NewDisjointSet returnes a reference to a new istance of persisted disjoint set
+// NewDisjointSet returns a reference to a new istance of persisted disjoint set
 func NewDisjointSet() DisjointSet {
 	const CAPACITY int = 2147483647
 	return DisjointSet{
@@ -27,27 +27,27 @@ func NewDisjointSet() DisjointSet {
 	}
 }
 
-// GetSize returnes the number of elements in the set
+// GetSize returns the number of elements in the set
 func (d *DisjointSet) GetSize() uint64 {
 	return d.size
 }
 
-// GetHashMap returnes the set hashmap
+// GetHashMap returns the set hashmap
 func (d *DisjointSet) GetHashMap() *sync.Map {
 	return &d.hashMap
 }
 
-// GetParent returnes parent based on the passed tag
+// GetParent returns parent based on the passed tag
 func (d *DisjointSet) GetParent(tag uint64) uint64 {
 	return d.parent[tag]
 }
 
-// GetParents returnes parents list
+// GetParents returns parents list
 func (d *DisjointSet) GetParents() []uint64 {
 	return d.parent
 }
 
-// GetRanks returnes ranks list
+// GetRanks returns ranks list
 func (d *DisjointSet) GetRanks() []uint64 {
 	return d.rank
 }
@@ -69,7 +69,7 @@ func (d *DisjointSet) PrepareMakeSet(x interface{}, clusters *dgraph.Clusters, l
 	d.MakeSet(x)
 }
 
-// Find returnes the value of the set required as argument to the function
+// Find returns the value of the set required as argument to the function
 func (d *DisjointSet) Find(x interface{}) (uint64, error) {
 	pos, ok := d.hashMap.Load(x)
 	if !ok {
@@ -88,7 +88,7 @@ func (d *DisjointSet) FindInternal(p []uint64, n uint64) uint64 {
 	return n
 }
 
-// Union returnes the common set to the elements passed as arguments
+// Union returns the common set to the elements passed as arguments
 func (d *DisjointSet) Union(x, y interface{}) (uint64, error) {
 	var (
 		xRoot,

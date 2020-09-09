@@ -76,7 +76,7 @@ func (db *KV) GetBlockFromHeight(height int32) (block models.Block, err error) {
 	return
 }
 
-// GetBlockFromHeightRange returnes the hash of the block retrieving it based on its height
+// GetBlockFromHeightRange returns the hash of the block retrieving it based on its height
 func (db *KV) GetBlockFromHeightRange(height int32, first int) (blocks []models.Block, err error) {
 	for i := height; i < (height + int32(first)); i++ {
 		b, e := db.GetBlockFromHeight(i)
@@ -89,7 +89,7 @@ func (db *KV) GetBlockFromHeightRange(height int32, first int) (blocks []models.
 	return
 }
 
-// GetLastBlockHeight returnes the hash of the block retrieving it based on its height
+// GetLastBlockHeight returns the hash of the block retrieving it based on its height
 func (db *KV) GetLastBlockHeight() (height int32, err error) {
 	h, err := db.Read("last")
 	if err != nil {
@@ -109,7 +109,7 @@ func (db *KV) GetLastBlockHeight() (height int32, err error) {
 	return
 }
 
-// LastBlock returnes the hash of the block retrieving it based on its height
+// LastBlock returns the hash of the block retrieving it based on its height
 func (db *KV) LastBlock() (block models.Block, err error) {
 	h, err := db.GetLastBlockHeight()
 	if err != nil {
@@ -119,7 +119,7 @@ func (db *KV) LastBlock() (block models.Block, err error) {
 	return
 }
 
-// GetStoredBlocks returnes list of all stored blocks
+// GetStoredBlocks returns list of all stored blocks
 func (db *KV) GetStoredBlocks() (blocks []models.Block, err error) {
 	h, err := db.GetLastBlockHeight()
 	if err != nil {
@@ -136,7 +136,7 @@ func (db *KV) GetStoredBlocks() (blocks []models.Block, err error) {
 	return
 }
 
-// GetStoredBlocksList returnes all the stored block ids
+// GetStoredBlocksList returns all the stored block ids
 func (db *KV) GetStoredBlocksList(from int32) (blocks map[string]interface{}, err error) {
 	// blocks, err = db.ReadKeysWithPrefix("_0000")
 	h, err := db.GetLastBlockHeight()
@@ -180,7 +180,7 @@ func (db *KV) StoreFileParsed(file int) (err error) {
 	return
 }
 
-// GetFileParsed returnes the file parsed so far
+// GetFileParsed returns the file parsed so far
 func (db *KV) GetFileParsed() (file int, err error) {
 	f, err := db.Read("file")
 	if err != nil {

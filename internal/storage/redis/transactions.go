@@ -58,7 +58,7 @@ func (db *KV) GetFollowingTx(hash string, vout uint32) (tx models.Tx, err error)
 	return
 }
 
-// GetStoredTxs returnes all the stored transactions hashes
+// GetStoredTxs returns all the stored transactions hashes
 func (db *KV) GetStoredTxs() (transactions []string, err error) {
 	blocks, err := db.GetStoredBlocks()
 	for _, block := range blocks {
@@ -69,7 +69,7 @@ func (db *KV) GetStoredTxs() (transactions []string, err error) {
 	return
 }
 
-// GetTxBlock returnes the block containing the transaction
+// GetTxBlock returns the block containing the transaction
 func (db *KV) GetTxBlock(hash string) (block models.Block, err error) {
 	h, err := db.Read("_" + hash)
 	if err != nil {
@@ -84,7 +84,7 @@ func (db *KV) GetTxBlock(hash string) (block models.Block, err error) {
 	return
 }
 
-// GetTxBlockHeight returnes the height of the block based on its hash
+// GetTxBlockHeight returns the height of the block based on its hash
 func (db *KV) GetTxBlockHeight(hash string) (height int32, err error) {
 	if cached, ok := db.cache.Get("h_" + hash); ok {
 		height = cached.(int32)
@@ -107,7 +107,7 @@ func (db *KV) GetTxBlockHeight(hash string) (height int32, err error) {
 	return
 }
 
-// IsSpent returnes true if exists a transaction that takes as input to the new tx
+// IsSpent returns true if exists a transaction that takes as input to the new tx
 // the output corresponding to the index passed to the function
 func (db *KV) IsSpent(tx string, index uint32) bool {
 	_, err := db.GetFollowingTx(tx, index)

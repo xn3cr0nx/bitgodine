@@ -47,7 +47,7 @@ const (
 	h24
 )
 
-// SetCardinality returnes the cardinality of the heuristics set
+// SetCardinality returns the cardinality of the heuristics set
 func SetCardinality() Heuristic {
 	// return int(Forward) + 1
 	return ClientBehaviour + 1
@@ -83,7 +83,7 @@ func (h Heuristic) String() string {
 	return heuristics[h]
 }
 
-// Abbreviation returnes vulnerable function to be applied to analysis
+// Abbreviation returns vulnerable function to be applied to analysis
 func Abbreviation(a string) Heuristic {
 	abbreviations := map[string]Heuristic{
 		"locktime": Locktime,
@@ -101,7 +101,7 @@ func Abbreviation(a string) Heuristic {
 	return abbreviations[a]
 }
 
-// List returnes the list of heuristics
+// List returns the list of heuristics
 func List() (heuristics []Heuristic) {
 	// SetCardinality is used in ToList and ToHeuristicsList in mask
 	for h := Heuristic(0); h < SetCardinality(); h++ {
@@ -141,7 +141,7 @@ func Index(h string) Heuristic {
 	return functions[h]
 }
 
-// VulnerableFunction returnes vulnerable function to be applied to analysis
+// VulnerableFunction returns vulnerable function to be applied to analysis
 func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
 	functions := map[Heuristic](func(storage.DB, *models.Tx) bool){
 		Locktime:        locktime.Vulnerable,
@@ -159,7 +159,7 @@ func (h Heuristic) VulnerableFunction() func(storage.DB, *models.Tx) bool {
 	return functions[h]
 }
 
-// ChangeFunction returnes change output function to be applied to analysis
+// ChangeFunction returns change output function to be applied to analysis
 func (h Heuristic) ChangeFunction() func(storage.DB, *models.Tx) ([]uint32, error) {
 	functions := map[Heuristic](func(storage.DB, *models.Tx) ([]uint32, error)){
 		Locktime:        locktime.ChangeOutput,
@@ -177,7 +177,7 @@ func (h Heuristic) ChangeFunction() func(storage.DB, *models.Tx) ([]uint32, erro
 	return functions[h]
 }
 
-// ConditionFunction returnes change output function to be applied to analysis
+// ConditionFunction returns change output function to be applied to analysis
 func (h Heuristic) ConditionFunction() func(*models.Tx) bool {
 	functions := map[Heuristic](func(*models.Tx) bool){
 		Coinbase:     coinbaseCondition,

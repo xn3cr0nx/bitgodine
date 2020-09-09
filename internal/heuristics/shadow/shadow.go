@@ -34,7 +34,7 @@ func (w *Worker) Work() (err error) {
 	return
 }
 
-// ChangeOutput returnes the index of the output which appears for the first time in the chain based on client behaviour heuristic
+// ChangeOutput returns the index of the output which appears for the first time in the chain based on client behaviour heuristic
 // TODO: violates DRY, just different evaluation in output change, but same operations
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	candidates := make([]uint32, len(tx.Vout))
@@ -62,7 +62,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	c, err := ChangeOutput(db, tx)
 	return err == nil && len(c) > 0

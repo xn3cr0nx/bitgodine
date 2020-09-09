@@ -11,7 +11,7 @@ import (
 // OutputGraph alias for struct describing blockchain graph based on heuristics
 type OutputGraph map[int32]map[string]heuristics.Map
 
-// ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
+// ExtractPercentages returns the corresponding map with heuristic percentages for each element in the map (in each block)
 func (g OutputGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
 	list := heuristicsList.ToList()
@@ -37,7 +37,7 @@ func (g OutputGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to
 	return
 }
 
-// ExtractOffByOneBug returnes the corresponding map with heuristic percentages for each element in the map (in each block)
+// ExtractOffByOneBug returns the corresponding map with heuristic percentages for each element in the map (in each block)
 func (g OutputGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
 	list := heuristicsList.ToList()
@@ -61,7 +61,7 @@ func (g OutputGraph) ExtractOffByOneBug(heuristicsList heuristics.Mask, from, to
 	return
 }
 
-// ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalPercentages returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
 	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
@@ -82,7 +82,7 @@ func (g OutputGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, fr
 	return
 }
 
-// ExtractGlobalOffByOneBug returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalOffByOneBug returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
 	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
@@ -107,7 +107,7 @@ func (g OutputGraph) ExtractGlobalOffByOneBug(heuristicsList heuristics.Mask, fr
 	return
 }
 
-// ExtractGlobalSecureBasisPerc returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalSecureBasisPerc returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalSecureBasisPerc(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
 	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
@@ -175,7 +175,7 @@ func checkOutputs(m heuristics.Map) (r bool) {
 	return
 }
 
-// ExtractCombinationPercentages returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractCombinationPercentages returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractCombinationPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	list := heuristicsList.ToList()
 	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
@@ -241,7 +241,7 @@ func extractMajorityMask(m heuristics.Map, basis uint32) (r heuristics.Map) {
 	return
 }
 
-// ExtractGlobalFullMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalFullMajorityVotingPerc returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalFullMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	list := heuristicsList.ToList()
 	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
@@ -290,7 +290,7 @@ func (g OutputGraph) ExtractGlobalFullMajorityVotingPerc(heuristicsList heuristi
 	return
 }
 
-// ExtractGlobalMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalMajorityVotingPerc returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	list := heuristicsList.ToList()
 	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
@@ -390,7 +390,7 @@ func majorityOutput(m heuristics.Map, reducing ...heuristics.Heuristic) (r heuri
 	return
 }
 
-// ExtractGlobalStricMajorityVotingPerc returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalStricMajorityVotingPerc returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) ExtractGlobalStricMajorityVotingPerc(heuristicsList heuristics.Mask, from, to int32) (perc map[string]float64) {
 	list := heuristicsList.ToList()
 	perc = make(map[string]float64, int(math.Pow(2, float64(len(list)))))
@@ -436,7 +436,7 @@ func (g OutputGraph) ExtractGlobalStricMajorityVotingPerc(heuristicsList heurist
 	return
 }
 
-// MajorityFullAnalysis returnes the corresponding map with global heuristic percentages for each heuristic
+// MajorityFullAnalysis returns the corresponding map with global heuristic percentages for each heuristic
 func (g OutputGraph) MajorityFullAnalysis(heuristicsList heuristics.Mask, from, to int32, reducing ...heuristics.Heuristic) AnalysisSet {
 	list := heuristicsList.ToList()
 	localPerc := make(map[byte]float64, int(math.Pow(2, float64(len(list)))))
@@ -500,7 +500,7 @@ func (g OutputGraph) subGraph(from, to int32) (sub Graph) {
 	return
 }
 
-// mergeGraphs returnes the union of multiple graphs
+// mergeGraphs returns the union of multiple graphs
 func (g OutputGraph) mergeGraphs(args ...Graph) (merged Graph) {
 	// merged = make(OutputGraph)
 	merged = g

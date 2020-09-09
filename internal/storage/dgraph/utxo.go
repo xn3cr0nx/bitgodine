@@ -42,7 +42,7 @@ func (d *Dgraph) NewUtxoSet() error {
 	return nil
 }
 
-// GetUtxoSet returnes the set of all utxos stored in dgraph
+// GetUtxoSet returns the set of all utxos stored in dgraph
 func (d *Dgraph) GetUtxoSet() (UtxoSet, error) {
 	resp, err := instance.NewReadOnlyTxn().Query(context.Background(), `{
 		u(func: has(utxoset)) {
@@ -104,7 +104,7 @@ func (d *Dgraph) GetUtxoSetUID() (string, error) {
 	return r.U[0].UtxoSet.UID, nil
 }
 
-// GetUtxoSetByHash returnes the UID of the specified set of addresses
+// GetUtxoSetByHash returns the UID of the specified set of addresses
 func (d *Dgraph) GetUtxoSetByHash(hash string) (Utxo, error) {
 	if cached, ok := d.cache.Get(fmt.Sprintf("utxo_%s", hash)); ok {
 		return cached.(Utxo), nil

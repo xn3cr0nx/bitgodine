@@ -3,7 +3,7 @@ package heuristics
 // Map analysis output map for heuristics change output
 type Map map[Heuristic]uint32
 
-// MergeMaps maps returnes the merge of two maps
+// MergeMaps maps returns the merge of two maps
 func MergeMaps(a, b Map) (new Map) {
 	new = a
 	for h, c := range b {

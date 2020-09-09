@@ -42,7 +42,7 @@ type (
 
 var server *Server
 
-// NewServer singleton pattern that returnes pointer to server
+// NewServer singleton pattern that returns pointer to server
 func NewServer(port int, db storage.DB, c *cache.Cache, kvdb storage.KV, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server

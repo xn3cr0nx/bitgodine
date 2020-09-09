@@ -29,6 +29,7 @@ func ClientConfig() *rpcclient.ConnConfig {
 	}
 }
 
+// NewClient returns new instance of bitcoin client
 func NewClient() (*rpcclient.Client, error) {
 	ntfnHandlers := rpcclient.NotificationHandlers{
 		OnFilteredBlockConnected: func(height int32, header *wire.BlockHeader, txns []*btcutil.Tx) {

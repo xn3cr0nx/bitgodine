@@ -99,7 +99,7 @@ func (u *UtxoSet) StoreUtxoSet(hash string, outputs map[uint32]string) (err erro
 	return
 }
 
-// GetUtxo returnes the required output
+// GetUtxo returns the required output
 func (u *UtxoSet) GetUtxo(hash string, vout uint32) (set string, err error) {
 	u.lock.RLock()
 	set, ok := u.set[hash][vout]
@@ -111,7 +111,7 @@ func (u *UtxoSet) GetUtxo(hash string, vout uint32) (set string, err error) {
 	return
 }
 
-// GetStoredUtxo returnes the bolt stored output
+// GetStoredUtxo returns the bolt stored output
 func (u *UtxoSet) GetStoredUtxo(hash string, vout uint32) (set string, err error) {
 	if !u.disk {
 		return "", errors.New("cannot retrieve, disk not initialized")
@@ -132,7 +132,7 @@ func (u *UtxoSet) GetStoredUtxo(hash string, vout uint32) (set string, err error
 	return
 }
 
-// GetUtxoSet returnes the required output set (outputs of a transaction)
+// GetUtxoSet returns the required output set (outputs of a transaction)
 func (u *UtxoSet) GetUtxoSet(hash string) (sets map[uint32]string, err error) {
 	u.lock.RLock()
 	sets, ok := u.set[hash]
@@ -144,7 +144,7 @@ func (u *UtxoSet) GetUtxoSet(hash string) (sets map[uint32]string, err error) {
 	return
 }
 
-// GetStoredUtxoSet returnes the bolt stored output
+// GetStoredUtxoSet returns the bolt stored output
 func (u *UtxoSet) GetStoredUtxoSet(hash string) (sets map[uint32]string, err error) {
 	if !u.disk {
 		return nil, errors.New("cannot retrieve, disk not initialized")
@@ -163,7 +163,7 @@ func (u *UtxoSet) GetStoredUtxoSet(hash string) (sets map[uint32]string, err err
 	return
 }
 
-// GetFullUtxoSet returnes the full stored utxoset
+// GetFullUtxoSet returns the full stored utxoset
 func (u *UtxoSet) GetFullUtxoSet() (set map[string]map[uint32]string, err error) {
 	if err = u.Restore(); err != nil {
 		return
@@ -171,7 +171,7 @@ func (u *UtxoSet) GetFullUtxoSet() (set map[string]map[uint32]string, err error)
 	return u.set, nil
 }
 
-// CheckUtxoSet returnes true if the utxo set is stored
+// CheckUtxoSet returns true if the utxo set is stored
 func (u *UtxoSet) CheckUtxoSet(hash string) bool {
 	if !u.disk {
 		return false

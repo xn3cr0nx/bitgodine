@@ -12,7 +12,7 @@ type CustomValidator struct {
 	validator *validator.Validate
 }
 
-// NewValidator returnes new validator instance
+// NewValidator returns new validator instance
 func NewValidator() *CustomValidator {
 	// return &CustomValidator{validator: validator.New()}
 	v := &CustomValidator{validator: validator.New()}

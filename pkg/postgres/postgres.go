@@ -62,13 +62,13 @@ func NewPg(conf *Config) (*Pg, error) {
 	return &Pg{conf: conf}, nil
 }
 
-// String returnes the connection string for connecting to postgres
+// String returns the connection string for connecting to postgres
 func (c *Config) String() string {
 	strBase := "host=%s port=%s user=%s dbname=%s password=%s sslmode=%s"
 	return fmt.Sprintf(strBase, c.Host, strconv.Itoa(c.Port), c.User, c.Name, c.Pass, c.SSLMode)
 }
 
-// MigrationString returnes the connection string in url format for connecting to postgres
+// MigrationString returns the connection string in url format for connecting to postgres
 func (c *Config) MigrationString() string {
 	strBase := "postgres://%s:%s@%s:%s/%s?sslmode=%s"
 	return fmt.Sprintf(strBase, c.User, c.Pass, c.Host, strconv.Itoa(c.Port), c.Name, c.SSLMode)

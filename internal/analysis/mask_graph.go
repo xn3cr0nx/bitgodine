@@ -8,7 +8,7 @@ import (
 // MaskGraph alias for struct describing blockchain graph based on vulnerabilities mask
 type MaskGraph map[int32]map[string]heuristics.Mask
 
-// ExtractPercentages returnes the corresponding map with heuristic percentages for each element in the map (in each block)
+// ExtractPercentages returns the corresponding map with heuristic percentages for each element in the map (in each block)
 func (g MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to int32) (perc map[int32][]float64) {
 	perc = make(map[int32][]float64, to-from+1)
 	list := heuristicsList.ToList()
@@ -38,7 +38,7 @@ func (g MaskGraph) ExtractPercentages(heuristicsList heuristics.Mask, from, to i
 	return
 }
 
-// ExtractGlobalPercentages returnes the corresponding map with global heuristic percentages for each heuristic
+// ExtractGlobalPercentages returns the corresponding map with global heuristic percentages for each heuristic
 func (g MaskGraph) ExtractGlobalPercentages(heuristicsList heuristics.Mask, from, to int32) (perc []float64) {
 	list := heuristicsList.ToList()
 	perc = make([]float64, len(list))
@@ -109,7 +109,7 @@ func (g MaskGraph) subGraph(from, to int32) (sub Graph) {
 	return
 }
 
-// mergeGraphs returnes the union of multiple graphs
+// mergeGraphs returns the union of multiple graphs
 func (g MaskGraph) mergeGraphs(args ...Graph) (merged Graph) {
 	merged = g
 	if len(args) == 0 {

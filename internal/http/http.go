@@ -167,7 +167,7 @@ func PATCH(url string, obj interface{}, headers map[string]string) (string, erro
 	return res, nil
 }
 
-// RequestIP check different request's locations and returnes the origin IP
+// RequestIP check different request's locations and returns the origin IP
 func RequestIP(c echo.Context) (ip string, err error) {
 	ip = c.Request().RemoteAddr
 	if ip == "" {

@@ -72,17 +72,17 @@ func RestorePersistentSet(d *DisjointSet) (err error) {
 	return
 }
 
-// GetSize returnes the number of elements in the set
+// GetSize returns the number of elements in the set
 func (d *DisjointSet) GetSize() uint64 {
 	return d.size
 }
 
-// GetHeight returnes the number of elements in the set
+// GetHeight returns the number of elements in the set
 func (d *DisjointSet) GetHeight() int32 {
 	return d.height
 }
 
-// GetStoredHeight returnes the number of elements in the set
+// GetStoredHeight returns the number of elements in the set
 func (d *DisjointSet) GetStoredHeight() (int32, error) {
 	height, err := d.storage.Read("height")
 	if err != nil {
@@ -92,7 +92,7 @@ func (d *DisjointSet) GetStoredHeight() (int32, error) {
 	return h, nil
 }
 
-// GetStoredSize returnes the number of elements in the set
+// GetStoredSize returns the number of elements in the set
 func (d *DisjointSet) GetStoredSize() (uint64, error) {
 	size, err := d.storage.Read("size")
 	if err != nil {
@@ -102,7 +102,7 @@ func (d *DisjointSet) GetStoredSize() (uint64, error) {
 	return s, nil
 }
 
-// GetStoredParents returnes the number of elements in the set
+// GetStoredParents returns the number of elements in the set
 func (d *DisjointSet) GetStoredParents() (parents []uint64, err error) {
 	p, err := d.storage.ReadPrefix("p")
 	for _, parent := range p {
@@ -111,7 +111,7 @@ func (d *DisjointSet) GetStoredParents() (parents []uint64, err error) {
 	return
 }
 
-// GetStoredRanks returnes the number of elements in the set
+// GetStoredRanks returns the number of elements in the set
 func (d *DisjointSet) GetStoredRanks() (ranks []uint64, err error) {
 	r, err := d.storage.ReadPrefix("r")
 	for _, rank := range r {
@@ -120,18 +120,18 @@ func (d *DisjointSet) GetStoredRanks() (ranks []uint64, err error) {
 	return
 }
 
-// GetStoredClusters returnes the number of elements in the set
+// GetStoredClusters returns the number of elements in the set
 func (d *DisjointSet) GetStoredClusters() (clusters map[string][]byte, err error) {
 	clusters, err = d.storage.ReadPrefixWithKey("addr")
 	return
 }
 
-// GetHashMap returnes the set hashmap
+// GetHashMap returns the set hashmap
 func (d *DisjointSet) GetHashMap() *sync.Map {
 	return &d.hashMap
 }
 
-// GetParent returnes parent based on the passed tag
+// GetParent returns parent based on the passed tag
 func (d *DisjointSet) GetParent(tag uint64) uint64 {
 	return d.parent[tag]
 }
@@ -163,7 +163,7 @@ func (d *DisjointSet) PrepareMakeSet(x interface{}, batch *sync.Map) {
 	batch.Store("size", ns)
 }
 
-// Find returnes the value of the set required as argument to the function
+// Find returns the value of the set required as argument to the function
 func (d *DisjointSet) Find(x interface{}, batch *sync.Map) (uint64, error) {
 	pos, ok := d.hashMap.Load(x)
 	if !ok {
@@ -188,12 +188,12 @@ func (d *DisjointSet) FindInternal(p []uint64, n uint64, batch *sync.Map) uint64
 	return n
 }
 
-// Union returnes the common set to the elements passed as arguments
+// Union returns the common set to the elements passed as arguments
 func (d *DisjointSet) Union(x, y interface{}) (uint64, error) {
 	return 0, nil
 }
 
-// PrepareUnion returnes the common set to the elements passed as arguments
+// PrepareUnion returns the common set to the elements passed as arguments
 func (d *DisjointSet) PrepareUnion(x, y interface{}, batch *sync.Map) (uint64, error) {
 	var (
 		xRoot,

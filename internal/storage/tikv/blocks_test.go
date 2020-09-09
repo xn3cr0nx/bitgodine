@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine/internal/blocks"
+	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -64,7 +64,7 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 		})
 
 		It("Should correctly store a block", func() {
-			blockExample, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
+			blockExample, err := btcutil.NewBlockFromBytes(bitcoin.Block181Bytes)
 			Expect(err).ToNot(HaveOccurred())
 			blockExample.SetHeight(181)
 			var txs []models.Tx
@@ -94,7 +94,7 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 		// TODO: GetBlockFromHeightRange
 
 		It("Should correctly get last block height", func() {
-			blockExample, err := btcutil.NewBlockFromBytes(blocks.Block181Bytes)
+			blockExample, err := btcutil.NewBlockFromBytes(bitcoin.Block181Bytes)
 			Expect(err).ToNot(HaveOccurred())
 			blockExample.SetHeight(181)
 			var txs []models.Tx

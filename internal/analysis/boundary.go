@@ -12,7 +12,7 @@ type Chunk struct {
 	Vulnerabilites Graph `json:"vulnerabilities,omitempty"`
 }
 
-// upperBoundary returnes the nearest upper boundary defined as the
+// upperBoundary returns the nearest upper boundary defined as the
 // nearest multiple of the interval above number n
 func upperBoundary(n, interval int32) (r int32) {
 	diff := n % interval
@@ -23,7 +23,7 @@ func upperBoundary(n, interval int32) (r int32) {
 	return
 }
 
-// lowerBoundary returnes the nearest lower boundary defined as the
+// lowerBoundary returns the nearest lower boundary defined as the
 // nearest multiple of the interval below number n
 func lowerBoundary(n, interval int32) (r int32) {
 	r = n - (n % interval)

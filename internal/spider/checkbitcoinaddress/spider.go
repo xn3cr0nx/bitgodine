@@ -80,7 +80,7 @@ func (s *Spider) Sync() (err error) {
 	return
 }
 
-// ExtractSignedMessages returnes the list of signed messages
+// ExtractSignedMessages returns the list of signed messages
 func (s *Spider) ExtractSignedMessages(target, category string, last *tag.Model) (tags []tag.Model, err error) {
 	var reached bool
 
@@ -121,7 +121,7 @@ func (s *Spider) ExtractSignedMessages(target, category string, last *tag.Model)
 	return
 }
 
-// ExtractSubmittedLinks returnes the list of submitted links
+// ExtractSubmittedLinks returns the list of submitted links
 func (s *Spider) ExtractSubmittedLinks(target, category string, last *tag.Model) (tags []tag.Model, err error) {
 	tags, err = s.ExtractSignedMessages(target, category, last)
 	for _, t := range tags {
@@ -130,7 +130,7 @@ func (s *Spider) ExtractSubmittedLinks(target, category string, last *tag.Model)
 	return
 }
 
-// ExtractOTCProfiles returnes the list of otc profiles
+// ExtractOTCProfiles returns the list of otc profiles
 func (s *Spider) ExtractOTCProfiles(target, category string, last *tag.Model) (tags []tag.Model, err error) {
 	tags, err = s.ExtractSignedMessages(target, category, last)
 	for _, t := range tags {
@@ -141,7 +141,7 @@ func (s *Spider) ExtractOTCProfiles(target, category string, last *tag.Model) (t
 	return
 }
 
-// ExtractForumProfiles returnes the list of forum profiles
+// ExtractForumProfiles returns the list of forum profiles
 func (s *Spider) ExtractForumProfiles(target, category string, last *tag.Model) (tags []tag.Model, err error) {
 	var reached bool
 

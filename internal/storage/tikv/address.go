@@ -8,7 +8,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-// GetAddressOccurences returnes an array containing the transactions where the address appears in the blockchain
+// GetAddressOccurences returns an array containing the transactions where the address appears in the blockchain
 func (db *KV) GetAddressOccurences(address string) (occurences []string, err error) {
 	occurences, err = db.ReadKeysWithPrefix(address + "_")
 	if err != nil {
@@ -20,7 +20,7 @@ func (db *KV) GetAddressOccurences(address string) (occurences []string, err err
 	return
 }
 
-// GetAddressFirstOccurenceHeight returnes the height of the block in which the address appeared for the first time
+// GetAddressFirstOccurenceHeight returns the height of the block in which the address appeared for the first time
 func (db *KV) GetAddressFirstOccurenceHeight(address string) (height int32, err error) {
 	if cached, ok := db.cache.Get(address); ok {
 		height = cached.(int32)

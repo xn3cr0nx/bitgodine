@@ -12,7 +12,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
-// ChangeOutput returnes the index of the output which appears both in inputs and in outputs based on address reuse heuristic
+// ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	var outputAddresses,
 		inputAddresses,
@@ -85,7 +85,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil

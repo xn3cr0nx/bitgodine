@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
@@ -18,8 +16,6 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-
-	"github.com/xn3cr0nx/bitgodine/internal/skipped"
 )
 
 // startCmd represents the start command
@@ -70,11 +66,8 @@ data representation to analyze the blockchain.`,
 			defer db.Close()
 		}
 
-		skippedBlocksStorage := skipped.NewSkipped()
-		// utxoset := utxoset.Instance(utxoset.Conf("", true))
-		// fmt.Println("UTXOSET INITIALIZED")
-
-		b := blockchain.Instance(db, BitcoinNet)
+		skippedBlocksStorage := bitcoin.NewSkipped()
+		b := bitcoin.NewBlockchain(db, BitcoinNet)
 		b.Read("")
 
 		var client *rpcclient.Client
@@ -99,8 +92,6 @@ data representation to analyze the blockchain.`,
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)
 		go handleInterrupt(ch, interrupt, done)
-
-		fmt.Println("CONFIGURATION DONE GOING WITH WALK")
 
 		skipped := viper.GetInt("skipped")
 		for {

@@ -13,7 +13,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
-// ChangeOutput returnes the index of the output which address type corresponds to input addresses type
+// ChangeOutput returns the index of the output which address type corresponds to input addresses type
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	inputTypes := make([]string, len(tx.Vin))
 	outputTypes := make([]string, len(tx.Vout))
@@ -59,7 +59,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	c, err := ChangeOutput(db, tx)
 	return err == nil && len(c) > 0

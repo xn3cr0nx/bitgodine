@@ -78,7 +78,7 @@ func (d *Dgraph) NewClusters() error {
 	return nil
 }
 
-// GetClusters returnes the set of all clusters stored in dgraph
+// GetClusters returns the set of all clusters stored in dgraph
 func (d *Dgraph) GetClusters() (Clusters, error) {
 	uid, err := d.GetClusterUID()
 	if err != nil {
@@ -189,7 +189,7 @@ func (d *Dgraph) GetClusterHeight() (int32, error) {
 	return r.C[0].Clusters.Height, nil
 }
 
-// GetSetUID returnes the UID of the specified set of addresses
+// GetSetUID returns the UID of the specified set of addresses
 func (d *Dgraph) GetSetUID(set uint32) (string, error) {
 	uid, err := d.GetClusterUID()
 	if err != nil {

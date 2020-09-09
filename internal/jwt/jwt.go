@@ -16,7 +16,7 @@ type CustomClaims struct {
 	token.StandardClaims
 }
 
-// Config returnes custom JWTConfig object
+// Config returns custom JWTConfig object
 func Config() middleware.JWTConfig {
 	return middleware.JWTConfig{
 		Claims:     &CustomClaims{},
@@ -25,7 +25,7 @@ func Config() middleware.JWTConfig {
 	}
 }
 
-// NewToken returnes a new jwt token based on CustomClaims structure
+// NewToken returns a new jwt token based on CustomClaims structure
 func NewToken(id string, d time.Duration) (string, error) {
 	claims := &CustomClaims{
 		id,

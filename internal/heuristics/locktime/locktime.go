@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ChangeOutput returnes the index of the change output address based on locktime heuristic:
+// ChangeOutput returns the index of the change output address based on locktime heuristic:
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
 // If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
@@ -47,7 +47,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	c, err := ChangeOutput(db, tx)
 	return err == nil && len(c) > 0

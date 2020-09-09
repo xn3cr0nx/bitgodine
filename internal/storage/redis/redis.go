@@ -18,7 +18,7 @@ type Config struct {
 	URL string
 }
 
-// Conf returnes default config struct
+// Conf returns default config struct
 func Conf(URL string) *Config {
 	host := "redis:2379"
 	if URL != "" {

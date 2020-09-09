@@ -19,7 +19,7 @@ func PeelingLikeCondition(tx *models.Tx) bool {
 	return len(tx.Vout) == 2 && len(tx.Vin) == 1
 }
 
-// IsPeelingChain returnes true id the transaction is part of a peeling chain
+// IsPeelingChain returns true id the transaction is part of a peeling chain
 func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 	if !PeelingLikeCondition(tx) {
 		return
@@ -47,7 +47,7 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 	return
 }
 
-// ChangeOutput returnes the vout of the change address output based on peeling chain heuristic
+// ChangeOutput returns the vout of the change address output based on peeling chain heuristic
 func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	is, err := IsPeelingChain(db, tx)
 	if err != nil {
@@ -65,7 +65,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 	return
 }
 
-// Vulnerable returnes true if the transaction has a privacy vulnerability due to optimal change heuristic
+// Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
 func Vulnerable(db storage.DB, tx *models.Tx) bool {
 	_, err := ChangeOutput(db, tx)
 	return err == nil

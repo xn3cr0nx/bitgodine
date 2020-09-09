@@ -17,7 +17,7 @@ type Config struct {
 	URL string
 }
 
-// Conf returnes default config struct
+// Conf returns default config struct
 func Conf(URL string) *Config {
 	// host := viper.GetString("tikv")
 	host := "tikv:2379"

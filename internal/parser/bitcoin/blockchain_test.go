@@ -1,95 +1,53 @@
 package bitcoin_test
 
 import (
-	"path/filepath"
+	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/spf13/viper"
 
-	"github.com/xn3cr0nx/bitgodine/internal/blockchain"
-	"github.com/xn3cr0nx/bitgodine/internal/blocks"
-	. "github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/skipped"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
-	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
-	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-// Integration tests on blockchain parsing. Taking into consideration to have bitcoin data dir
 var _ = Describe("Blockchain", func() {
 	var (
-		// bp   *Parser
-		b    *blockchain.Blockchain
-		utxo *utxoset.UtxoSet
-		db   storage.DB
+		bc *bitcoin.Blockchain
 	)
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		logger.Setup()
-
-		ca, err := cache.NewCache(nil)
-		Expect(err).ToNot(HaveOccurred())
-		conf := &badger.Config{
-			Dir: filepath.Join(".", "test"),
-		}
-		bdg, err := badger.NewBadger(conf, false)
-		db, err = badger.NewKV(bdg, ca)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(db).ToNot(BeNil())
-		Expect(err).ToNot(HaveOccurred())
-
-		skippedBlocksStorage := skipped.NewSkipped()
-		utxo = utxoset.Instance(utxoset.Conf("", false))
-		b = blockchain.Instance(db, chaincfg.MainNetParams)
-		b.Read("")
-
-		NewParser(b, nil, db, skippedBlocksStorage, utxo, ca, nil, nil)
 	})
 
-	AfterEach(func() {
-		viper.SetDefault("dbDir", filepath.Join(".", "test"))
-		err := db.Empty()
-		Expect(err).ToNot(HaveOccurred())
-	})
+	Context("Load blockchain data files", func() {
+		It("Should have a Maps with length greater than 0", func() {
+			Expect(len(bc.Maps)).NotTo(Equal(0))
+		})
 
-	Describe("Parsing data files", func() {
-		It("Parsing a specific block extracted from files", func() {
-			target := "000000000000021a070be6856ee21aaa432aa5d4daf4e754f8c2068af9ab3a6e"
-			var blockTarget *blocks.Block
-			var chain [][]uint8
-			for _, ref := range b.Maps {
-				chain = append(chain, []uint8(ref))
-			}
+		It("Should parse a block correctly out of file 300", func() {
+			slice := []uint8(bc.Maps[len(bc.Maps)-1])
+			block, err := bitcoin.Parse(&slice)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(block.Hash()).ToNot(BeNil())
+			Expect(block.Hash().String()).ToNot(BeEmpty())
+		})
 
-			for _, slice := range chain {
+		It("Should consequently parse two data files", func() {
+			n := 0
+			nBlocks := 0
+			for n < 2 {
+				slice := []uint8(bc.Maps[n])
 				for len(slice) > 0 {
-					block, err := blocks.Parse(&slice)
-					Expect(err).ToNot(HaveOccurred())
-					if block.Hash().String() == target {
-						blockTarget = block
-						break
-					}
+					block, err := bitcoin.Parse(&slice)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(block.Hash()).ToNot(BeNil())
+					Expect(block.Hash().String()).ToNot(BeEmpty())
+					nBlocks++
 				}
-				if blockTarget != nil {
-					break
-				}
+				fmt.Println("nblock after step", n, ":", nBlocks)
+				n++
 			}
-			Expect(blockTarget).ToNot(BeNil())
-
-			err := blockTarget.Store(db)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(nBlocks).Should(BeNumerically(">", 0))
 		})
-
-		Context("Testing walk the blockchain", func() {
-
-			It("should correctly parse consequently stored blocks", func() {
-			})
-
-		})
-
 	})
 })

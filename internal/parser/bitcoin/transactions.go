@@ -1,4 +1,4 @@
-package txs
+package bitcoin
 
 import (
 	"fmt"
@@ -161,7 +161,7 @@ func (w *OutputParser) Work() (err error) {
 	return
 }
 
-// IsCoinbase returnes true if the transaction is a coinbase transaction
+// IsCoinbase returns true if the transaction is a coinbase transaction
 func (tx *Tx) IsCoinbase() bool {
 	zeroHash, _ := chainhash.NewHash(make([]byte, 32))
 	return tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.IsEqual(zeroHash)

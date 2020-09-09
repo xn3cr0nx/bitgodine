@@ -1,4 +1,4 @@
-package skipped_test
+package bitcoin_test
 
 import (
 	"fmt"
@@ -7,8 +7,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine/internal/blocks"
-	"github.com/xn3cr0nx/bitgodine/internal/skipped"
+	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 
 	. "github.com/onsi/ginkgo"
@@ -17,19 +16,19 @@ import (
 
 var _ = Describe("Testing with Ginkgo", func() {
 	var (
-		s *skipped.Skipped
+		s *bitcoin.Skipped
 	)
 
 	BeforeEach(func() {
 		logger.Setup()
 		var err error
-		s = skipped.NewSkipped()
+		s = bitcoin.NewSkipped()
 		Expect(s).ToNot(BeNil())
 
 		if !s.IsStored(chaincfg.MainNetParams.GenesisHash) {
 			block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 			block.SetHeight(int32(0))
-			err = s.StoreBlock(&blocks.Block{Block: *block})
+			err = s.StoreBlock(&bitcoin.Block{Block: *block})
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -41,7 +40,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 	It("Should fail storing a new block", func() {
 		block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 		block.SetHeight(int32(0))
-		err := s.StoreBlock(&blocks.Block{Block: *block})
+		err := s.StoreBlock(&bitcoin.Block{Block: *block})
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash)))
 	})

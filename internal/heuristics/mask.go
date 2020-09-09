@@ -8,7 +8,7 @@ import (
 type Mask [3]byte
 
 // VulnerableMask uses bitwise AND operation to apply a mask to vulnerabilities byte to extract value bit by bit
-// and returnes true if the vuln byte is vulnerable to passed heuristic
+// and returns true if the vuln byte is vulnerable to passed heuristic
 func (v Mask) VulnerableMask(h Heuristic) (vuln bool) {
 	if h <= 7 {
 		vuln = v[0]&byte(math.Pow(2, float64(h))) > 0
@@ -26,7 +26,7 @@ func MergeMasks(source Mask, update Mask) Mask {
 	return [3]byte{byte(source[0] | update[0]), byte(source[1] | update[1]), byte(source[2] | update[2])}
 }
 
-// MaskFromPower returnes the mask byte from the power of 2
+// MaskFromPower returns the mask byte from the power of 2
 func MaskFromPower(h Heuristic) (m Mask) {
 	if h <= 7 {
 		m = [3]byte{byte(math.Pow(2, float64(h))), byte(0), byte(0)}
@@ -38,7 +38,7 @@ func MaskFromPower(h Heuristic) (m Mask) {
 	return
 }
 
-// Sum returnes the updated base mask
+// Sum returns the updated base mask
 func (v *Mask) Sum(m Mask) Mask {
 	(*v) = [3]byte{byte((*v)[0] + m[0]), byte((*v)[1] + m[1]), byte((*v)[2] + m[2])}
 	return *v

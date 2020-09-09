@@ -23,7 +23,7 @@ type OutputsResp struct {
 	}
 }
 
-// Coinbase returnes whether an input is refers to coinbase output
+// Coinbase returns whether an input is refers to coinbase output
 func Coinbase(in *models.Input) bool {
 	zeroHash, _ := chainhash.NewHash(make([]byte, 32))
 	return in.TxID == zeroHash.String()
@@ -64,7 +64,7 @@ func (d *Dgraph) StoreCoinbase() error {
 	return err
 }
 
-// GetTx returnes the node from the query queried
+// GetTx returns the node from the query queried
 // TODO: orderasc on inputs, outputs, check whether they can have more than 1000 elments (1000 dgraph limit fetch)
 func (d *Dgraph) GetTx(hash string) (tx models.Tx, err error) {
 	if cached, ok := d.cache.Get(hash); ok {
@@ -145,7 +145,7 @@ func (d *Dgraph) GetTx(hash string) (tx models.Tx, err error) {
 	return
 }
 
-// GetTxUID returnes the uid of the queried tx by hash
+// GetTxUID returns the uid of the queried tx by hash
 func (d *Dgraph) GetTxUID(hash string) (uid string, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
@@ -171,7 +171,7 @@ func (d *Dgraph) GetTxUID(hash string) (uid string, err error) {
 	return
 }
 
-// GetTxOutputs returnes the outputs of the queried tx by hash
+// GetTxOutputs returns the outputs of the queried tx by hash
 // TODO: rememeber orderasc fetches no more than 1000 elements
 func (d *Dgraph) GetTxOutputs(hash string) (outputs []models.Output, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
@@ -205,7 +205,7 @@ func (d *Dgraph) GetTxOutputs(hash string) (outputs []models.Output, err error) 
 	return
 }
 
-// GetSpentTxOutput returnes the output spent (the vout) of the corresponding tx
+// GetSpentTxOutput returns the output spent (the vout) of the corresponding tx
 func (d *Dgraph) GetSpentTxOutput(hash string, vout uint32) (output models.Output, err error) {
 	if cached, ok := d.cache.Get(fmt.Sprintf("%s_%d", hash, vout)); ok {
 		var r models.Output
@@ -292,7 +292,7 @@ func (d *Dgraph) GetFollowingTx(hash string, vout uint32) (tx models.Tx, err err
 	return
 }
 
-// GetStoredTxs returnes all the stored transactions hashes
+// GetStoredTxs returns all the stored transactions hashes
 func (d *Dgraph) GetStoredTxs() (transactions []string, err error) {
 	resp, err := d.NewReadOnlyTxn().Query(context.Background(), `{
 			txs(func: has(input)) {
@@ -315,7 +315,7 @@ func (d *Dgraph) GetStoredTxs() (transactions []string, err error) {
 	return
 }
 
-// GetTxBlockHeight returnes the height of the block based on its hash
+// GetTxBlockHeight returns the height of the block based on its hash
 func (d *Dgraph) GetTxBlockHeight(hash string) (height int32, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
@@ -339,7 +339,7 @@ func (d *Dgraph) GetTxBlockHeight(hash string) (height int32, err error) {
 	return
 }
 
-// GetTxBlock returnes the block containing the transaction
+// GetTxBlock returns the block containing the transaction
 func (d *Dgraph) GetTxBlock(hash string) (block models.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
@@ -371,7 +371,7 @@ func (d *Dgraph) GetTxBlock(hash string) (block models.Block, err error) {
 	return
 }
 
-// IsSpent returnes true if exists a transaction that takes as input to the new tx
+// IsSpent returns true if exists a transaction that takes as input to the new tx
 // the output corresponding to the index passed to the function
 func (d *Dgraph) IsSpent(tx string, index uint32) bool {
 	_, err := d.GetFollowingTx(tx, index)

@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// GetAddressOccurences returnes an array containing the transactions where the address appears in the blockchain
+// GetAddressOccurences returns an array containing the transactions where the address appears in the blockchain
 func (d *Dgraph) GetAddressOccurences(address string) (occurences []string, err error) {
 	resp, err := instance.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
@@ -40,7 +40,7 @@ func (d *Dgraph) GetAddressOccurences(address string) (occurences []string, err 
 	return
 }
 
-// GetAddressFirstOccurenceHeight returnes the height of the block in which the address appeared for the first time
+// GetAddressFirstOccurenceHeight returns the height of the block in which the address appeared for the first time
 func (d *Dgraph) GetAddressFirstOccurenceHeight(address string) (height int32, err error) {
 	resp, err := instance.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
@@ -72,7 +72,7 @@ func (d *Dgraph) GetAddressFirstOccurenceHeight(address string) (height int32, e
 		return
 	}
 	if len(r.First) > 1 {
-		err = errors.New("the min returnes more than an occurence. Strange behaviour")
+		err = errors.New("the min returns more than an occurence. Strange behaviour")
 		return
 	}
 	height = r.First[0].Min

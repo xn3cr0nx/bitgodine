@@ -43,8 +43,8 @@ type (
 
 var server *Server
 
-// Instance singleton pattern that returnes pointer to server
-func Instance(port int, db storage.DB, c *cache.Cache, kvdb kv.KV, pg *postgres.Pg) *Server {
+// NewServer singleton pattern that returnes pointer to server
+func NewServer(port int, db storage.DB, c *cache.Cache, kvdb kv.KV, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}

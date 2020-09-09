@@ -120,6 +120,6 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	s := server.Instance(viper.GetInt("server.http.port"), db, c, kvdb, pg)
+	s := server.NewServer(viper.GetInt("server.http.port"), db, c, kvdb, pg)
 	s.Listen()
 }

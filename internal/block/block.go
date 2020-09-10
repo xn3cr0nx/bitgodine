@@ -154,10 +154,6 @@ func GetFromHashWithTxs(db storage.DB, c *cache.Cache, hash string) (*BlockOut, 
 
 // GetLast return last synced block
 func GetLast(db storage.DB, c *cache.Cache) (*BlockOut, error) {
-	// b, err := LastBlock()
-	// if err != nil {
-	// 	return nil, err
-	// }
 	h, err := ReadHeight(db)
 	if err != nil {
 		return nil, err

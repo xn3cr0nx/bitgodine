@@ -64,7 +64,10 @@ data representation to analyze the blockchain.`,
 
 		skippedBlocksStorage := bitcoin.NewSkipped()
 		b := bitcoin.NewBlockchain(db, BitcoinNet)
-		b.Read("")
+		if err := b.Read(""); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
 
 		var client *rpcclient.Client
 		if viper.GetBool("parser.realtime") {
@@ -80,18 +83,18 @@ data representation to analyze the blockchain.`,
 		}
 
 		interrupt := make(chan int)
-		done := make(chan int)
-
-		// bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, utxoset, c, interrupt, done)
-		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, nil, c, interrupt, done)
+		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, nil, c, interrupt)
 
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)
-		go handleInterrupt(ch, interrupt, done)
+		go handleInterrupt(ch, interrupt)
 
 		skipped := viper.GetInt("skipped")
 		for {
 			if cycleSkipped, err := bp.Walk(skipped); err != nil {
+				if err.Error() == "interrupt" {
+					break
+				}
 				logger.Error("Bitgodine", err, logger.Params{"skipped": cycleSkipped})
 				if err.Error() == "too many skipped blocks, stopping process" {
 					skippedBlocksStorage.Empty()
@@ -99,21 +102,14 @@ data representation to analyze the blockchain.`,
 				}
 				os.Exit(-1)
 			}
-			select {
-			case <-done:
-				return
-			default:
-			}
-
 		}
 
 	},
 }
 
-func handleInterrupt(c chan os.Signal, interrupt, done chan int) {
+func handleInterrupt(c chan os.Signal, interrupt chan int) {
 	for sig := range c {
 		logger.Info("Sync", "Killing the application", logger.Params{"signal": sig})
 		interrupt <- 1
-		done <- 1
 	}
 }

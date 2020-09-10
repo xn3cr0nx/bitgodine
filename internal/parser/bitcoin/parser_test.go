@@ -45,7 +45,7 @@ var _ = Describe("Blockchain", func() {
 		b = bitcoin.NewBlockchain(db, chaincfg.MainNetParams)
 		b.Read("")
 
-		NewParser(b, nil, db, skippedBlocksStorage, utxo, ca, nil, nil)
+		NewParser(b, nil, db, skippedBlocksStorage, utxo, ca, nil)
 	})
 
 	AfterEach(func() {

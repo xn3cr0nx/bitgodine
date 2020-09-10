@@ -61,7 +61,6 @@ func (b *Blockchain) Read(path string) error {
 		f, err := os.OpenFile(filepath.Join(path, fmt.Sprintf("blk%05d.dat", n)), os.O_RDWR, 0644)
 		defer f.Close()
 		if err != nil {
-			logger.Info("Blockchain", err.Error(), logger.Params{})
 			break
 		}
 

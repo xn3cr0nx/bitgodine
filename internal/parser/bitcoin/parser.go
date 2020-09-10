@@ -27,11 +27,10 @@ type Parser struct {
 	utxoset    *utxoset.UtxoSet
 	cache      *cache.Cache
 	interrupt  chan int
-	done       chan int
 }
 
 // NewParser return a new instance to Bitcoin blockchai parser
-func NewParser(blockchain *Blockchain, client *rpcclient.Client, db storage.DB, skipped *Skipped, utxoset *utxoset.UtxoSet, c *cache.Cache, interrupt chan int, done chan int) Parser {
+func NewParser(blockchain *Blockchain, client *rpcclient.Client, db storage.DB, skipped *Skipped, utxoset *utxoset.UtxoSet, c *cache.Cache, interrupt chan int) Parser {
 	return Parser{
 		blockchain: blockchain,
 		client:     client,
@@ -40,7 +39,6 @@ func NewParser(blockchain *Blockchain, client *rpcclient.Client, db storage.DB, 
 		utxoset:    utxoset,
 		cache:      c,
 		interrupt:  interrupt,
-		done:       done,
 	}
 }
 
@@ -110,6 +108,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 				err = errors.New("Something wrong in interrupt signal")
 			}
 			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
+			err = errors.New("interrupt")
 			return
 
 		default:

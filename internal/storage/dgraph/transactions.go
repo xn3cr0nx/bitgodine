@@ -7,34 +7,35 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // TxResp represent the resp from a dgraph query returning a transaction node
 type TxResp struct {
-	Txs []struct{ models.Tx }
+	Txs []struct{ tx.Tx }
 }
 
 // OutputsResp represent the resp from a dgraph query returning an array of output nodes
 type OutputsResp struct {
 	Transactions []struct {
-		Output []struct{ models.Output }
+		Output []struct{ tx.Output }
 	}
 }
 
 // Coinbase returns whether an input is refers to coinbase output
-func Coinbase(in *models.Input) bool {
+func Coinbase(in *tx.Input) bool {
 	zeroHash, _ := chainhash.NewHash(make([]byte, 32))
 	return in.TxID == zeroHash.String()
 }
 
 // StoreCoinbase prepare coinbase output to be used as input for coinbase transactions
 func (d *Dgraph) StoreCoinbase() error {
-	t := models.Tx{
+	t := tx.Tx{
 		TxID: strings.Repeat("0", 64),
-		Vout: []models.Output{
-			models.Output{
+		Vout: []tx.Output{
+			{
 				Scriptpubkey:        "",
 				ScriptpubkeyAsm:     "",
 				ScriptpubkeyType:    "",
@@ -42,7 +43,7 @@ func (d *Dgraph) StoreCoinbase() error {
 				Value:               int64(5000000000),
 				Index:               4294967295,
 			},
-			models.Output{
+			{
 				Scriptpubkey:        "",
 				ScriptpubkeyAsm:     "",
 				ScriptpubkeyType:    "",
@@ -50,7 +51,7 @@ func (d *Dgraph) StoreCoinbase() error {
 				Value:               int64(2500000000),
 				Index:               4294967295,
 			},
-			models.Output{
+			{
 				Scriptpubkey:        "",
 				ScriptpubkeyAsm:     "",
 				ScriptpubkeyType:    "",
@@ -66,9 +67,9 @@ func (d *Dgraph) StoreCoinbase() error {
 
 // GetTx returns the node from the query queried
 // TODO: orderasc on inputs, outputs, check whether they can have more than 1000 elments (1000 dgraph limit fetch)
-func (d *Dgraph) GetTx(hash string) (tx models.Tx, err error) {
+func (d *Dgraph) GetTx(hash string) (transaction tx.Tx, err error) {
 	if cached, ok := d.cache.Get(hash); ok {
-		var r models.Tx
+		var r tx.Tx
 		if err := json.Unmarshal(cached.([]byte), &r); err == nil {
 			return r, nil
 		}
@@ -127,17 +128,17 @@ func (d *Dgraph) GetTx(hash string) (tx models.Tx, err error) {
 		err = errors.New("transaction not found")
 		return
 	}
-	for _, tx := range r.Txs {
-		if len(tx.Tx.Vout) > 0 {
+	for _, t := range r.Txs {
+		if len(t.Tx.Vout) > 0 {
 
-			bytes, err := json.Marshal(tx.Tx)
+			bytes, err := json.Marshal(t.Tx)
 			if err == nil {
-				if !d.cache.Set(tx.Tx.TxID, bytes, 1) {
-					logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": tx.Tx.TxID})
+				if !d.cache.Set(t.Tx.TxID, bytes, 1) {
+					logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": t.Tx.TxID})
 				}
 			}
 
-			return tx.Tx, nil
+			return t.Tx, nil
 		}
 	}
 
@@ -173,7 +174,7 @@ func (d *Dgraph) GetTxUID(hash string) (uid string, err error) {
 
 // GetTxOutputs returns the outputs of the queried tx by hash
 // TODO: rememeber orderasc fetches no more than 1000 elements
-func (d *Dgraph) GetTxOutputs(hash string) (outputs []models.Output, err error) {
+func (d *Dgraph) GetTxOutputs(hash string) (outputs []tx.Output, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
 			transactions(func: allofterms(txid, $s)) {
@@ -206,15 +207,15 @@ func (d *Dgraph) GetTxOutputs(hash string) (outputs []models.Output, err error) 
 }
 
 // GetSpentTxOutput returns the output spent (the vout) of the corresponding tx
-func (d *Dgraph) GetSpentTxOutput(hash string, vout uint32) (output models.Output, err error) {
+func (d *Dgraph) GetSpentTxOutput(hash string, vout uint32) (output tx.Output, err error) {
 	if cached, ok := d.cache.Get(fmt.Sprintf("%s_%d", hash, vout)); ok {
-		var r models.Output
+		var r tx.Output
 		if err := json.Unmarshal(cached.([]byte), &r); err == nil {
 			return r, nil
 		}
 	}
 	if cached, ok := d.cache.Get(hash); ok {
-		var r models.Tx
+		var r tx.Tx
 		if err := json.Unmarshal(cached.([]byte), &r); err == nil {
 			return r.Vout[vout], nil
 		}
@@ -261,7 +262,7 @@ func (d *Dgraph) GetSpentTxOutput(hash string, vout uint32) (output models.Outpu
 // GetFollowingTx returns the transaction spending the output (vout) of
 // the transaction passed as input to the function
 // TODO: rememeber orderasc fetches no more than 1000 elements
-func (d *Dgraph) GetFollowingTx(hash string, vout uint32) (tx models.Tx, err error) {
+func (d *Dgraph) GetFollowingTx(hash string, vout uint32) (transaction tx.Tx, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string, $d: int) {
 			txs(func: has(input)) @cascade {
@@ -288,7 +289,7 @@ func (d *Dgraph) GetFollowingTx(hash string, vout uint32) (tx models.Tx, err err
 		err = errors.New("transaction not found")
 		return
 	}
-	tx = r.Txs[0].Tx
+	transaction = r.Txs[0].Tx
 	return
 }
 
@@ -340,7 +341,7 @@ func (d *Dgraph) GetTxBlockHeight(hash string) (height int32, err error) {
 }
 
 // GetTxBlock returns the block containing the transaction
-func (d *Dgraph) GetTxBlock(hash string) (block models.Block, err error) {
+func (d *Dgraph) GetTxBlock(hash string) (blk block.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
 			block(func: has(prev_block)) @cascade {
@@ -359,7 +360,7 @@ func (d *Dgraph) GetTxBlock(hash string) (block models.Block, err error) {
 	if err != nil {
 		return
 	}
-	var r struct{ Block []struct{ models.Block } }
+	var r struct{ Block []struct{ block.Block } }
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return
 	}
@@ -367,7 +368,7 @@ func (d *Dgraph) GetTxBlock(hash string) (block models.Block, err error) {
 		err = errors.New("Block not found")
 		return
 	}
-	block = r.Block[0].Block
+	blk = r.Block[0].Block
 	return
 }
 

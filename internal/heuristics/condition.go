@@ -2,11 +2,11 @@ package heuristics
 
 import (
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics/peeling"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 )
 
 // Condition function signature for condition definition
-type Condition func(*models.Tx) bool
+type Condition func(*tx.Tx) bool
 
 // ConditionsSet defines the list of transacions applicable conditions
 type ConditionsSet []Condition
@@ -31,22 +31,22 @@ func (set *ConditionsSet) fillConditionsSet(criteria string) {
 	}
 }
 
-func offByOneBugCondition(tx *models.Tx) (output bool) {
-	if len(tx.Vout) != 2 {
+func offByOneBugCondition(transaction *tx.Tx) (output bool) {
+	if len(transaction.Vout) != 2 {
 		output = true
 	}
 	return
 }
 
-func coinbaseCondition(tx *models.Tx) (output bool) {
-	if len(tx.Vin) == 1 && tx.Vin[0].IsCoinbase {
+func coinbaseCondition(transaction *tx.Tx) (output bool) {
+	if len(transaction.Vin) == 1 && transaction.Vin[0].IsCoinbase {
 		output = true
 	}
 	return
 }
 
-func selfTransferCondition(tx *models.Tx) (output bool) {
-	if len(tx.Vin) > 1 && len(tx.Vout) == 1 {
+func selfTransferCondition(transaction *tx.Tx) (output bool) {
+	if len(transaction.Vin) > 1 && len(transaction.Vout) == 1 {
 		output = true
 	}
 	return

@@ -9,9 +9,9 @@ import (
 	mmap "github.com/edsrzf/mmap-go"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // Blockchain data structure composed by the memory mapped files in array of mmaps and network conofiguration
@@ -77,12 +77,17 @@ func (b *Blockchain) Read(path string) error {
 
 // Height returns the height of the last block in the blockchain (currently synced)
 func (b *Blockchain) Height() (h int32, err error) {
-	h, err = b.db.GetLastBlockHeight()
+	h, err = block.ReadHeight(b.db)
 	return
 }
 
 // Head returns the last block in the blockchain
-func (b *Blockchain) Head() (last models.Block, err error) {
-	last, err = b.db.LastBlock()
+func (b *Blockchain) Head() (last block.Block, err error) {
+	h, err := b.Height()
+	if err != nil {
+		return
+	}
+
+	last, err = block.ReadFromHeight(b.db, nil, h)
 	return
 }

@@ -9,7 +9,8 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 )
 
 func VulnerableFunctions(heuristic string) string {
@@ -28,15 +29,15 @@ func VulnerableFunctions(heuristic string) string {
 	return vulnerabilites[heuristic]
 }
 
-func BlockToModel(b *btcutil.Block) models.Block {
-	var transactions []models.Tx
+func BlockToModel(b *btcutil.Block) block.Block {
+	var transactions []tx.Tx
 	var txIds []string
 	for _, tx := range b.Transactions() {
 		transactions = append(transactions, TxToModel(tx, b.Height(), b.Hash().String(), b.MsgBlock().Header.Timestamp))
 		txIds = append(txIds, tx.Hash().String())
 	}
 
-	return models.Block{
+	return block.Block{
 		ID:           b.Hash().String(),
 		Height:       b.Height(),
 		Version:      b.MsgBlock().Header.Version,
@@ -52,10 +53,10 @@ func BlockToModel(b *btcutil.Block) models.Block {
 	}
 }
 
-func TxToModel(tx *btcutil.Tx, height int32, blockHash string, t time.Time) models.Tx {
-	var inputs []models.Input
-	for _, input := range tx.MsgTx().TxIn {
-		inputs = append(inputs, models.Input{
+func TxToModel(transaction *btcutil.Tx, height int32, blockHash string, t time.Time) tx.Tx {
+	var inputs []tx.Input
+	for _, input := range transaction.MsgTx().TxIn {
+		inputs = append(inputs, tx.Input{
 			TxID:       input.PreviousOutPoint.Hash.String(),
 			Vout:       input.PreviousOutPoint.Index,
 			IsCoinbase: input.PreviousOutPoint.Hash.String() != strings.Repeat("0", 64),
@@ -70,10 +71,10 @@ func TxToModel(tx *btcutil.Tx, height int32, blockHash string, t time.Time) mode
 			// Issuance: ,
 		})
 	}
-	var outputs []models.Output
-	for i, output := range tx.MsgTx().TxOut {
+	var outputs []tx.Output
+	for i, output := range transaction.MsgTx().TxOut {
 		_, addr, _, _ := txscript.ExtractPkScriptAddrs(output.PkScript, &chaincfg.MainNetParams)
-		outputs = append(outputs, models.Output{
+		outputs = append(outputs, tx.Output{
 			Scriptpubkey: string(output.PkScript),
 			Value:        output.Value,
 			Index:        uint32(i),
@@ -85,10 +86,10 @@ func TxToModel(tx *btcutil.Tx, height int32, blockHash string, t time.Time) mode
 			// Pegout: ,
 		})
 	}
-	return models.Tx{
-		TxID:     tx.Hash().String(),
-		Version:  tx.MsgTx().Version,
-		Locktime: tx.MsgTx().LockTime,
+	return tx.Tx{
+		TxID:     transaction.Hash().String(),
+		Version:  transaction.MsgTx().Version,
+		Locktime: transaction.MsgTx().LockTime,
 		// Size:     -1,
 		// Weight:   -1,
 		// Fee:      -1,

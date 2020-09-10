@@ -35,7 +35,7 @@ var occurencesCmd = &cobra.Command{
 			logger.Error("Address", err, logger.Params{})
 			os.Exit(1)
 		}
-		occurences, err := dg.GetAddressOccurences(address.String())
+		occurences, err := dg.GetOccurences(address.String())
 		if err != nil {
 			logger.Error("occurences", err, logger.Params{})
 			os.Exit(1)

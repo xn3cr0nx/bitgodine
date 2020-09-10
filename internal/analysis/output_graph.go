@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 )
 
 // OutputGraph alias for struct describing blockchain graph based on heuristics
@@ -538,7 +538,7 @@ func (g OutputGraph) mergeChunks(args ...Chunk) (merged Chunk) {
 }
 
 // updateStoredRange updates sub chunks of analysis graph based on the interval with new analysis
-func (g OutputGraph) updateStoredRanges(kv *badger.Badger, interval int32, analyzed []Chunk) Graph {
+func (g OutputGraph) updateStoredRanges(db storage.DB, interval int32, analyzed []Chunk) Graph {
 	if len(analyzed) == 0 {
 		return g
 	}

@@ -5,8 +5,8 @@ import (
 	"errors"
 )
 
-// GetAddressOccurences returns an array containing the transactions where the address appears in the blockchain
-func (d *Dgraph) GetAddressOccurences(address string) (occurences []string, err error) {
+// GetOccurences returns an array containing the transactions where the address appears in the blockchain
+func (d *Dgraph) GetOccurences(address string) (occurences []string, err error) {
 	resp, err := instance.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
 			txs(func: has(output)) @cascade {
@@ -40,8 +40,8 @@ func (d *Dgraph) GetAddressOccurences(address string) (occurences []string, err 
 	return
 }
 
-// GetAddressFirstOccurenceHeight returns the height of the block in which the address appeared for the first time
-func (d *Dgraph) GetAddressFirstOccurenceHeight(address string) (height int32, err error) {
+// GetFirstOccurenceHeight returns the height of the block in which the address appeared for the first time
+func (d *Dgraph) GetFirstOccurenceHeight(address string) (height int32, err error) {
 	resp, err := instance.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($s: string) {
 			bl as var(func: has(prev_block)) @cascade {

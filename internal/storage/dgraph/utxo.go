@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // UtxoSet tracks utxos
@@ -17,9 +17,9 @@ type UtxoSet struct {
 
 // Utxo tracks utxos
 type Utxo struct {
-	UID  string          `json:"uid,omitempty"`
-	TxID string          `json:"txid,omitempty"`
-	Utxo []models.Output `json:"utxo"` // TODO: this could just be a refernce, e.g. the UID of the parsed output node
+	UID  string      `json:"uid,omitempty"`
+	TxID string      `json:"txid,omitempty"`
+	Utxo []tx.Output `json:"utxo"` // TODO: this could just be a refernce, e.g. the UID of the parsed output node
 }
 
 // UtxoResp basic structure to unmarshall utxo query
@@ -149,7 +149,7 @@ func (d *Dgraph) GetUtxoSetByHash(hash string) (Utxo, error) {
 }
 
 // NewUtxo add a new group of unspent output associated with the tx hash
-func (d *Dgraph) NewUtxo(txid string, outputs []models.Output) error {
+func (d *Dgraph) NewUtxo(txid string, outputs []tx.Output) error {
 	uid, err := d.GetUtxoSetUID()
 	if err != nil {
 		return err

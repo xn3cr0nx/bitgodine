@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -22,7 +22,7 @@ func Routes(g *echo.Group) *echo.Group {
 			return err
 		}
 
-		b, err := GetBlockFromHeight(c.Get("db").(storage.DB), int32(height))
+		b, err := GetFromHeight(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), int32(height))
 		if err != nil {
 			return err
 		}
@@ -36,7 +36,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		b, err := GetBlockFromHashWithTxs(c.Get("db").(storage.DB), hash)
+		b, err := GetFromHashWithTxs(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
 		if err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ func Routes(g *echo.Group) *echo.Group {
 	// 		return err
 	// 	}
 	// 	db := c.Get("db")
-	// 	b, err := db.(storage.DB).GetBlockFromHash(hash)
+	// 	b, err := db.(storage.DB).GetFromHash(hash)
 	// 	if err != nil {
 	// 		if err.Error() == "Block not found" {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -72,7 +72,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 			return err
 		}
-		b, err := GetBlockFromHash(c.Get("db").(storage.DB), hash)
+		b, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 			return err
 		}
-		b, err := GetBlockFromHash(c.Get("db").(storage.DB), hash)
+		b, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
 		if err != nil {
 			return err
 		}
@@ -115,15 +115,14 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 			return err
 		}
-		db := c.Get("db")
-		blocks, err := db.(storage.DB).GetBlockFromHeightRange(int32(start), 10)
+		blocks, err := GetFromHeightRange(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), int32(start), 10)
 		if err != nil {
 			if err.Error() == "Block not found" {
 				return echo.NewHTTPError(http.StatusNotFound, err)
 			}
 			return err
 		}
-		var res []models.Block
+		var res []BlockOut
 		for _, b := range blocks {
 			res = append(res, b)
 		}
@@ -131,7 +130,7 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/height", func(c echo.Context) error {
-		b, err := GetLastBlock(c.Get("db").(storage.DB))
+		b, err := GetLast(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache))
 		if err != nil {
 			return err
 		}
@@ -139,7 +138,7 @@ func Routes(g *echo.Group) *echo.Group {
 	})
 
 	s.GET("/tip/hash", func(c echo.Context) error {
-		b, err := GetLastBlock(c.Get("db").(storage.DB))
+		b, err := GetLast(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache))
 		if err != nil {
 			return err
 		}

@@ -5,10 +5,11 @@ import (
 	"math"
 
 	"github.com/btcsuite/btcutil"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // Block composition to enhance btcutil.Block with other receivers
@@ -35,7 +36,7 @@ func (b *Block) Store(db storage.DB) (err error) {
 	if err != nil {
 		return
 	}
-	status := []models.Status{
+	status := []tx.Status{
 		{
 			Confirmed:   true,
 			BlockHeight: b.Height(),
@@ -44,10 +45,10 @@ func (b *Block) Store(db storage.DB) (err error) {
 		},
 	}
 	txsRefs := make([]string, len(transactions))
-	for i, tx := range transactions {
+	for i, transaction := range transactions {
 		// TODO: check this assignment, something is wrong here, stored object doesn't have status
-		tx.Status = status
-		txsRefs[i] = tx.TxID
+		transaction.Status = status
+		txsRefs[i] = transaction.TxID
 	}
 
 	size, err := b.Bytes()
@@ -58,7 +59,7 @@ func (b *Block) Store(db storage.DB) (err error) {
 	if err != nil {
 		return
 	}
-	block := models.Block{
+	blk := block.Block{
 		ID:                b.Hash().String(),
 		Height:            b.Height(),
 		Version:           b.MsgBlock().Header.Version,
@@ -72,7 +73,7 @@ func (b *Block) Store(db storage.DB) (err error) {
 		Weight:            len(weight),
 		Previousblockhash: b.MsgBlock().Header.PrevBlock.String(),
 	}
-	err = db.StoreBlock(&block, transactions)
+	err = block.StoreBlock(db, &blk, transactions)
 	return
 }
 

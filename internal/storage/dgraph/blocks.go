@@ -7,26 +7,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // BlockResp represent the resp from a dgraph query returning a transaction node
 type BlockResp struct {
-	Blk []struct{ models.Block }
+	Blk []struct{ block.Block }
 }
 
 // StoreBlock returns the hash of the block retrieving it based on its height
 func (d *Dgraph) StoreBlock(v interface{}) (err error) {
-	b := v.(*models.Block)
+	b := v.(*block.Block)
 	err = d.Store(b)
 	return
 }
 
 // GetBlockFromHash returns the hash of the block retrieving it based on its height
-func (d *Dgraph) GetBlockFromHash(hash string) (block models.Block, err error) {
+func (d *Dgraph) GetBlockFromHash(hash string) (blk block.Block, err error) {
 	if cached, ok := d.cache.Get(hash); ok {
-		block = cached.(models.Block)
+		blk = cached.(block.Block)
 		return
 	}
 
@@ -98,14 +98,14 @@ func (d *Dgraph) GetBlockFromHash(hash string) (block models.Block, err error) {
 			logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": r.Blk[0].Block.ID})
 		}
 	}
-	block, err = r.Blk[0].Block, nil
+	blk, err = r.Blk[0].Block, nil
 	return
 }
 
 // GetBlockFromHeight returns the hash of the block retrieving it based on its height
-func (d *Dgraph) GetBlockFromHeight(height int32) (block models.Block, err error) {
+func (d *Dgraph) GetBlockFromHeight(height int32) (blk block.Block, err error) {
 	if cached, ok := d.cache.Get(height); ok {
-		block = cached.(models.Block)
+		blk = cached.(block.Block)
 		return
 	}
 
@@ -177,12 +177,12 @@ func (d *Dgraph) GetBlockFromHeight(height int32) (block models.Block, err error
 			logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": r.Blk[0].Block.ID})
 		}
 	}
-	block, err = r.Blk[0].Block, nil
+	blk, err = r.Blk[0].Block, nil
 	return
 }
 
 // GetBlockFromHeightRange returns the hash of the block retrieving it based on its height
-func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blocks []models.Block, err error) {
+func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blks []block.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().QueryWithVars(context.Background(), `
 		query params($d: int, $f: int) {
 			blk(func: ge(height, $d), first: $f) {
@@ -247,7 +247,7 @@ func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blocks []mode
 		return
 	}
 	for _, b := range r.Blk {
-		blocks = append(blocks, b.Block)
+		blks = append(blks, b.Block)
 	}
 	return
 }
@@ -289,7 +289,7 @@ func (d *Dgraph) GetLastBlockHeight() (height int32, err error) {
 }
 
 // LastBlock returns the last block synced by Bitgodine
-func (d *Dgraph) LastBlock() (block models.Block, err error) {
+func (d *Dgraph) LastBlock() (blk block.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().Query(context.Background(), `{
 		var(func: has(previousblockhash)) {
 			blocks_height as height
@@ -313,7 +313,7 @@ func (d *Dgraph) LastBlock() (block models.Block, err error) {
 		return
 	}
 
-	var r struct{ B []struct{ models.Block } }
+	var r struct{ B []struct{ block.Block } }
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return
 	}
@@ -321,12 +321,12 @@ func (d *Dgraph) LastBlock() (block models.Block, err error) {
 		err = errors.New("Something went wrong retrieving last block")
 		return
 	}
-	block = r.B[0].Block
+	blk = r.B[0].Block
 	return
 }
 
 // GetStoredBlocks returns an array containing all blocks stored on dgraph
-func (d *Dgraph) GetStoredBlocks() (blocks []models.Block, err error) {
+func (d *Dgraph) GetStoredBlocks() (blks []block.Block, err error) {
 	resp, err := d.NewReadOnlyTxn().Query(context.Background(), `{
 		blocks(func: has(previousblockhash)) {
 			height
@@ -337,25 +337,25 @@ func (d *Dgraph) GetStoredBlocks() (blocks []models.Block, err error) {
 		return
 	}
 
-	var r struct{ Blocks []struct{ models.Block } }
+	var r struct{ Blocks []struct{ block.Block } }
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return
 	}
 	for _, b := range r.Blocks {
-		blocks = append(blocks, b.Block)
+		blks = append(blks, b.Block)
 	}
 
 	return
 }
 
 // // RemoveBlock removes the block specified by its height
-// func (d *Dgraph) RemoveBlock(block *models.Block) error {
+// func (d *Dgraph) RemoveBlock(block *block.Block) error {
 // 	return d.Delete(block.UID)
 // }
 
 // RemoveLastBlock deletes the last block stored in the db
 func (d *Dgraph) RemoveLastBlock() (err error) {
-	// var blocks []models.Block
+	// var blocks []block.Block
 	// var height int32
 	// block, err := d.LastBlock()
 	// if err != nil {
@@ -369,7 +369,7 @@ func (d *Dgraph) RemoveLastBlock() (err error) {
 	// 			return err
 	// 		}
 	// 		for _, uid := range uids {
-	// 		blocks = append(blocks, models.Block{UID: uid})
+	// 		blocks = append(blocks, block.Block{UID: uid})
 	// 		}
 	// 	} else {
 	// 		return

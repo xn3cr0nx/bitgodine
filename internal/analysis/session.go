@@ -3,18 +3,18 @@ package analysis
 import (
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32, analysisType string) (intervals []Chunk) {
+func restorePreviousAnalysis(db storage.DB, from, to, interval int32, analysisType string) (intervals []Chunk) {
 	if to-from >= interval {
 		upper := upperBoundary(from, interval)
 		lower := lowerBoundary(to, interval)
 		fmt.Println("restoring in range", upper, lower, interval)
 		for i := upper; i < lower; i += interval {
-			r, err := kv.Read(fmt.Sprintf(analysisType+"%d-%d", i, i+interval))
+			r, err := db.Read(fmt.Sprintf(analysisType+"%d-%d", i, i+interval))
 			fmt.Println("read range", i, i+interval, err)
 			if err != nil {
 				break
@@ -30,7 +30,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32, analys
 	} else {
 		lower := lowerBoundary(from, interval)
 		upper := upperBoundary(to, interval)
-		r, err := kv.Read(fmt.Sprintf(analysisType+"%d-%d", lower, upper))
+		r, err := db.Read(fmt.Sprintf(analysisType+"%d-%d", lower, upper))
 		if err != nil {
 			return
 		}
@@ -46,7 +46,7 @@ func restorePreviousAnalysis(kv *badger.Badger, from, to, interval int32, analys
 }
 
 // storeRange stores sub chunks of analysis graph based on the interval
-func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph, analysisType string) (err error) {
+func storeRange(db storage.DB, r Range, interval int32, vuln Graph, analysisType string) (err error) {
 	upper := upperBoundary(r.From, interval)
 	lower := lowerBoundary(r.To, interval)
 
@@ -62,7 +62,7 @@ func storeRange(kv *badger.Badger, r Range, interval int32, vuln Graph, analysis
 			if err != nil {
 				return
 			}
-			if err = kv.Store(fmt.Sprintf(analysisType+"%d-%d", i, i+interval), a); err != nil {
+			if err = db.Store(fmt.Sprintf(analysisType+"%d-%d", i, i+interval), a); err != nil {
 				return
 			}
 		}

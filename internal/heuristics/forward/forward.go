@@ -7,29 +7,30 @@ import (
 	"errors"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	var inputAddresses []string
 
-	logger.Debug("Forward Heuristic", "transaction "+tx.TxID, logger.Params{})
+	logger.Debug("Forward Heuristic", "transaction "+transaction.TxID, logger.Params{})
 
-	for _, in := range tx.Vin {
+	for _, in := range transaction.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		spentTx, e := db.GetTx(in.TxID)
+		spentTx, e := tx.GetFromHash(db, ca, in.TxID)
 		if e != nil {
 			return nil, e
 		}
 		inputAddresses = append(inputAddresses, spentTx.Vout[in.Vout].ScriptpubkeyAddress)
 	}
 
-	for _, out := range tx.Vout {
-		spendingTx, e := db.GetFollowingTx(tx.TxID, out.Index)
+	for _, out := range transaction.Vout {
+		spendingTx, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, out.Index)
 		if e != nil {
 			// transaction not found => output not yet spent, but we can identify the change output anyway
 			if e.Error() == "transaction not found" {
@@ -43,7 +44,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 			if spendingIn.Vout == index {
 				continue
 			}
-			spentTx, e := db.GetTx(spendingIn.TxID)
+			spentTx, e := tx.GetFromHash(db, ca, spendingIn.TxID)
 			if e != nil {
 				return nil, e
 			}
@@ -62,7 +63,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	_, err := ChangeOutput(db, ca, transaction)
 	return err == nil
 }

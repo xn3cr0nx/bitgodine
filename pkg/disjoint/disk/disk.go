@@ -17,11 +17,11 @@ type DisjointSet struct {
 	parent  []uint64
 	rank    []uint64
 	hashMap sync.Map
-	storage storage.KV
+	storage storage.DB
 }
 
 // NewDisjointSet creates a new instance of DisjointSet
-func NewDisjointSet(db storage.KV, disk, memory bool) (d DisjointSet, err error) {
+func NewDisjointSet(db storage.DB, disk, memory bool) (d DisjointSet, err error) {
 	const CAPACITY uint64 = 2147483647
 	d = DisjointSet{
 		size:    0,

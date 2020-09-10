@@ -11,8 +11,9 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 	"github.com/xn3cr0nx/bitgodine/pkg/task"
 	"gorm.io/gorm"
 )
@@ -28,7 +29,7 @@ func (c *Clusterizer) Clusterize() (err error) {
 	logger.Info("Clusterizer", fmt.Sprintf("Starting clusterizer from block height %d", height), logger.Params{})
 
 	for {
-		syncedHeight, e := c.db.GetLastBlockHeight()
+		syncedHeight, e := block.ReadHeight(c.db)
 		if e != nil {
 			return e
 		}
@@ -38,7 +39,7 @@ func (c *Clusterizer) Clusterize() (err error) {
 		}
 
 		for ; height < syncedHeight; height++ {
-			b, e := c.db.GetBlockFromHeight(height)
+			b, e := block.ReadFromHeight(c.db, c.cache, height)
 			if err != nil {
 				return e
 			}
@@ -46,7 +47,7 @@ func (c *Clusterizer) Clusterize() (err error) {
 			logger.Info("Clusterizer", fmt.Sprintf("Clusterizing block %d", b.Height), logger.Params{"height": b.Height, "hash": b.ID})
 
 			for _, txID := range b.Transactions {
-				tx, e := c.db.GetTx(txID)
+				tx, e := tx.GetFromHash(c.db, c.cache, txID)
 				if e != nil {
 					return e
 				}
@@ -82,7 +83,7 @@ func (c *Clusterizer) Clusterize() (err error) {
 // InputParser worker wrapper for parsing inputs in sync pool
 type InputParser struct {
 	c      *Clusterizer
-	in     models.Input
+	in     tx.Input
 	txItem *mapset.Set
 }
 
@@ -91,7 +92,7 @@ func (w *InputParser) Work() (err error) {
 	if w.in.TxID == zeroHash {
 		return
 	}
-	spentTx, err := w.c.db.GetTx(w.in.TxID)
+	spentTx, err := tx.GetFromHash(w.c.db, w.c.cache, w.in.TxID)
 	if err != nil {
 		return
 	}

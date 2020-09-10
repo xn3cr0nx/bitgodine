@@ -10,17 +10,18 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // ChangeOutput returns the index of the output which address type corresponds to input addresses type
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
-	inputTypes := make([]string, len(tx.Vin))
-	outputTypes := make([]string, len(tx.Vout))
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+	inputTypes := make([]string, len(transaction.Vin))
+	outputTypes := make([]string, len(transaction.Vout))
 
 	var g errgroup.Group
 	g.Go(func() error {
-		for o, out := range tx.Vout {
+		for o, out := range transaction.Vout {
 			outputTypes[o] = out.ScriptpubkeyType
 			if o > 0 && outputTypes[o] == outputTypes[0] {
 				return errors.New("Two or more output of the same type, cannot determine change output")
@@ -29,11 +30,11 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 		return nil
 	})
 	g.Go(func() error {
-		for i, in := range tx.Vin {
+		for i, in := range transaction.Vin {
 			if in.IsCoinbase {
 				continue
 			}
-			spentTx, err := db.GetTx(in.TxID)
+			spentTx, err := tx.GetFromHash(db, ca, in.TxID)
 			if err != nil {
 				return err
 			}
@@ -60,7 +61,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	c, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

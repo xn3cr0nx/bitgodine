@@ -11,22 +11,23 @@ import (
 	"errors"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // PeelingLikeCondition check the basic condition of peeling chain (2 txout and 1 txin)
-func PeelingLikeCondition(tx *models.Tx) bool {
-	return len(tx.Vout) == 2 && len(tx.Vin) == 1
+func PeelingLikeCondition(transaction *tx.Tx) bool {
+	return len(transaction.Vout) == 2 && len(transaction.Vin) == 1
 }
 
 // IsPeelingChain returns true id the transaction is part of a peeling chain
-func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
-	if !PeelingLikeCondition(tx) {
+func IsPeelingChain(db storage.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err error) {
+	if !PeelingLikeCondition(transaction) {
 		return
 	}
 
 	// Check if past transaction is peeling chain
-	spentTx, err := db.GetTx(tx.Vin[0].TxID)
+	spentTx, err := tx.GetFromHash(db, c, transaction.Vin[0].TxID)
 	if err != nil {
 		return
 	}
@@ -34,8 +35,8 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 		return true, nil
 	}
 	// Check if future transaction is peeling chain
-	for _, out := range tx.Vout {
-		spendingTx, e := db.GetFollowingTx(tx.TxID, out.Index)
+	for _, out := range transaction.Vout {
+		spendingTx, e := tx.GetSpendingFromHash(db, c, transaction.TxID, out.Index)
 		if e != nil {
 			err = e
 			return
@@ -48,13 +49,13 @@ func IsPeelingChain(db storage.DB, tx *models.Tx) (is bool, err error) {
 }
 
 // ChangeOutput returns the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
-	is, err := IsPeelingChain(db, tx)
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+	is, err := IsPeelingChain(db, ca, transaction)
 	if err != nil {
 		return
 	}
 	if is {
-		if tx.Vout[0].Value <= tx.Vout[1].Value {
+		if transaction.Vout[0].Value <= transaction.Vout[1].Value {
 			c = append(c, 1)
 		} else {
 			c = append(c, 0)
@@ -66,7 +67,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, c *cache.Cache, transaction *tx.Tx) bool {
+	_, err := ChangeOutput(db, c, transaction)
 	return err == nil
 }

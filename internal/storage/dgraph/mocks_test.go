@@ -3,18 +3,18 @@ package dgraph_test
 import (
 	"time"
 
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 )
 
-var TxMock = models.Tx{
+var TxMock = tx.Tx{
 	TxID:     "b1fea52486ce0c62bb442b530a3f0132b826c74e473d1f2c220bfa78111c5082",
 	Version:  1,
 	Locktime: 0,
 	Size:     0,
 	Weight:   0,
 	Fee:      0,
-	Vin: []models.Input{
-		models.Input{
+	Vin: []tx.Input{
+		{
 			TxID:         "0000000000000000000000000000000000000000000000000000000000000000",
 			Vout:         4294967295,
 			IsCoinbase:   true,
@@ -23,8 +23,8 @@ var TxMock = models.Tx{
 			Sequence:     4294967295,
 		},
 	},
-	Vout: []models.Output{
-		models.Output{
+	Vout: []tx.Output{
+		{
 			Index:               0,
 			Scriptpubkey:        "410411DB93E1DCDB8A016B49840F8C53BC1EB68A382E97B1482ECAD7B148A6909A5CB2E0EADDFB84CCF9744464F82E160BFA9B8B64F9D4C03F999B8643F656B412A3AC",
 			ScriptpubkeyAddress: "12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S",
@@ -33,8 +33,8 @@ var TxMock = models.Tx{
 			Value:               5000000000,
 		},
 	},
-	Status: []models.Status{
-		models.Status{
+	Status: []tx.Status{
+		{
 			Confirmed:   true,
 			BlockHeight: 170,
 			BlockHash:   "00000000d1145790a8694403d4063f323d499e655c83426834d4ce2f8dd4a2ee",

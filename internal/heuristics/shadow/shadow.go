@@ -1,4 +1,4 @@
-// Package behaviour client heuristic
+// Package shadow heuristic
 // This heuristic checks if there are
 // output addresses that are the first time they appear in the Blockchain. We
 // count the transactions in which appear at least one fresh address in the
@@ -8,15 +8,19 @@ package shadow
 import (
 	"runtime"
 
+	"github.com/xn3cr0nx/bitgodine/internal/address"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // Worker struct implementing workers pool
 type Worker struct {
 	db          storage.DB
-	output      models.Output
+	ca          *cache.Cache
+	output      tx.Output
 	vout        int
 	candidates  []uint32
 	blockHeight int32
@@ -24,7 +28,7 @@ type Worker struct {
 
 // Work executed in the workers pool
 func (w *Worker) Work() (err error) {
-	firstOccurence, err := w.db.GetAddressFirstOccurenceHeight(w.output.ScriptpubkeyAddress)
+	firstOccurence, err := address.GetFirstOccurenceHeight(w.db, w.ca, w.output.ScriptpubkeyAddress)
 	if err != nil {
 		return
 	}
@@ -36,19 +40,19 @@ func (w *Worker) Work() (err error) {
 
 // ChangeOutput returns the index of the output which appears for the first time in the chain based on client behaviour heuristic
 // TODO: violates DRY, just different evaluation in output change, but same operations
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
-	candidates := make([]uint32, len(tx.Vout))
-	blockHeight, err := db.GetTxBlockHeight(tx.TxID)
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+	candidates := make([]uint32, len(transaction.Vout))
+	blockHeight, err := block.GetTxBlockHeight(db, ca, transaction.TxID)
 	if err != nil {
 		return
 	}
 
 	pool := task.New(runtime.NumCPU())
-	for vout, out := range tx.Vout {
+	for vout, out := range transaction.Vout {
 		if out.ScriptpubkeyAddress == "" {
 			continue
 		}
-		pool.Do(&Worker{db, out, vout, candidates, blockHeight})
+		pool.Do(&Worker{db, ca, out, vout, candidates, blockHeight})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return
@@ -63,7 +67,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	c, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

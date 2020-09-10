@@ -7,8 +7,10 @@ import (
 	"sync"
 
 	"github.com/labstack/echo/v4"
+	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
@@ -48,11 +50,12 @@ type Flow struct {
 	Occurences []string           `json:"occurences"`
 }
 
-func traceAddress(c *echo.Context, address string, limit int, skip int) (tracing *Flow, err error) {
-	fmt.Println("Tracing address", address)
+func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *Flow, err error) {
+	fmt.Println("Tracing address", addr)
 
 	db := (*c).Get("db").(storage.DB)
-	occurences, err := db.GetAddressOccurences(address)
+	ca := (*c).Get("cache").(*cache.Cache)
+	occurences, err := address.GetOccurences(db, ca, addr)
 	if err != nil {
 		return
 	}
@@ -74,21 +77,21 @@ func traceAddress(c *echo.Context, address string, limit int, skip int) (tracing
 		index := i
 
 		g.Go(func() error {
-			occ = strings.Replace(occ, address+"_", "", 1)
-			tx, err := db.GetTx(occ)
+			occ = strings.Replace(occ, addr+"_", "", 1)
+			transaction, err := tx.GetFromHash(db, ca, occ)
 			if err != nil {
 				return err
 			}
 
 			// find output with sought address
 			vout := uint32(0)
-			for o, out := range tx.Vout {
-				if out.ScriptpubkeyAddress == address {
+			for o, out := range transaction.Vout {
+				if out.ScriptpubkeyAddress == addr {
 					vout = uint32(o)
 				}
 			}
 
-			if err := followFlow(c, db, flow, tx, vout, 0, &lock); err != nil {
+			if err := followFlow(c, db, ca, flow, transaction, vout, 0, &lock); err != nil {
 				return err
 			}
 			tracing.Traces[index%limit] = flow
@@ -102,13 +105,13 @@ func traceAddress(c *echo.Context, address string, limit int, skip int) (tracing
 	return
 }
 
-func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
-	changes, err := analysis.AnalyzeTx(c, tx.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
+func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
+	changes, err := analysis.AnalyzeTx(c, transaction.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
 			lock.Lock()
-			flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
-				TxID: tx.TxID,
+			flow[fmt.Sprintf("%s:%d", transaction.TxID, vout)] = Trace{
+				TxID: transaction.TxID,
 				Next: []Next{},
 			}
 			lock.Unlock()
@@ -120,8 +123,8 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 	if err != nil {
 		if err.Error() == "Not feasible transaction" {
 			lock.Lock()
-			flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
-				TxID: tx.TxID,
+			flow[fmt.Sprintf("%s:%d", transaction.TxID, vout)] = Trace{
+				TxID: transaction.TxID,
 				Next: []Next{},
 			}
 			lock.Unlock()
@@ -137,7 +140,7 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 		output := out
 		percentages := perc
 		g.Go(func() error {
-			spending, e := db.GetFollowingTx(tx.TxID, output)
+			spending, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, output)
 			if e != nil {
 				if e.Error() == "Key not found" {
 					return nil
@@ -150,7 +153,7 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 
 				var g errgroup.Group
 				g.Go(func() (err error) {
-					tags, err := tag.GetTaggedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+					tags, err := tag.GetTaggedClusterSet(c, transaction.Vout[output].ScriptpubkeyAddress)
 					if err != nil {
 						if !strings.Contains(err.Error(), "cluster not found") {
 							return err
@@ -167,7 +170,7 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 					return
 				})
 				g.Go(func() (err error) {
-					abuses, err := abuse.GetAbusedClusterSet(c, tx.Vout[output].ScriptpubkeyAddress)
+					abuses, err := abuse.GetAbusedClusterSet(c, transaction.Vout[output].ScriptpubkeyAddress)
 					if err != nil {
 						if !strings.Contains(err.Error(), "cluster not found") {
 							return err
@@ -190,13 +193,13 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 				localNext = append(localNext, Next{
 					TxID:     spending.TxID,
 					Vout:     output,
-					Receiver: tx.Vout[output].ScriptpubkeyAddress,
-					Amount:   satToBtc(tx.Vout[output].Value),
+					Receiver: transaction.Vout[output].ScriptpubkeyAddress,
+					Amount:   satToBtc(transaction.Vout[output].Value),
 					Weight:   percentage,
 					Analysis: fmt.Sprintf("%b", mask[0]),
 					Clusters: clusters,
 				})
-				err = followFlow(c, db, flow, spending, output, depth+1, lock)
+				err = followFlow(c, db, ca, flow, spending, output, depth+1, lock)
 				if err != nil {
 					return err
 				}
@@ -211,8 +214,8 @@ func followFlow(c *echo.Context, db storage.DB, flow map[string]Trace, tx models
 		return
 	}
 	lock.Lock()
-	flow[fmt.Sprintf("%s:%d", tx.TxID, vout)] = Trace{
-		TxID: tx.TxID,
+	flow[fmt.Sprintf("%s:%d", transaction.TxID, vout)] = Trace{
+		TxID: transaction.TxID,
 		Next: next,
 	}
 	lock.Unlock()

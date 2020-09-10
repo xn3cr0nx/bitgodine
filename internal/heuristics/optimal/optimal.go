@@ -8,14 +8,16 @@ import (
 	"runtime"
 
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // Worker struct implementing workers pool
 type Worker struct {
 	db     storage.DB
+	ca     *cache.Cache
 	txid   string
 	vout   uint32
 	index  int
@@ -24,7 +26,7 @@ type Worker struct {
 
 // Work executed in the workers pool
 func (w *Worker) Work() (err error) {
-	spentTx, err := w.db.GetTx(w.txid)
+	spentTx, err := tx.GetFromHash(w.db, w.ca, w.txid)
 	if err != nil {
 		return
 	}
@@ -33,14 +35,14 @@ func (w *Worker) Work() (err error) {
 }
 
 // ChangeOutput returns the index of the output which value is less than any inputs value, if there is any
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
-	values := make([]int64, len(tx.Vin))
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+	values := make([]int64, len(transaction.Vin))
 	pool := task.New(runtime.NumCPU() / 2)
-	for i, in := range tx.Vin {
+	for i, in := range transaction.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		pool.Do(&Worker{db, in.TxID, in.Vout, i, values})
+		pool.Do(&Worker{db, ca, in.TxID, in.Vout, i, values})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return
@@ -53,7 +55,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 		}
 	}
 
-	for _, out := range tx.Vout {
+	for _, out := range transaction.Vout {
 		if out.Value <= minInput {
 			c = append(c, out.Index)
 		}
@@ -63,7 +65,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	c, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

@@ -9,30 +9,31 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	var outputAddresses,
 		inputAddresses,
 		inputTargets []string
-	var spentTxs []models.Tx
+	var spentTxs []tx.Tx
 	var outputTargets []uint32
 
 	var g errgroup.Group
 	g.Go(func() error {
-		for _, out := range tx.Vout {
+		for _, out := range transaction.Vout {
 			outputAddresses = append(outputAddresses, out.ScriptpubkeyAddress)
 		}
 		return nil
 	})
 	g.Go(func() error {
-		for _, in := range tx.Vin {
+		for _, in := range transaction.Vin {
 			if in.IsCoinbase {
 				continue
 			}
-			spentTx, err := db.GetTx(in.TxID)
+			spentTx, err := tx.GetFromHash(db, ca, in.TxID)
 			if err != nil {
 				return err
 			}
@@ -48,7 +49,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 
 	for _, spent := range spentTxs {
 		for _, in := range spent.Vin {
-			spentTx, e := db.GetTx(in.TxID)
+			spentTx, e := tx.GetFromHash(db, ca, in.TxID)
 			if e != nil {
 				return nil, e
 			}
@@ -86,7 +87,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	_, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	_, err := ChangeOutput(db, ca, transaction)
 	return err == nil
 }

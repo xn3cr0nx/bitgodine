@@ -33,28 +33,23 @@ var exportCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		var kv storage.KV
 		var db storage.DB
 		if viper.GetString("db") == "tikv" {
-			kv, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
-			db, err = tikv.NewKV(kv.(*tikv.TiKV), c)
+			db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
-
 		} else if viper.GetString("db") == "badger" {
-			kv, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
-			db, err = badger.NewKV(kv.(*badger.Badger), c)
+			db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 		} else if viper.GetString("db") == "redis" {
-			kv, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
-			db, err = redis.NewKV(kv.(*redis.Redis), c)
+			db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
@@ -62,7 +57,7 @@ var exportCmd = &cobra.Command{
 			defer db.Close()
 		}
 
-		set, err := disk.NewDisjointSet(kv, true, true)
+		set, err := disk.NewDisjointSet(db, true, true)
 		if err != nil {
 			logger.Error("export", err, logger.Params{})
 			os.Exit(-1)

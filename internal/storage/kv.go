@@ -1,7 +1,7 @@
 package storage
 
-// KV interface implements methods for a generic key value storage db
-type KV interface {
+// DB interface implements methods for a generic key value storage db
+type DB interface {
 	Store(string, []byte) error
 	StoreBatch(interface{}) error
 	StoreQueueBatch(interface{}) error
@@ -12,7 +12,7 @@ type KV interface {
 	ReadPrefix(string) ([][]byte, error)
 	ReadFirstValueByPrefix(string) ([]byte, error)
 	ReadPrefixWithKey(string) (map[string][]byte, error)
-
+	IsStored(string) bool
 	Delete(string) error
 	Empty() error
 	Close() error

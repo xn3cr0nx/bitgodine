@@ -10,7 +10,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
 
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/task"
@@ -27,8 +27,8 @@ type Tx struct {
 // I have to define the id of the transaction with interested output and link the culprit inputs through that it. The approach are two:
 // 1) my current solution starts from the assumption that this situation is uncommon, so is better to handle it just in those uncommon cases
 // 2) if this situation is more common than I though, well is better to check this condition before to start parsing the tx, so I'll refactor
-func PrepareTransactions(db storage.DB, txs []*btcutil.Tx) (transactions []models.Tx, err error) {
-	transactions = make([]models.Tx, len(txs))
+func PrepareTransactions(db storage.DB, txs []*btcutil.Tx) (transactions []tx.Tx, err error) {
+	transactions = make([]tx.Tx, len(txs))
 
 	pool := task.New(runtime.NumCPU() * 2)
 	// block 170 seems to be the first with more than one tx
@@ -44,14 +44,14 @@ func PrepareTransactions(db storage.DB, txs []*btcutil.Tx) (transactions []model
 type TransactionsParser struct {
 	Index        int
 	Tx           *btcutil.Tx
-	Transactions []models.Tx
+	Transactions []tx.Tx
 }
 
 // InputParser worker wrapper for parsing inputs in sync pool
 type InputParser struct {
 	Index  int
 	Input  *wire.TxIn
-	Inputs []models.Input
+	Inputs []tx.Input
 }
 
 // OutputParser worker wrapper for parsing inputs in sync pool
@@ -59,14 +59,14 @@ type OutputParser struct {
 	Index   int
 	Output  *wire.TxOut
 	TxHash  string
-	Outputs []models.Output
+	Outputs []tx.Output
 }
 
 // Work interface to execute transactions parser worker operations
 func (w *TransactionsParser) Work() (err error) {
 	pool := task.New(runtime.NumCPU() * 2)
-	inputs := make([]models.Input, len(w.Tx.MsgTx().TxIn))
-	outputs := make([]models.Output, len(w.Tx.MsgTx().TxOut))
+	inputs := make([]tx.Input, len(w.Tx.MsgTx().TxIn))
+	outputs := make([]tx.Output, len(w.Tx.MsgTx().TxOut))
 
 	for i, in := range w.Tx.MsgTx().TxIn {
 		pool.Do(&InputParser{
@@ -88,7 +88,7 @@ func (w *TransactionsParser) Work() (err error) {
 		return
 	}
 
-	w.Transactions[w.Index] = models.Tx{
+	w.Transactions[w.Index] = tx.Tx{
 		TxID:     w.Tx.Hash().String(),
 		Version:  w.Tx.MsgTx().Version,
 		Locktime: w.Tx.MsgTx().LockTime,
@@ -114,7 +114,7 @@ func (w *InputParser) Work() (err error) {
 		asm = e.Error()
 	}
 	zeroHash, _ := chainhash.NewHash(make([]byte, 32))
-	input := models.Input{
+	input := tx.Input{
 		TxID:         h,
 		Vout:         w.Input.PreviousOutPoint.Index,
 		IsCoinbase:   w.Input.PreviousOutPoint.Hash.IsEqual(zeroHash),
@@ -133,7 +133,7 @@ func (w *InputParser) Work() (err error) {
 // Work interface to execute output parser worker operations
 func (w *OutputParser) Work() (err error) {
 	if w.Output.PkScript == nil { // there are invalid scripts
-		w.Outputs[w.Index] = models.Output{Value: w.Output.Value, Index: uint32(w.Index)}
+		w.Outputs[w.Index] = tx.Output{Value: w.Output.Value, Index: uint32(w.Index)}
 		return
 	}
 	class, addr, _, e := txscript.ExtractPkScriptAddrs(w.Output.PkScript, &chaincfg.MainNetParams)
@@ -147,7 +147,7 @@ func (w *OutputParser) Work() (err error) {
 		asm = e.Error()
 	}
 	// TODO: here should be managemed the multisig (just take all the addr, not just the first)
-	output := models.Output{
+	output := tx.Output{
 		Scriptpubkey:     fmt.Sprintf("%X", w.Output.PkScript),
 		ScriptpubkeyAsm:  asm,
 		ScriptpubkeyType: class.String(),

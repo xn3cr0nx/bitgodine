@@ -35,7 +35,6 @@ type (
 		router *echo.Echo
 		db     storage.DB
 		cache  *cache.Cache
-		kv     storage.KV
 		pg     *postgres.Pg
 	}
 )
@@ -43,7 +42,7 @@ type (
 var server *Server
 
 // NewServer singleton pattern that returns pointer to server
-func NewServer(port int, db storage.DB, c *cache.Cache, kvdb storage.KV, pg *postgres.Pg) *Server {
+func NewServer(port int, db storage.DB, c *cache.Cache, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}
@@ -52,7 +51,6 @@ func NewServer(port int, db storage.DB, c *cache.Cache, kvdb storage.KV, pg *pos
 		router: echo.New(),
 		db:     db,
 		cache:  c,
-		kv:     kvdb,
 		pg:     pg,
 	}
 	return server
@@ -74,7 +72,6 @@ func (s *Server) Listen() {
 		return func(c echo.Context) error {
 			c.Set("db", s.db)
 			c.Set("cache", s.cache)
-			c.Set("kv", s.kv)
 			c.Set("pg", s.pg)
 			return next(c)
 		}

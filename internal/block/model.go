@@ -1,6 +1,10 @@
-package models
+package block
 
-import "time"
+import (
+	"time"
+
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+)
 
 // Block model defined by standard
 type Block struct {
@@ -26,3 +30,9 @@ type Block struct {
 // 	Solution     string `json:"solution,omitempty"`
 // 	SolutionAsm  string `json:"solution_asm,omitempty"`
 // }
+
+// BlockOut enhanced model block with full transactions
+type BlockOut struct {
+	Block
+	Transactions []tx.Tx `json:"transactions"`
+}

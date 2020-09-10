@@ -18,8 +18,8 @@ var _ = Describe("Server", func() {
 
 	Context("when a server is created", func() {
 		It("a single instance is created", func() {
-			s1 := server.NewServer(port, nil, nil, nil, nil)
-			s2 := server.NewServer(port+1, nil, nil, nil, nil)
+			s1 := server.NewServer(port, nil, nil, nil)
+			s2 := server.NewServer(port+1, nil, nil, nil)
 			Expect(s1).To(Equal(s2))
 		})
 	})

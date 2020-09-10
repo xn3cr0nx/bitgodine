@@ -9,11 +9,11 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 // Parser defines the objects involved in the parsing of Bitcoin blockchain
@@ -213,13 +213,13 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 	return
 }
 
-func (p *Parser) findCheckPointByHash(chain [][]uint8, last *models.Block) (block *Block, err error) {
+func (p *Parser) findCheckPointByHash(chain [][]uint8, last *block.Block) (b *Block, err error) {
 	step := int32(viper.GetInt("restoredBlocks"))
 	from := last.Height - step
 	if from < 0 {
 		from = 0
 	}
-	list, err := p.db.GetStoredBlocksList(from)
+	list, err := block.GetStoredList(p.db, from)
 	if err != nil {
 		return
 	}
@@ -235,17 +235,17 @@ func (p *Parser) findCheckPointByHash(chain [][]uint8, last *models.Block) (bloc
 		}
 
 		for len(slice) > 0 {
-			block, err = Parse(&slice)
+			b, err = Parse(&slice)
 			if err != nil {
 				return
 			}
 
-			if block.MsgBlock().Header.PrevBlock.String() == last.ID {
+			if b.MsgBlock().Header.PrevBlock.String() == last.ID {
 				chain[k] = slice
 				return
 			}
-			if _, stored := list[block.Hash().String()]; !stored {
-				p.skipped.StoreBlockPrevHash(block)
+			if _, stored := list[b.Hash().String()]; !stored {
+				p.skipped.StoreBlockPrevHash(b)
 			}
 		}
 		chain[k] = slice

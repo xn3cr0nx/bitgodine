@@ -182,6 +182,12 @@ func (r *Redis) ReadPrefixWithKey(prefix string) (value map[string][]byte, err e
 	return
 }
 
+// IsStored returns true if the block corresponding to passed hash is stored in db
+func (r *Redis) IsStored(key string) bool {
+	_, err := r.Read(key)
+	return err == nil
+}
+
 // Delete inserts in the db the block as []byte passed
 func (r *Redis) Delete(key string) (err error) {
 	err = r.Del(ctx.Background(), key).Err()

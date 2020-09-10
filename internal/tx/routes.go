@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
@@ -18,7 +19,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
-		t, err := GetTxFromHash(c.Get("db").(storage.DB), txid)
+		t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
 		if err != nil {
 			return err
 		}
@@ -30,7 +31,7 @@ func Routes(g *echo.Group) *echo.Group {
 		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 			return err
 		}
-		t, err := GetTxFromHash(c.Get("db").(storage.DB), txid)
+		t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
 		if err != nil {
 			return err
 		}

@@ -40,25 +40,21 @@ data representation to analyze the blockchain.`,
 
 		var db storage.DB
 		if viper.GetString("db") == "tikv" {
-			t, err := tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
-			db, err = tikv.NewKV(t, c)
+			db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
-
 		} else if viper.GetString("db") == "badger" {
-			bdg, err := badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
-			db, err = badger.NewKV(bdg, c)
+			db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)
 			}
 			defer db.Close()
 		} else if viper.GetString("db") == "redis" {
-			r, err := redis.NewRedis(redis.Conf(viper.GetString("redis")))
-			db, err = redis.NewKV(r, c)
+			db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
 			if err != nil {
 				logger.Error("Bitgodine", err, logger.Params{})
 				os.Exit(-1)

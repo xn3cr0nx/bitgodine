@@ -216,6 +216,12 @@ func (t *TiKV) ReadPrefixWithKey(prefix string) (value map[string][]byte, err er
 	return
 }
 
+// IsStored returns true if the block corresponding to passed hash is stored in db
+func (t *TiKV) IsStored(key string) bool {
+	_, err := t.Read(key)
+	return err == nil
+}
+
 // Delete inserts in the db the block as []byte passed
 func (t *TiKV) Delete(key string) (err error) {
 	tx, err := t.Begin()

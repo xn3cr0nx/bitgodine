@@ -10,9 +10,10 @@ import (
 	"runtime"
 
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
+	"github.com/xn3cr0nx/bitgodine/internal/tx"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/pkg/models"
 )
 
 func contains(recipient []string, element string) bool {
@@ -27,6 +28,7 @@ func contains(recipient []string, element string) bool {
 // Worker struct implementing workers pool
 type Worker struct {
 	db             storage.DB
+	ca             *cache.Cache
 	txid           string
 	vout           uint32
 	index          int
@@ -35,7 +37,7 @@ type Worker struct {
 
 // Work executed in the workers pool
 func (w *Worker) Work() (err error) {
-	spentTx, err := w.db.GetTx(w.txid)
+	spentTx, err := tx.GetFromHash(w.db, w.ca, w.txid)
 	if err != nil {
 		return
 	}
@@ -44,20 +46,20 @@ func (w *Worker) Work() (err error) {
 }
 
 // ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
-	inputAddresses := make([]string, len(tx.Vin))
+func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+	inputAddresses := make([]string, len(transaction.Vin))
 	pool := task.New(runtime.NumCPU() / 2)
-	for i, in := range tx.Vin {
+	for i, in := range transaction.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		pool.Do(&Worker{db, in.TxID, in.Vout, i, inputAddresses})
+		pool.Do(&Worker{db, ca, in.TxID, in.Vout, i, inputAddresses})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return
 	}
 
-	for _, out := range tx.Vout {
+	for _, out := range transaction.Vout {
 		if contains(inputAddresses, out.ScriptpubkeyAddress) {
 			c = append(c, out.Index)
 		}
@@ -67,7 +69,7 @@ func ChangeOutput(db storage.DB, tx *models.Tx) (c []uint32, err error) {
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, tx *models.Tx) bool {
-	c, err := ChangeOutput(db, tx)
+func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

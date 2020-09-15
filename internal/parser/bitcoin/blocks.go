@@ -3,6 +3,7 @@ package bitcoin
 import (
 	"errors"
 	"math"
+	"strconv"
 
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
@@ -21,7 +22,7 @@ type Block struct {
 func BlockWalk(p *Parser, b *Block, height *int32) (err error) {
 	b.SetHeight(*height)
 	if *height%100 == 0 {
-		logger.Info("Parser Blocks", "Block "+string(b.Height()), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
+		logger.Info("Parser Blocks", "Block "+strconv.Itoa(int(b.Height())), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
 	logger.Debug("Parser Blocks", "Storing block", logger.Params{"hash": b.Hash().String(), "height": *height})
 	if err = b.Store(p.db); err != nil {

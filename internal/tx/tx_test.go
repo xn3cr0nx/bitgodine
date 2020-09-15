@@ -47,7 +47,8 @@ var _ = Describe("Testing key value storage transactions methods", func() {
 			for _, tx := range blk.Transactions() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
-			err := block.StoreBlock(db, test.BlockToModel(blk), txs)
+			model := test.BlockToModel(blk)
+			err := block.StoreBlock(db, &model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})

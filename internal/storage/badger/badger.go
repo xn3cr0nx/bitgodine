@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/dgraph-io/badger/v2"
+	"github.com/imdario/mergo"
 	"github.com/spf13/viper"
 )
 
@@ -71,22 +72,26 @@ func (b *Badger) StoreBatch(batch interface{}) (err error) {
 	return
 }
 
-// Queue data structure used as broker to load insertion queue
-type Queue []interface{}
-
-var queue Queue
+var queue map[string][]byte
+var counter int
 
 // StoreQueueBatch loads a queue until a threshold to perform a bulk insertion
 func (b *Badger) StoreQueueBatch(v interface{}) (err error) {
+	series := v.(map[string][]byte)
 	if queue == nil {
-		queue = make(Queue, 0)
+		queue = make(map[string][]byte, 0)
 	}
-	queue = append(queue, v)
-	if len(queue) >= 100 {
-		// TODO: this is not currently used, but the interface would fail
-		b.StoreBatch(queue)
-		queue = make(Queue, 0)
+	if err = mergo.Merge(&queue, series, mergo.WithOverride); err != nil {
+		return
 	}
+	if counter >= 100 {
+		if err = b.StoreBatch(queue); err != nil {
+			return
+		}
+		queue = make(map[string][]byte, 0)
+		counter = 0
+	}
+	counter++
 	return
 }
 

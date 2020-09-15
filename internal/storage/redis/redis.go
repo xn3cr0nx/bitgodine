@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/imdario/mergo"
 
 	ctx "context"
 )
@@ -61,29 +62,36 @@ func (r *Redis) Store(key string, value []byte) (err error) {
 // StoreBatch insert new key-value in redis
 func (r *Redis) StoreBatch(batch interface{}) (err error) {
 	series := batch.(map[string][]byte)
+	pipe := r.TxPipeline()
 	for key, value := range series {
-		if err = r.Store(key, value); err != nil {
+		if err = pipe.Set(ctx.Background(), key, value, 0).Err(); err != nil {
 			return
 		}
 	}
+	_, err = pipe.Exec(ctx.Background())
 	return
 }
 
-// Queue data structure used as broker to load insertion queue
-type Queue []interface{}
-
-var queue Queue
+var queue map[string][]byte
+var counter int
 
 // StoreQueueBatch loads a queue until a threshold to perform a bulk insertion
 func (r *Redis) StoreQueueBatch(v interface{}) (err error) {
+	series := v.(map[string][]byte)
 	if queue == nil {
-		queue = make(Queue, 0)
+		queue = make(map[string][]byte, 0)
 	}
-	queue = append(queue, v)
-	if len(queue) >= 100 {
-		r.StoreBatch(queue)
-		queue = make(Queue, 0)
+	if err = mergo.Merge(&queue, series, mergo.WithOverride); err != nil {
+		return
 	}
+	if counter >= 100 {
+		if err = r.StoreBatch(queue); err != nil {
+			return
+		}
+		queue = make(map[string][]byte, 0)
+		counter = 0
+	}
+	counter++
 	return
 }
 

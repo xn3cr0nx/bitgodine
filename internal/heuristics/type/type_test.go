@@ -75,7 +75,7 @@ func (suite *TestAddressReuseSuite) Setup() {
 	}
 
 	blk := block.Block{ID: "", Height: 0}
-	err := block.StoreBlock(suite.db, blk, []tx.Tx{transaction, spentTx})
+	err := block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 }
 

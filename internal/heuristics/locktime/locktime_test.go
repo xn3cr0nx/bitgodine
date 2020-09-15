@@ -67,21 +67,21 @@ func (suite *TestAddressReuseSuite) Setup() {
 		Locktime: 429991,
 	}
 	blk := block.Block{ID: "", Height: 0}
-	err := block.StoreBlock(suite.db, blk, []tx.Tx{transaction, spentTx})
+	err := block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = tx.Tx{
 		TxID:     "e724ed4ae72779fc7ad4a02789143b6c92c3276a38b592a60c51aa0433750aa0",
 		Locktime: 430003,
 	}
-	err = block.StoreBlock(suite.db, blk, []tx.Tx{transaction, spentTx})
+	err = block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = tx.Tx{
 		TxID:     "0664032cd4330937e9d28fe2cf614c76494db4d5a3208b37a4957adc3171069a",
 		Locktime: 0,
 	}
-	err = block.StoreBlock(suite.db, blk, []tx.Tx{transaction, spentTx})
+	err = block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 }
 

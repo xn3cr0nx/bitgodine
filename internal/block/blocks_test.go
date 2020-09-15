@@ -46,7 +46,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 			for _, tx := range blk.Transactions() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
-			err := block.StoreBlock(db, test.BlockToModel(blk), txs)
+			model := test.BlockToModel(blk)
+			err := block.StoreBlock(db, &model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -69,7 +70,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 			for _, tx := range blk.Transactions() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
-			err := block.StoreBlock(db, test.BlockToModel(blk), txs)
+			model := test.BlockToModel(blk)
+			err := block.StoreBlock(db, &model, txs)
 			Expect(err.Error()).To(Equal(fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash)))
 		})
 
@@ -81,7 +83,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 			for _, tx := range blockExample.Transactions() {
 				txs = append(txs, test.TxToModel(tx, blockExample.Height(), blockExample.Hash().String(), blockExample.MsgBlock().Header.Timestamp))
 			}
-			err = block.StoreBlock(db, test.BlockToModel(blockExample), txs)
+			model := test.BlockToModel(blockExample)
+			err = block.StoreBlock(db, &model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -111,7 +114,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 			for _, tx := range blockExample.Transactions() {
 				txs = append(txs, test.TxToModel(tx, blockExample.Height(), blockExample.Hash().String(), blockExample.MsgBlock().Header.Timestamp))
 			}
-			err = block.StoreBlock(db, test.BlockToModel(blockExample), txs)
+			model := test.BlockToModel(blockExample)
+			err = block.StoreBlock(db, &model, txs)
 			Expect(err).ToNot(HaveOccurred())
 
 			height, err := block.ReadHeight(db)

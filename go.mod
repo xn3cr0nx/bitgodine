@@ -17,6 +17,7 @@ require (
 	github.com/go-redis/redis/v8 v8.0.0-beta.9
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/google/uuid v1.1.1
+	github.com/imdario/mergo v0.3.11
 	github.com/jinzhu/gorm v1.9.16
 	github.com/json-iterator/go v1.1.10
 	github.com/labstack/echo/v4 v4.1.17

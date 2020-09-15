@@ -26,9 +26,9 @@ func fetchBlockTxs(db storage.DB, c *cache.Cache, txs []string) (transactions []
 
 // StoreBlock inserts in the db the block as []byte passed
 // for fast research purpose blocks have _ prefix, tx_ for txs prefix and h_ for height prefix
-func StoreBlock(db storage.DB, v interface{}, t interface{}) (err error) {
-	b := v.(*Block)
-	txs := t.([]tx.Tx)
+func StoreBlock(db storage.DB, b *Block, txs []tx.Tx) (err error) {
+	// b := v.(*Block)
+	// txs := t.([]tx.Tx)
 	blockHash := []byte(b.ID)
 	h := strconv.Itoa(int(b.Height))
 
@@ -57,7 +57,7 @@ func StoreBlock(db storage.DB, v interface{}, t interface{}) (err error) {
 		}
 	}
 
-	err = db.StoreBatch(batch)
+	err = db.StoreQueueBatch(batch)
 	return
 }
 

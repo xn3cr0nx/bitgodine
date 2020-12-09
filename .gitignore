@@ -1,6 +1,9 @@
+build/
+/config
+/vendor
+/docs
 clusters.csv
 .~lock.clusters.csv#
-build/
 .env
 *.html
 profiling
@@ -11,4 +14,3 @@ profiling
 *.test
 *.csv
 *.txt
-/config

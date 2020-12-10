@@ -8,7 +8,7 @@ import (
 )
 
 // Routes mounts all /address based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+func Routes(g *echo.Group) {
 	r := g.Group("/address")
 
 	r.GET("/:address", func(c echo.Context) error {
@@ -50,6 +50,4 @@ func Routes(g *echo.Group) *echo.Group {
 		}
 		return c.JSON(http.StatusOK, "OK")
 	})
-
-	return r
 }

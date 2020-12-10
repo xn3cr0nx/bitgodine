@@ -12,7 +12,7 @@ import (
 )
 
 // Routes mounts all /block, /blocks and /block-height based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+func Routes(g *echo.Group) {
 	g.GET("/block-height/:height", blockHeight)
 
 	r := g.Group("/block")
@@ -25,8 +25,6 @@ func Routes(g *echo.Group) *echo.Group {
 	s.GET("/:start_height", blocksHeight)
 	s.GET("/tip/height", tipHeight)
 	s.GET("/tip/hash", tipHash)
-
-	return r
 }
 
 // blockHeight godoc

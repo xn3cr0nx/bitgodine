@@ -1,6 +1,7 @@
 module github.com/xn3cr0nx/bitgodine
 
 require (
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/blend/go-sdk v2.0.0+incompatible // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -22,6 +23,7 @@ require (
 	github.com/json-iterator/go v1.1.10
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/labstack/gommon v0.3.0
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/olekukonko/tablewriter v0.0.4
@@ -29,17 +31,22 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pingcap/tidb v1.1.0-beta.0.20200701091151-ceec9d9c63c8
+	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
+	github.com/swaggo/echo-swagger v1.1.0
+	github.com/swaggo/swag v1.7.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
+	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 // indirect
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
+	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d // indirect
+	golang.org/x/tools v0.0.0-20201208233053-a543418bbed2 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.31.0

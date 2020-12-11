@@ -26,6 +26,8 @@ func Routes(g *echo.Group) {
 // @Produce  json
 //
 // @Param address path string true "Address"
+// @Param limit query int false "Limit"
+// @Param skip query int false "Skip"
 //
 // @Success 200 {object} Flow
 // @Success 500 {string} string

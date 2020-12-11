@@ -28,6 +28,8 @@ func Routes(g *echo.Group) {
 // @Produce  json
 //
 // @Param txid path string true "Transaction ID"
+// @Param heuristics query []string false "Heuristics list" Enums(locktime, peeling, power, optimal, exact, type, reuse, shadow, client, forward, backward)
+// @Param type query string false "Analysis type" Enums(applicability, reliability)
 //
 // @Success 200 {object} object
 // @Success 500 {string} string
@@ -76,6 +78,14 @@ func analysisID(c echo.Context) error {
 //
 // @Accept  json
 // @Produce  json
+//
+// @Param from query int false "From block" minimum(0)
+// @Param to query int false "To block"
+// @Param heuristics query []string false "Heuristics" Enums(locktime, peeling, power, optimal, exact, type, reuse, shadow, client, forward, backward)
+// @Param plot query string false "Plot type" Enums(timeline, percentage, combination)
+// @Param force query bool false "Rewrite previous stored results"
+// @Param analysis query string false "Analysis output" Enums(offbyone, securebasis, fullmajorityvoting, majorityvoting, strictmajorityvoting, fullmajorityanalysis, reducingmajorityanalysis, overlapping)
+// @Param type query string false "Analysis tpye" Enums(applicability, reliability)
 //
 // @Success 200 {string} ok
 // @Success 500 {string} string

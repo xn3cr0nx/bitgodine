@@ -1,20 +1,20 @@
 version: "3.7"
 
 services:
-  # bitcoind:
-  #   image: kylemanna/bitcoind
-  #   container_name: bitcoind
-  #   volumes:
-  #     - bitcoind-data:/bitcoin
-  #   ports:
-  #     - 8333:8333
-  #     - 127.0.0.1:8332:8332
-  #   networks:
-  #     - bitgodine
+  bitcoind:
+    image: kylemanna/bitcoind
+    container_name: bitcoind
+    volumes:
+      - bitcoind-data:/bitcoin
+    ports:
+      - 8333:8333
+      - 127.0.0.1:8332:8332
+    networks:
+      - bitgodine
 
-  postgresql:
+  postgres:
     image: postgres
-    container_name: postgresql
+    container_name: postgres
     restart: always
     environment:
       # - POSTGRES_HOST=bitgodine
@@ -36,7 +36,7 @@ services:
   #     - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
   #     - PGADMIN_DEFAULT_PASSWORD=bitgodine
   #   links:
-  #     - postgresql
+  #     - postgres
   #   logging:
   #     driver: none
   #   networks:
@@ -294,7 +294,7 @@ services:
       - analysis:/analysis
       - ./config:/root/config
     depends_on:
-      - postgresql
+      - postgres
     networks:
       - bitgodine
 
@@ -311,7 +311,7 @@ services:
       - badger:/badger
       - ./config:/root/config
     depends_on:
-      - postgresql
+      - postgres
     networks:
       - bitgodine
 
@@ -325,7 +325,7 @@ services:
     volumes:
       - ./bitgodine_spider/config:/root/config
     depends_on:
-      - postgresql
+      - postgres
     networks:
       - bitgodine
   # bitgodine_plotter:

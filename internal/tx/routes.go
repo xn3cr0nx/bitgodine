@@ -11,32 +11,10 @@ import (
 )
 
 // Routes mounts all /tx based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+func Routes(g *echo.Group) {
 	r := g.Group("/tx")
-
-	r.GET("/:txid", func(c echo.Context) error {
-		txid := c.Param("txid")
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-			return err
-		}
-		t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, t)
-	})
-
-	r.GET("/:txid/status", func(c echo.Context) error {
-		txid := c.Param("txid")
-		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-			return err
-		}
-		t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, t.Status)
-	})
+	r.GET("/:txid", txID)
+	r.GET("/:txid/status", txIDStatus)
 
 	// TODO: generate btcutil block and return hex conversion
 	// r.GET("/:txid/hex", func(c echo.Context) error {
@@ -102,6 +80,58 @@ func Routes(g *echo.Group) *echo.Group {
 	r.POST("", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, "OK")
 	})
+}
 
-	return r
+// txID godoc
+// @ID tx-id
+//
+// @Router /tx/{txid} [get]
+// @Summary Tx from id
+// @Description get transaction from id
+// @Tags tx
+//
+// @Accept  json
+// @Produce  json
+//
+// @Param txid path string true "Transaction id"
+//
+// @Success 200 {object} Tx
+// @Success 500 {string} string
+func txID(c echo.Context) error {
+	txid := c.Param("txid")
+	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+		return err
+	}
+	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, t)
+}
+
+// txIDStatus godoc
+// @ID tx-id-status
+//
+// @Router /tx/{txid}/status [get]
+// @Summary Tx status from id
+// @Description get transaction's status from id
+// @Tags tx
+//
+// @Accept  json
+// @Produce  json
+//
+// @Param txid path string true "Transaction id"
+//
+// @Success 200 {object} Tx
+// @Success 500 {string} string
+func txIDStatus(c echo.Context) error {
+	txid := c.Param("txid")
+	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+		return err
+	}
+	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, t.Status)
 }

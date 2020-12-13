@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine/internal/address"
@@ -26,6 +27,8 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 	v "gopkg.in/go-playground/validator.v9"
+
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 // Server struct initialized with port
@@ -80,6 +83,9 @@ func (s *Server) Listen() {
 	s.router.Use(middleware.Recover())
 	s.router.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 5,
+		Skipper: func(c echo.Context) bool {
+			return strings.Contains(c.Request().URL.Path, "swagger")
+		},
 	}))
 
 	s.router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -92,6 +98,8 @@ func (s *Server) Listen() {
 	s.router.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, "Welcome to Bitgodine REST API")
 	})
+
+	s.router.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	api := s.router.Group("/api")
 	tx.Routes(api)
@@ -109,6 +117,7 @@ func (s *Server) Listen() {
 
 	go func() {
 		if err := s.router.Start(s.port); err != nil {
+			s.router.Logger.Error(err)
 			s.router.Logger.Fatal("shutting down the server")
 		}
 	}()

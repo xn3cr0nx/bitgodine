@@ -8,7 +8,7 @@ import (
 )
 
 // Routes mounts all /abuse based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+func Routes(g *echo.Group) {
 	r := g.Group("/abuses")
 
 	r.GET("", func(c echo.Context) error {
@@ -90,6 +90,4 @@ func Routes(g *echo.Group) *echo.Group {
 
 		return c.JSON(http.StatusOK, clusters)
 	})
-
-	return r
 }

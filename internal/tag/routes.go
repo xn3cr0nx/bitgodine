@@ -7,8 +7,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 )
 
-// Routes mounts all /tag based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+// Routes mounts all /tags based routes on the main group
+func Routes(g *echo.Group) {
 	r := g.Group("/tags")
 
 	r.GET("", func(c echo.Context) error {
@@ -90,6 +90,4 @@ func Routes(g *echo.Group) *echo.Group {
 
 		return c.JSON(http.StatusOK, clusters)
 	})
-
-	return r
 }

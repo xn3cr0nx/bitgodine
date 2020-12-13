@@ -46,7 +46,7 @@ install_server:
 
 .PHONY: server
 server:
-	reflex -r '\.go$$' -s -- sh -c "config="./config/local.json" $(GORUN) $(SERVER) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis"
+	reflex -r '\.go$$' -R './docs/*.go' -s -- sh -c 'swag init -g cmd/server/main.go && config="./config/local.json" $(GORUN) $(SERVER) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis'
 
 # parser
 .PHONY: parser

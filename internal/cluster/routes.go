@@ -7,8 +7,8 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 )
 
-// Routes mounts all /cluster based routes on the main group
-func Routes(g *echo.Group) *echo.Group {
+// Routes mounts all /clusters based routes on the main group
+func Routes(g *echo.Group) {
 	r := g.Group("/clusters")
 
 	r.GET("", func(c echo.Context) error {
@@ -62,6 +62,4 @@ func Routes(g *echo.Group) *echo.Group {
 
 		return c.JSON(http.StatusOK, clusters)
 	})
-
-	return r
 }

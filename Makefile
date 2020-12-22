@@ -10,6 +10,8 @@ MAKE=make
 BUILD_PATH=build
 SERVER=./cmd/server
 SERVER_BINARY=server
+CLI=./cmd/cli
+CLI_BINARY=cli
 PARSER=./cmd/parser
 PARSER_BINARY=parser
 CLUSTERIZER=./cmd/clusterizer
@@ -22,6 +24,8 @@ LNX_BUILD=$(build)/$(BINARY_NAME)
 WIN_BUILD=$(build)/$(BINARY_NAME).exe
 
 export GO111MODULE=on
+
+default: build_server build_clusterizer build_parser build_spider build_cli
 
 .PHONY: all
 all: test build linux
@@ -47,6 +51,19 @@ install_server:
 .PHONY: server
 server:
 	reflex -r '\.go$$' -R './docs/*.go' -s -- sh -c 'swag init -g cmd/server/main.go && config="./config/local.json" $(GORUN) $(SERVER) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis'
+
+# cli
+.PHONY: build_cli
+build_cli: 
+	$(GOBUILD) -o $(BUILD_PATH)/$(CLI_BINARY) -v $(CLI)
+
+.PHONY: install_cli
+install_cli:
+	$(GOINSTALL) $(CLI)
+
+.PHONY: cli
+server:
+	$(GORUN) $(CLI)
 
 # parser
 .PHONY: parser

@@ -1,5 +1,20 @@
 version: "3.7"
 
+x-git-args: &git-args
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-612359e5086512e1906ed81ce0c797678f52274f}
+
+x-pg-env: &pg-env
+  POSTGRES_USER: &pg-user ${POSTGRES_USER:-bitgodine}
+  POSTGRES_PASSWORD: &pg-psw ${POSTGRES_PASSWORD:-bitgodine}
+  POSTGRES_DB: &pg-db ${POSTGRES_DB:-bitgodine}
+x-pgadmin-env: &pgadmin-env
+  PGADMIN_DEFAULT_EMAIL: patrick.jusic@toggl.com
+  PGADMIN_DEFAULT_PASSWORD: *pg-user
+
+x-network: &network
+  networks:
+    - bitgodine
+
 services:
   bitcoind:
     image: kylemanna/bitcoind
@@ -9,32 +24,26 @@ services:
     ports:
       - 8333:8333
       - 127.0.0.1:8332:8332
-    networks:
-      - bitgodine
+    <<: *network
 
   postgres:
     image: postgres
     container_name: postgres
     restart: always
     environment:
-      # - POSTGRES_HOST=bitgodine
-      - POSTGRES_USER=bitgodine
-      - POSTGRES_PASSWORD=bitgodine
-      - POSTGRES_DB=bitgodine
+      <<: *pg-env
     ports:
       - 5432:5432
     volumes:
       - postgres/:/var/lib/postgresql
-    networks:
-      - bitgodine
+    <<: *network
 
   # pgadmin:
   #   image: dpage/pgadmin4
   #   ports:
   #     - 9876:80
   #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
-  #     - PGADMIN_DEFAULT_PASSWORD=bitgodine
+  #     <<: *pgadmin-env
   #   links:
   #     - postgres
   #   logging:
@@ -43,8 +52,8 @@ services:
   #     - bitgodine
 
   ##########################################
-  # TiKV setup
-  
+  # Redis setup
+
   redis:
     image: redis
     container_name: redis
@@ -53,258 +62,50 @@ services:
     volumes:
       - redis:/redis-data/data
     restart: always
-    networks:
-      - bitgodine
-  ##########################################
+    <<: *network
 
   ##########################################
-  # TiKV setup
-  # pd0:
-  #   image: pingcap/pd:latest
-  #   container_name: pd0
-  #   ports:
-  #     - 2379:2379
-  #   volumes:
-  #     - ./tikv/config/pd.toml:/pd.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --name=pd0
-  #     - --client-urls=http://0.0.0.0:2379
-  #     - --peer-urls=http://0.0.0.0:2380
-  #     - --advertise-client-urls=http://pd0:2379
-  #     - --advertise-peer-urls=http://pd0:2380
-  #     - --initial-cluster=pd0=http://pd0:2380,pd1=http://pd1:2380,pd2=http://pd2:2380
-  #     - --data-dir=/data/pd0
-  #     - --config=/pd.toml
-  #     - --log-file=/logs/pd0.log
-  #   restart: on-failure
-  # pd1:
-  #   image: pingcap/pd:latest
-  #   container_name: pd1
-  #   ports:
-  #     - 2379
-  #   volumes:
-  #     - ./tikv/config/pd.toml:/pd.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --name=pd1
-  #     - --client-urls=http://0.0.0.0:2379
-  #     - --peer-urls=http://0.0.0.0:2380
-  #     - --advertise-client-urls=http://pd1:2379
-  #     - --advertise-peer-urls=http://pd1:2380
-  #     - --initial-cluster=pd0=http://pd0:2380,pd1=http://pd1:2380,pd2=http://pd2:2380
-  #     - --data-dir=/data/pd1
-  #     - --config=/pd.toml
-  #     - --log-file=/logs/pd1.log
-  #   restart: on-failure
-  # pd2:
-  #   image: pingcap/pd:latest
-  #   container_name: pd2
-  #   ports:
-  #     - 2379
-  #   volumes:
-  #     - ./tikv/config/pd.toml:/pd.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --name=pd2
-  #     - --client-urls=http://0.0.0.0:2379
-  #     - --peer-urls=http://0.0.0.0:2380
-  #     - --advertise-client-urls=http://pd2:2379
-  #     - --advertise-peer-urls=http://pd2:2380
-  #     - --initial-cluster=pd0=http://pd0:2380,pd1=http://pd1:2380,pd2=http://pd2:2380
-  #     - --data-dir=/data/pd2
-  #     - --config=/pd.toml
-  #     - --log-file=/logs/pd2.log
-  #   restart: on-failure
-  # tikv0:
-  #   image: pingcap/tikv:latest
-  #   container_name: tikv0
-  #   volumes:
-  #     - ./tikv/config/tikv.toml:/tikv.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --addr=0.0.0.0:20160
-  #     - --advertise-addr=tikv0:20160
-  #     - --data-dir=/data/tikv0
-  #     - --pd=pd0:2379,pd1:2379,pd2:2379
-  #     - --config=/tikv.toml
-  #     - --log-file=/logs/tikv0.log
-  #   depends_on:
-  #     - "pd0"
-  #     - "pd1"
-  #     - "pd2"
-  #   restart: on-failure
-  # tikv1:
-  #   image: pingcap/tikv:latest
-  #   container_name: tikv1
-  #   volumes:
-  #     - ./tikv/config/tikv.toml:/tikv.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --addr=0.0.0.0:20160
-  #     - --advertise-addr=tikv1:20160
-  #     - --data-dir=/data/tikv1
-  #     - --pd=pd0:2379,pd1:2379,pd2:2379
-  #     - --config=/tikv.toml
-  #     - --log-file=/logs/tikv1.log
-  #   depends_on:
-  #     - "pd0"
-  #     - "pd1"
-  #     - "pd2"
-  #   restart: on-failure
-  # tikv2:
-  #   image: pingcap/tikv:latest
-  #   container_name: tikv2
-  #   volumes:
-  #     - ./tikv/config/tikv.toml:/tikv.toml:ro
-  #     - ./tikv/data:/data
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --addr=0.0.0.0:20160
-  #     - --advertise-addr=tikv2:20160
-  #     - --data-dir=/data/tikv2
-  #     - --pd=pd0:2379,pd1:2379,pd2:2379
-  #     - --config=/tikv.toml
-  #     - --log-file=/logs/tikv2.log
-  #   depends_on:
-  #     - "pd0"
-  #     - "pd1"
-  #     - "pd2"
-  #   restart: on-failure
-
-  # tidb:
-  #   image: pingcap/tidb:latest
-  #   container_name: tidb
-  #   ports:
-  #     - "4000:4000"
-  #     - "10080:10080"
-  #   volumes:
-  #     - ./tikv/config/tidb.toml:/tidb.toml:ro
-  #     - ./tikv/logs:/logs
-  #   command:
-  #     - --store=tikv
-  #     - --path=pd0:2379,pd1:2379,pd2:2379
-  #     - --config=/tidb.toml
-  #     - --log-file=/logs/tidb.log
-  #     - --advertise-address=tidb
-  #   depends_on:
-  #     - "tikv0"
-  #     - "tikv1"
-  #     - "tikv2"
-  #   restart: on-failure
-
-  # tidb-vision:
-  #   image: pingcap/tidb-vision:latest
-  #   container_name: tidb-vision
-  #   environment:
-  #     PD_ENDPOINT: pd0:2379
-  #   ports:
-  #     - "8010:8010"
-  #   restart: on-failure
-
-  # # monitors
-  # pushgateway:
-  #   image: prom/pushgateway:v0.3.1
-  #   container_name: pishgateway
-  #   command:
-  #     - --log.level=error
-  #   restart: on-failure
-
-  # prometheus:
-  #   user: root
-  #   image: prom/prometheus:v2.2.1
-  #   container_name: prometheus
-  #   command:
-  #     - --log.level=error
-  #     - --storage.tsdb.path=/data/prometheus
-  #     - --config.file=/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./tikv/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #     - ./tikv/config/pd.rules.yml:/etc/prometheus/pd.rules.yml:ro
-  #     - ./tikv/config/tikv.rules.yml:/etc/prometheus/tikv.rules.yml:ro
-  #     - ./tikv/config/tidb.rules.yml:/etc/prometheus/tidb.rules.yml:ro
-  #     - ./tikv/data:/data
-  #   restart: on-failure
-
-  # grafana:
-  #   image: grafana/grafana:6.0.1
-  #   container_name: grafana
-  #   user: "0"
-  #   environment:
-  #     GF_LOG_LEVEL: error
-  #     GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-  #     GF_PATHS_CONFIG: /etc/grafana/grafana.ini
-  #   volumes:
-  #     - ./tikv/config/grafana:/etc/grafana
-  #     - ./tikv/config/dashboards:/tmp/dashboards
-  #     - ./tikv/data/grafana:/var/lib/grafana
-  #   ports:
-  #     - "3000:3000"
-  #   restart: on-failure
-
-  # x-defaults: &defaults
-  #   init: true
-  #   volumes:
-  #       - ./entrypoints:/entrypoints
-  #   environment:
-  #       SLOT: "{{.Task.Slot}}"
-  #       NAME: "{{.Task.Name}}"
-  #   entrypoint: /bin/sh
-  #   # deploy:
-  #   #     replicas: 1
-  #   #     restart_policy:
-  #   #         condition: on-failure
-  #   #         delay: 5s
-  
-  ##########################################
+  # Services
 
   bitgodine_parser:
     container_name: parser
     build:
       context: .
-      dockerfile: parser.Dockerfile
+      dockerfile: ./docker/parser.Dockerfile
       args:
-        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+        <<: *git-args
     command: ./bitgodine start --debug -r=false --blocksDir /bitcoin
     volumes:
       - bitcoind-data:/bitcoin
       - badger:/badger
       - ./config:/root/config
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_server:
     container_name: server
     build:
       context: .
-      dockerfile: server.Dockerfile
+      dockerfile: ./docker/server.Dockerfile
       args:
-        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+        <<: *git-args
     ports:
       - 3001:3001
+      - 9464:9464
     volumes:
       - badger:/badger
       - analysis:/analysis
       - ./config:/root/config
     depends_on:
       - postgres
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_clusterizer:
     container_name: clusterizer
     build:
       context: .
-      dockerfile: clusterizer.Dockerfile
+      dockerfile: ./docker/clusterizer.Dockerfile
       args:
-        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+        <<: *git-args
     command: ./bitgodine start --debug
     volumes:
       - utxoset:/utxoset
@@ -312,22 +113,21 @@ services:
       - ./config:/root/config
     depends_on:
       - postgres
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_spider:
     container_name: spider
     build:
       context: .
-      dockerfile: spider.Dockerfile
+      dockerfile: ./docker/spider.Dockerfile
       args:
-        GITHUB_TOKEN: 612359e5086512e1906ed81ce0c797678f52274f
+        <<: *git-args
     volumes:
       - ./bitgodine_spider/config:/root/config
     depends_on:
       - postgres
-    networks:
-      - bitgodine
+    <<: *network
+    
   # bitgodine_plotter:
   #   container_name: plotter
   #   build:
@@ -337,6 +137,62 @@ services:
   #     - 5000:5000
   #   networks:
   #    - bitgodine
+
+  #########################################
+  # OpenTelemetry
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 14268:14268
+      - 9411:9411
+    <<: *network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - 9090:9090
+    volumes:
+      - prometheus_data:/prometheus
+      - prometheus_config:/fragments/
+      - ${PWD}/config/otel/prometheus/targets/prometheus.json:/etc/prometheus/targets/prometheus.json
+      - ${PWD}/config/otel/prometheus/targets/grafana.json:/etc/prometheus/targets/grafana.json
+      - ${PWD}/config/otel/prometheus/targets/app.json:/etc/prometheus/targets/app.json
+    command:
+      - "--config.file=/fragments/complete/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    depends_on:
+      - config-concat
+    <<: *network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - "4000:3000"
+    volumes:
+      - grafana_lib:/var/lib/grafana
+      - ${PWD}/config/otel/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    <<: *network
+
+  config-concat:
+    image: deanwilson/promconf-concat:0.1.0
+    container_name: config-concat
+    restart: always
+    volumes:
+      - prometheus_config:/fragments/
+      - ${PWD}/config/otel/prometheus/base_prometheus.yml:/base_prometheus.yml
 
 volumes:
   dgraph:
@@ -348,6 +204,13 @@ volumes:
   utxoset:
   bitcoind-data:
   postgres:
+  grafana_lib:
+  prometheus_data:
+  prometheus_config:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+
 
 networks:
   bitgodine:

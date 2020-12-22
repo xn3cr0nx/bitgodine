@@ -62,7 +62,7 @@ install_cli:
 	$(GOINSTALL) $(CLI)
 
 .PHONY: cli
-server:
+cli:
 	$(GORUN) $(CLI)
 
 # parser

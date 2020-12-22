@@ -15,7 +15,7 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fatih/structs v1.1.0
-	github.com/go-redis/redis/v8 v8.0.0-beta.9
+	github.com/go-redis/redis/v8 v8.4.4
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/google/uuid v1.1.1
 	github.com/imdario/mergo v0.3.11
@@ -27,11 +27,12 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/olekukonko/tablewriter v0.0.4
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
+	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/gomega v1.10.4
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pingcap/tidb v1.1.0-beta.0.20200701091151-ceec9d9c63c8
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
@@ -39,15 +40,22 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/echo-swagger v1.1.0
 	github.com/swaggo/swag v1.7.0
+	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
+	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.15.1
+	go.opentelemetry.io/otel v0.15.0
+	go.opentelemetry.io/otel/exporters/metric/prometheus v0.15.0
+	go.opentelemetry.io/otel/exporters/stdout v0.15.0
+	go.opentelemetry.io/otel/exporters/trace/jaeger v0.15.0
+	go.opentelemetry.io/otel/sdk v0.15.0
 	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 // indirect
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d // indirect
+	golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
 	golang.org/x/tools v0.0.0-20201208233053-a543418bbed2 // indirect
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.31.1
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gorm.io/driver/postgres v1.0.0

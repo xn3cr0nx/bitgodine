@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
@@ -18,15 +19,20 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/pkg/meter"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/pprof"
+	"github.com/xn3cr0nx/bitgodine/pkg/tracer"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
+	"go.opentelemetry.io/otel/label"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 	v "gopkg.in/go-playground/validator.v9"
+
+	otleTrace "go.opentelemetry.io/otel/trace"
 
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
@@ -71,11 +77,23 @@ func (s *Server) Listen() {
 
 	s.router.HTTPErrorHandler = customHTTPErrorHandler
 
+	_, err := meter.NewMeter(&meter.Config{Name: "bitgodine_api"})
+	if err != nil {
+		panic(errors.Wrapf(err, "cannot setup meter"))
+	}
+
+	tracer, tracerMiddleware, err := tracer.NewTracer(&tracer.Config{Name: "bitgodine_api", Exporter: tracer.Jaeger})
+	if err != nil {
+		panic(errors.Wrapf(err, "cannot setup tracing"))
+	}
+	s.router.Use(tracerMiddleware)
+
 	s.router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("db", s.db)
 			c.Set("cache", s.cache)
 			c.Set("pg", s.pg)
+			c.Set("tracer", tracer)
 			return next(c)
 		}
 	})
@@ -96,6 +114,8 @@ func (s *Server) Listen() {
 	s.router.Use(middleware.RequestID())
 
 	s.router.GET("/", func(c echo.Context) error {
+		_, span := (*tracer).Start(context.Background(), "status", otleTrace.WithAttributes(label.String("id", c.Request().Header.Get("X-Request-ID"))))
+		defer span.End()
 		return c.JSON(http.StatusOK, "Welcome to Bitgodine REST API")
 	})
 

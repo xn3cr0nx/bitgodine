@@ -1,5 +1,20 @@
 version: "3.7"
 
+x-git-args: &git-args
+  GITHUB_TOKEN: ${GITHUB_TOKEN:-612359e5086512e1906ed81ce0c797678f52274f}
+
+x-pg-env: &pg-env
+  POSTGRES_USER: &pg-user ${POSTGRES_USER:-bitgodine}
+  POSTGRES_PASSWORD: &pg-psw ${POSTGRES_PASSWORD:-bitgodine}
+  POSTGRES_DB: &pg-db ${POSTGRES_DB:-bitgodine}
+x-pgadmin-env: &pgadmin-env
+  PGADMIN_DEFAULT_EMAIL: patrick.jusic@toggl.com
+  PGADMIN_DEFAULT_PASSWORD: *pg-user
+
+x-network: &network
+  networks:
+    - bitgodine
+
 services:
   bitcoind:
     image: kylemanna/bitcoind
@@ -9,38 +24,31 @@ services:
     ports:
       - 8333:8333
       - 127.0.0.1:8332:8332
-    networks:
-      - bitgodine
+    <<: *network
 
   postgres:
     image: postgres
     container_name: postgres
     restart: always
     environment:
-      # - POSTGRES_HOST=bitgodine
-      - POSTGRES_USER=bitgodine
-      - POSTGRES_PASSWORD=bitgodine
-      - POSTGRES_DB=bitgodine
+      <<: *pg-env
     ports:
       - 5432:5432
     volumes:
       - postgresql:/var/lib/postgresql
-    networks:
-      - bitgodine
+    <<: *network
 
   pgadmin:
     image: dpage/pgadmin4
     ports:
       - 9876:80
     environment:
-      - PGADMIN_DEFAULT_EMAIL=patrick.jusic@protonmail.com
-      - PGADMIN_DEFAULT_PASSWORD=bitgodine
+      <<: *pgadmin-env
     links:
       - postgres
     logging:
       driver: none
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_parser:
     container_name: parser
@@ -50,8 +58,7 @@ services:
       - bitcoind-data:/bitcoin
       - bolt:/bolt
       - badger:/badger
-    networks:
-      - bitgodine
+    <<: *network
     restart: always
 
   bitgodine_server:
@@ -62,8 +69,7 @@ services:
     volumes:
       - badger:/badger
       - analysis:/analysis
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_clusterizer:
     container_name: clusterizer
@@ -74,8 +80,7 @@ services:
       - utxoset:/utxoset
       - badger:/badger
       - disjoint:/disjoint
-    networks:
-      - bitgodine
+    <<: *network
 
   bitgodine_spider:
     container_name: spider
@@ -84,8 +89,7 @@ services:
       - ./config:/root/config
     depends_on:
       - postgres
-    networks:
-      - bitgodine
+    <<: *network
 
 volumes:
   dgraph:

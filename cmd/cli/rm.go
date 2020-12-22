@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/xn3cr0nx/bitgodine/cmd/parser/transaction"
+	"github.com/xn3cr0nx/bitgodine/cmd/cli/transaction"
 )
 
 // rmCmd represents the rm command

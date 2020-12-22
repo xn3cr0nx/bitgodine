@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/xn3cr0nx/bitgodine/cmd/cli/address"
+	"github.com/xn3cr0nx/bitgodine/cmd/cli/block"
+	"github.com/xn3cr0nx/bitgodine/cmd/cli/transaction"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -59,7 +63,10 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.AddCommand(startCmd)
+	// Adds subdirectories command
+	rootCmd.AddCommand(block.BlockCmd)
+	rootCmd.AddCommand(transaction.TransactionCmd)
+	rootCmd.AddCommand(address.AddressCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")

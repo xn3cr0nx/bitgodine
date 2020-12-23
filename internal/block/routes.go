@@ -22,9 +22,9 @@ func Routes(g *echo.Group) {
 	r.GET("/:hash/txids", blockHashTxIDs)
 
 	s := g.Group("/blocks")
-	s.GET("/:start_height", blocksHeight)
 	s.GET("/tip/height", tipHeight)
 	s.GET("/tip/hash", tipHash)
+	s.GET("/:start_height", blocksHeight)
 }
 
 // blockHeight godoc

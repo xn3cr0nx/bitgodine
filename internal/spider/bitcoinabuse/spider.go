@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
-	chttp "github.com/xn3cr0nx/bitgodine/internal/http"
+	"github.com/xn3cr0nx/bitgodine/internal/httpx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"gorm.io/gorm"
@@ -51,7 +51,7 @@ func (s *Spider) Sync() (err error) {
 	if err != nil {
 		return err
 	}
-	body, err := chttp.ParseResponse(resp)
+	body, err := httpx.ParseResponse(resp)
 	if err != nil {
 		return err
 	}

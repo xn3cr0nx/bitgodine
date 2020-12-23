@@ -9,11 +9,11 @@ import (
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Bitgodine version",
-	Long:  `Version of the last release on Bitgodine`,
+	Short: "bitgodine-server version",
+	Long:  `Version of the last release on bitgodine-server`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c := color.New(color.FgBlack).Add(color.BgYellow).Add(color.Underline)
-		c.Println("Bitgodine v0.1")
+		c.Println("bitgodine-server v0.1")
 	},
 }
 

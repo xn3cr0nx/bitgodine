@@ -1,21 +1,17 @@
 package block
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
-	"github.com/xn3cr0nx/bitgodine/pkg/cache"
+	"github.com/xn3cr0nx/bitgodine/internal/httpx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -24,65 +20,52 @@ var verbose bool
 // BlockCmd represents the block command
 var BlockCmd = &cobra.Command{
 	Use:   "block",
-	Short: "Manage block",
+	Short: "Get block by height",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		if args[0] == "" {
+		if len(args) == 0 || args[0] == "" {
 			logger.Error("Block", errors.New("Missing block hash or height"), logger.Params{})
+			os.Exit(1)
 		}
 
-		c, err := cache.NewCache(nil)
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		var db storage.DB
-		if viper.GetString("db") == "tikv" {
-			db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+		var resp string
+		var err error
+		if block.IsHash(args[0]) {
+			viper.Set("verbose", true)
+			resp, err = httpx.GET(fmt.Sprintf("%s/api/block/%s", viper.GetString("host"), args[0]), nil)
 			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
+				logger.Error("bitgodine-cli", err, logger.Params{})
+				os.Exit(1)
 			}
-			defer db.Close()
-		} else if viper.GetString("db") == "badger" {
-			db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
+		} else if block.IsHeight(args[0]) {
+			resp, err = httpx.GET(fmt.Sprintf("%s/api/block-height/%s", viper.GetString("host"), args[0]), nil)
 			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
+				logger.Error("bitgodine-cli", err, logger.Params{})
+				os.Exit(1)
 			}
-			defer db.Close()
-		} else if viper.GetString("db") == "redis" {
-			db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			defer db.Close()
+		} else {
+			logger.Error("Block", errors.New("Wrong argument, must be block hash or height"), logger.Params{})
+			os.Exit(1)
 		}
 
-		height, err := strconv.Atoi(args[0])
-		if err != nil {
-			logger.Error("Block", errors.New("Cannot parse passed height"), logger.Params{})
-			os.Exit(-1)
-		}
-		block, err := block.GetFromHeight(db, c, int32(height))
-		if err != nil {
-			logger.Error("Block", err, logger.Params{})
-			os.Exit(-1)
+		var b block.BlockOut
+		if err := json.Unmarshal([]byte(resp), &b); err != nil {
+			logger.Error("bitgodine-cli", err, logger.Params{})
+			os.Exit(1)
 		}
 
-		if viper.GetBool("block.verbose") {
+		if viper.GetBool("verbose") {
 			table := tablewriter.NewWriter(os.Stdout)
-			table.Append([]string{"Hash", block.ID})
-			table.Append([]string{"Height", fmt.Sprint(block.Height)})
-			table.Append([]string{"PrevBlock", block.Previousblockhash})
-			table.Append([]string{"Timestamp", fmt.Sprint(block.Timestamp)})
-			table.Append([]string{"Merkle Root", block.MerkleRoot})
-			table.Append([]string{"Bits", fmt.Sprint(block.Bits)})
-			table.Append([]string{"Nonce", fmt.Sprint(block.Nonce)})
+			table.Append([]string{"Hash", b.ID})
+			table.Append([]string{"Height", fmt.Sprint(b.Height)})
+			table.Append([]string{"PrevBlock", b.Previousblockhash})
+			table.Append([]string{"Timestamp", fmt.Sprint(b.Timestamp)})
+			table.Append([]string{"Merkle Root", b.MerkleRoot})
+			table.Append([]string{"Bits", fmt.Sprint(b.Bits)})
+			table.Append([]string{"Nonce", fmt.Sprint(b.Nonce)})
 			table.Render()
 		} else {
-			fmt.Println("Block Hash", block.ID)
+			fmt.Println("Block Hash", b.ID)
 		}
 	},
 }
@@ -92,6 +75,6 @@ func init() {
 	BlockCmd.AddCommand(heightCmd)
 
 	BlockCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Specify verbose output to show all block info")
-	viper.SetDefault("block.verbose", false)
-	viper.BindPFlag("block.verbose", BlockCmd.PersistentFlags().Lookup("verbose"))
+	viper.SetDefault("verbose", false)
+	viper.BindPFlag("verbose", BlockCmd.PersistentFlags().Lookup("verbose"))
 }

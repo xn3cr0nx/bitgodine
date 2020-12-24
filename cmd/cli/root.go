@@ -51,13 +51,13 @@ func init() {
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")
-	rootCmd.PersistentFlags().StringVarP(&host, "host", "H", "localhost", "Specify bitgodine host - [default: localhost]")
+	rootCmd.PersistentFlags().StringVarP(&host, "host", "H", "http://localhost:3001", "Specify bitgodine host - [default: localhost]")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	viper.SetDefault("debug", false)
-	viper.SetDefault("host", "localhost")
+	viper.SetDefault("host", "http://localhost:3001")
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host"))

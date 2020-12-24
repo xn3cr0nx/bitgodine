@@ -1,3 +1,4 @@
+# go
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GORUN=$(GOCMD) run
@@ -7,6 +8,7 @@ GOGET=$(GOCMD) get
 GOINSTALL=$(GOCMD) install
 MAKE=make
 
+# binaries
 BUILD_PATH=build
 SERVER=./cmd/server
 SERVER_BINARY=server
@@ -19,6 +21,11 @@ CLUSTERIZER_BINARY=clusterizer
 SPIDER=./cmd/spider
 SPIDER_BINARY=spider
 SCRIPTS_PATH=scripts
+
+# Docker
+DOCKER=docker
+DC=docker-compose
+DCUP=up -d
 
 LNX_BUILD=$(build)/$(BINARY_NAME)
 WIN_BUILD=$(build)/$(BINARY_NAME).exe
@@ -110,6 +117,11 @@ build: build_parser build_server build_clusterizer build_spider
 .PHONY: install
 install: install_parser install_server install_clusterizer install_spider
 
+docker-deps:
+	$(DC) $(DCUP) postgres redis
+
+docker-otel:
+	$(DC) $(DCUP) jaeger prometheus grafana config-concat
 
 # # Cross compilation
 # linux: $(LNX_BUILD)

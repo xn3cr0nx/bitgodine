@@ -1,6 +1,8 @@
 package block
 
 import (
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
@@ -35,4 +37,16 @@ type Block struct {
 type BlockOut struct {
 	Block
 	Transactions []tx.Tx `json:"transactions"`
+}
+
+// IsHash returns true is the string is a block hash
+func IsHash(text string) bool {
+	re := regexp.MustCompile("^[0]{8}[a-fA-F0-9]{56}$")
+	return re.MatchString(text)
+}
+
+// IsHeight returns true is the string a block height
+func IsHeight(arg string) bool {
+	_, err := strconv.Atoi(arg)
+	return err == nil
 }

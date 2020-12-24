@@ -118,7 +118,7 @@ func blockHash(c echo.Context) error {
 // @Success 500 {string} string
 func blockHashTxs(c echo.Context) error {
 	hash := c.Param("hash")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
+	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
 		return err
 	}
 	start, err := strconv.Atoi(c.Param("start_index"))
@@ -161,7 +161,7 @@ func blockHashTxs(c echo.Context) error {
 // @Success 500 {string} string
 func blockHashTxIDs(c echo.Context) error {
 	hash := c.Param("hash")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
+	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
 		return err
 	}
 	b, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)

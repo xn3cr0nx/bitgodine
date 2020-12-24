@@ -47,7 +47,7 @@ func printTitle() {
 |____/ |_|  |_|   \___ ||_____| \____||_||_| |_||_____|
                    __| |                               
                   |____|                               `
-	c.Println(ascii)
+	c.Println(ascii + "\n")
 }
 
 func withFields(fields Fields) *logrus.Entry {

@@ -76,10 +76,10 @@ func Routes(g *echo.Group) {
 		return c.JSON(http.StatusOK, "OK")
 	})
 
-	// TODO: receive hex and broadcast tx
-	r.POST("", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "OK")
-	})
+	// // TODO: receive hex and broadcast tx
+	// r.POST("", func(c echo.Context) error {
+	// 	return c.JSON(http.StatusOK, "OK")
+	// })
 }
 
 // txID godoc

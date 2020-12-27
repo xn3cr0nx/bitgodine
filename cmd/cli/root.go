@@ -6,7 +6,7 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine/cmd/cli/address"
 	"github.com/xn3cr0nx/bitgodine/cmd/cli/block"
-	"github.com/xn3cr0nx/bitgodine/cmd/cli/transaction"
+	"github.com/xn3cr0nx/bitgodine/cmd/cli/tx"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,7 +46,7 @@ func init() {
 
 	// Adds subdirectories command
 	rootCmd.AddCommand(block.BlockCmd)
-	rootCmd.AddCommand(transaction.TransactionCmd)
+	rootCmd.AddCommand(tx.TxCmd)
 	rootCmd.AddCommand(address.AddressCmd)
 
 	// Adds root flags and persistent flags

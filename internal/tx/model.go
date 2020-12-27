@@ -1,6 +1,9 @@
 package tx
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
 
 // Tx model defined by standard
 type Tx struct {
@@ -69,4 +72,10 @@ type Status struct {
 	BlockHeight int32     `json:"block_height"`
 	BlockHash   string    `json:"block_hash"`
 	BlockTime   time.Time `json:"block_time"`
+}
+
+// IsID returns true is the string is a block hash
+func IsID(text string) bool {
+	re := regexp.MustCompile("^[a-fA-F0-9]{64}$")
+	return re.MatchString(text)
 }

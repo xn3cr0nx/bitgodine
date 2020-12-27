@@ -3,6 +3,8 @@ package bitcoin
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strconv"
 	"time"
 
@@ -42,8 +44,40 @@ func NewParser(blockchain *Blockchain, client *rpcclient.Client, db storage.DB, 
 	}
 }
 
-// Walk goes through the blockchain block by block
-func (p *Parser) Walk(skipped int) (s int, err error) {
+func handleInterrupt(c chan os.Signal, interrupt chan int) {
+	for sig := range c {
+		logger.Info("Sync", "Killing the application", logger.Params{"signal": sig})
+		interrupt <- 1
+	}
+}
+
+// InfinitelyParse parses the blockchain starting from scratch when it reaches the end in order to implement a real time mechanism
+func (p *Parser) InfinitelyParse() (err error) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	go handleInterrupt(ch, p.interrupt)
+
+	for {
+		if err = p.blockchain.Read(""); err != nil {
+			return
+		}
+
+		if err := p.Parse(); err != nil {
+			if errors.Is(err, ErrInterrupt) {
+				break
+			}
+			// if errors.Is(err, ErrExceededSize) {
+			// 	p.skipped.Empty()
+			// 	continue
+			// }
+			return err
+		}
+	}
+	return
+}
+
+// Parse goes through the blockchain block by block
+func (p *Parser) Parse() (err error) {
 	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
 	var lastBlock *Block
 	height, err := p.blockchain.Height()
@@ -69,7 +103,7 @@ func (p *Parser) Walk(skipped int) (s int, err error) {
 		if err != nil {
 			return
 		}
-		fmt.Println("RESTORED", p.skipped.Len(), last.ID, lastBlock.MsgBlock().Header.PrevBlock.String())
+		fmt.Println("Restored", p.skipped.Len(), last.ID, lastBlock.MsgBlock().Header.PrevBlock.String())
 
 		height++
 		goalPrevHash = lastBlock.Hash()
@@ -82,23 +116,21 @@ func (p *Parser) Walk(skipped int) (s int, err error) {
 			continue
 		}
 		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(height), "lastBlock": goalPrevHash.String()})
-		if goalPrevHash, lastBlock, s, err = WalkSlice(p, &ref, goalPrevHash, lastBlock, &height, skipped); err != nil {
+		if goalPrevHash, lastBlock, err = ParseSlice(p, &ref, goalPrevHash, lastBlock, &height); err != nil {
 			return
 		}
 	}
 
 	if viper.GetBool("realtime") {
 		logger.Info("Blockchain", "Waiting for new blocks", logger.Params{"height": height})
-		for {
-			time.Sleep(2 * time.Second)
-		}
+		time.Sleep(2 * time.Second)
 	}
 
 	return
 }
 
-// WalkSlice goes through a slice (block) of the chain
-func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *int32, skipped int) (goalPrevHash *chainhash.Hash, lastBlock *Block, s int, err error) {
+// ParseSlice goes through a slice (block) of the chain
+func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *int32) (goalPrevHash *chainhash.Hash, lastBlock *Block, err error) {
 	goalPrevHash = g
 	lastBlock = l
 	for len(*slice) > 0 {
@@ -154,11 +186,10 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
 				p.skipped.StoreBlockPrevHash(block)
-				if p.skipped.Len() > skipped {
-					err = ErrExceededSize
-					s = p.skipped.Len()
-					return
-				}
+				// if p.skipped.Len() > skipped {
+				// 	err = fmt.Errorf("%w: %d", ErrExceededSize, p.skipped.Len())
+				// 	return
+				// }
 
 				// check if last_block.is_some() condition is correctly replaced with checkBlock()
 				if lastBlock.CheckBlock() && block.MsgBlock().Header.PrevBlock.String() == lastBlock.MsgBlock().Header.PrevBlock.String() {

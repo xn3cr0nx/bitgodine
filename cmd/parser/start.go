@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"os/signal"
 
 	// "github.com/pkg/profile"
 
@@ -55,10 +54,10 @@ data representation to analyze the blockchain.`,
 
 		skippedBlocksStorage := bitcoin.NewSkipped()
 		chain := bitcoin.NewBlockchain(db, network)
-		if err := chain.Read(""); err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
+		// if err := chain.Read(""); err != nil {
+		// 	logger.Error("Bitgodine", err, logger.Params{})
+		// 	os.Exit(-1)
+		// }
 
 		var client *rpcclient.Client
 		if viper.GetBool("parser.realtime") {
@@ -76,31 +75,9 @@ data representation to analyze the blockchain.`,
 		interrupt := make(chan int)
 		bp := bitcoin.NewParser(chain, client, db, skippedBlocksStorage, nil, c, interrupt)
 
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt)
-		go handleInterrupt(ch, interrupt)
-
-		skipped := viper.GetInt("skipped")
-		for {
-			if cycleSkipped, err := bp.Walk(skipped); err != nil {
-				if err.Error() == "parser input signal error" {
-					break
-				}
-				logger.Error("Bitgodine", err, logger.Params{"skipped": cycleSkipped})
-				if err.Error() == "too many skipped blocks, stopping process" {
-					skippedBlocksStorage.Empty()
-					continue
-				}
-				os.Exit(-1)
-			}
+		if err := bp.InfinitelyParse(); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
 		}
-
 	},
-}
-
-func handleInterrupt(c chan os.Signal, interrupt chan int) {
-	for sig := range c {
-		logger.Info("Sync", "Killing the application", logger.Params{"signal": sig})
-		interrupt <- 1
-	}
 }

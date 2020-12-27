@@ -78,7 +78,7 @@ cli:
 # parser
 .PHONY: parser
 parser:
-	$(GORUN) $(PARSER) start --debug --skipped 300000 --file 0 --restored 20000000
+	$(GORUN) $(PARSER) start --debug
 
 .PHONY: build_parser
 build_parser: 

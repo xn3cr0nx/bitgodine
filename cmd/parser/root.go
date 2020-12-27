@@ -17,7 +17,7 @@ import (
 
 var (
 	cfgFile, network, bitgodineDir, blocksDir, db, dbDir, btcClientHost, btcClientEp, btcClientUser, btcClientPass, btcClientCerts string
-	skippedLimit, startFile, restoredBlocks                                                                                        int
+	startFile, restoredBlocks                                                                                                      int
 	debug, realtime                                                                                                                bool
 )
 
@@ -70,7 +70,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&btcClientPass, "btcPass", "pass", "Specify bitcoin client connection password")
 	rootCmd.PersistentFlags().StringVar(&btcClientCerts, "btcCerts", "~/.bitcoin/rpc.cert", "Specify bitcoin client connection certificates")
 
-	rootCmd.PersistentFlags().IntVar(&skippedLimit, "skipped", 50000, "Sets allowed number of skipped blocks")
 	rootCmd.PersistentFlags().IntVar(&startFile, "file", 0, "Sets the data file to start parsing from")
 	rootCmd.PersistentFlags().IntVar(&restoredBlocks, "restored", 50000, "Sets the number of blocks to restore before the current synced height")
 }

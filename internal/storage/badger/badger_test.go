@@ -2,12 +2,14 @@ package badger_test
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -176,7 +178,7 @@ var _ = Describe("Badger", func() {
 		It("a not existing element is not retrieved by key", func() {
 			_, err := db.Read(uuid.New().String())
 			Expect(err).To(HaveOccurred())
-			Expect(strings.Contains(err.Error(), "Key not found")).To(BeTrue())
+			Expect(errors.Is(err, storage.ErrKeyNotFound)).To(BeTrue())
 		})
 
 		It("db keys are correctly retrieve", func() {
@@ -256,7 +258,7 @@ var _ = Describe("Badger", func() {
 			Expect(err).ToNot(HaveOccurred())
 			_, err = db.Read(UUID)
 			Expect(err).To(HaveOccurred())
-			Expect(strings.Contains(err.Error(), "Key not found")).To(BeTrue())
+			Expect(errors.Is(err, storage.ErrKeyNotFound)).To(BeTrue())
 		})
 
 		It("using a not existing key is just a NOP", func() {

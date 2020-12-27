@@ -265,7 +265,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 		for i := r.From; i <= r.To; i++ {
 			blk, e := block.ReadFromHeight(db, ca, i)
 			if e != nil {
-				if e.Error() == "Key not found" {
+				if errors.Is(err, storage.ErrKeyNotFound) {
 					break
 				}
 				err = e

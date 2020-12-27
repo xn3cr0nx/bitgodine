@@ -90,7 +90,7 @@ func ReadFromHeight(db storage.DB, c *cache.Cache, height int32) (block Block, e
 func ReadHeight(db storage.DB) (height int32, err error) {
 	h, err := db.Read("last")
 	if err != nil {
-		if err.Error() == "Key not found" {
+		if errors.Is(err, storage.ErrKeyNotFound) {
 			return 0, nil
 		}
 		return
@@ -249,7 +249,7 @@ func StoreFileParsed(db storage.DB, file int) (err error) {
 func GetFileParsed(db storage.DB) (file int, err error) {
 	f, err := db.Read("file")
 	if err != nil {
-		if err.Error() == "Key not found" {
+		if errors.Is(err, storage.ErrKeyNotFound) {
 			return 0, nil
 		}
 		return

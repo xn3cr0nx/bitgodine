@@ -1,10 +1,11 @@
 package redis
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/imdario/mergo"
+	"github.com/xn3cr0nx/bitgodine/internal/storage"
 
 	ctx "context"
 )
@@ -102,7 +103,7 @@ func (r *Redis) Read(key string) (value []byte, err error) {
 		return
 	}
 	if val == "" {
-		err = errors.New("Key not found")
+		err = fmt.Errorf("%w: %s", storage.ErrKeyNotFound, key)
 	}
 	value = []byte(val)
 	return

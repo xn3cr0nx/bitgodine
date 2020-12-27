@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -68,8 +69,7 @@ in a persistent way in storage layer.`,
 			os.Exit(-1)
 		}
 		if err := disk.RestorePersistentSet(&set); err != nil {
-			// TODO: this is package implementation dependent, error should be generic
-			if err.Error() != "Key not found" {
+			if errors.Is(err, storage.ErrKeyNotFound) {
 				logger.Error("Start", err, logger.Params{})
 				os.Exit(-1)
 			}

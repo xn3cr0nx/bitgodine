@@ -172,7 +172,7 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 			}
 		}
 	} else {
-		if err.Error() == "Key not found" {
+		if errors.Is(err, storage.ErrKeyNotFound) {
 			code = http.StatusNotFound
 		}
 	}

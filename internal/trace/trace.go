@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -142,7 +143,7 @@ func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string
 		g.Go(func() error {
 			spending, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, output)
 			if e != nil {
-				if e.Error() == "Key not found" {
+				if errors.Is(err, storage.ErrKeyNotFound) {
 					return nil
 				}
 				return e

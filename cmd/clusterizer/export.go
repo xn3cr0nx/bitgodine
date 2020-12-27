@@ -8,10 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/clusterizer/bitcoin"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -34,29 +32,8 @@ var exportCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		var db storage.DB
-		if viper.GetString("db") == "tikv" {
-			db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			defer db.Close()
-		} else if viper.GetString("db") == "badger" {
-			db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			defer db.Close()
-		} else if viper.GetString("db") == "redis" {
-			db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
-			if err != nil {
-				logger.Error("Bitgodine", err, logger.Params{})
-				os.Exit(-1)
-			}
-			defer db.Close()
-		}
+		db, err := storage.NewStorage()
+		defer db.Close()
 
 		set, err := disk.NewDisjointSet(db, true, true)
 		if err != nil {
@@ -64,7 +41,7 @@ var exportCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 		if err := disk.RestorePersistentSet(&set); err != nil {
-			if errors.Is(err, storage.ErrKeyNotFound) {
+			if errors.Is(err, errorx.ErrKeyNotFound) {
 				logger.Error("export", err, logger.Params{})
 				os.Exit(-1)
 			}

@@ -9,9 +9,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/server"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/migration"
@@ -54,29 +51,8 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	var db storage.DB
-	if viper.GetString("db") == "tikv" {
-		db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		defer db.Close()
-	} else if viper.GetString("db") == "badger" {
-		db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		defer db.Close()
-	} else if viper.GetString("db") == "redis" {
-		db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
-		if err != nil {
-			logger.Error("Bitgodine", err, logger.Params{})
-			os.Exit(-1)
-		}
-		defer db.Close()
-	}
+	db, err := storage.NewStorage()
+	defer db.Close()
 
 	pg, err := postgres.NewPg(postgres.Conf())
 	if err != nil {

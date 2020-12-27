@@ -1,5 +1,13 @@
 package storage
 
+import (
+	"github.com/spf13/viper"
+
+	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/tikv"
+)
+
 // import (
 // 	"github.com/xn3cr0nx/bitgodine/pkg/models"
 // )
@@ -59,4 +67,26 @@ type DB interface {
 	Delete(string) error
 	Empty() error
 	Close() error
+}
+
+// NewStorage returns a new DB instance based on the environment
+func NewStorage() (db DB, err error) {
+	switch viper.GetString("db") {
+	case "tikv":
+		db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))
+		if err != nil {
+			return
+		}
+	case "badger":
+		db, err = badger.NewBadger(badger.Conf(viper.GetString("badger")), false)
+		if err != nil {
+			return
+		}
+	case "redis":
+		db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
+		if err != nil {
+			return
+		}
+	}
+	return
 }

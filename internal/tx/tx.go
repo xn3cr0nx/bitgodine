@@ -2,9 +2,7 @@ package tx
 
 import (
 	"errors"
-	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
@@ -42,9 +40,6 @@ func GetFromHash(db storage.DB, c *cache.Cache, hash string) (transaction Tx, er
 
 	tx, err := read(db, hash)
 	if err != nil {
-		if err.Error() == "transaction not found" {
-			return Tx{}, echo.NewHTTPError(http.StatusNotFound)
-		}
 		return Tx{}, err
 	}
 

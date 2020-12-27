@@ -1,9 +1,11 @@
 package block
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
@@ -67,7 +69,7 @@ func blockHeight(c echo.Context) error {
 // 	db := c.Get("db")
 // 	b, err := db.(storage.DB).GetFromHash(hash)
 // 	if err != nil {
-// 		if err.Error() == "Block not found" {
+// 		if errors.Is(err, errorx.ErrKeyNotFound) {
 // 			return echo.NewHTTPError(http.StatusNotFound, err)
 // 		}
 // 		return err
@@ -200,7 +202,7 @@ func blocksHeight(c echo.Context) error {
 	}
 	blocks, err := GetFromHeightRange(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), int32(start), 10)
 	if err != nil {
-		if err.Error() == "Block not found" {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, err)
 		}
 		return err

@@ -108,7 +108,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 				err = errors.New("Something wrong in interrupt signal")
 			}
 			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
-			err = errors.New("interrupt")
+			err = ErrInterrupt
 			return
 
 		default:
@@ -136,7 +136,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 
 			block, e := Parse(slice)
 			if e != nil {
-				if len(*slice) != 0 {
+				if !errors.Is(e, ErrEmptySliceParse) {
 					err = e
 					return
 				}
@@ -170,7 +170,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 					for {
 						block, e := Parse(slice)
 						if err != nil {
-							if len(*slice) != 0 {
+							if !errors.Is(e, ErrEmptySliceParse) {
 								err = e
 								return
 							}

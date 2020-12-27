@@ -9,6 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -109,7 +110,7 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
 	changes, err := analysis.AnalyzeTx(c, transaction.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
-		if err.Error() == "Not feasible transaction" {
+		if errors.Is(err, analysis.ErrUnfeasibleTx) {
 			lock.Lock()
 			flow[fmt.Sprintf("%s:%d", transaction.TxID, vout)] = Trace{
 				TxID: transaction.TxID,
@@ -122,7 +123,7 @@ func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string
 	}
 	likelihood, err := analysis.MajorityVotingOutput(changes.(heuristics.Map))
 	if err != nil {
-		if err.Error() == "Not feasible transaction" {
+		if errors.Is(err, analysis.ErrUnfeasibleTx) {
 			lock.Lock()
 			flow[fmt.Sprintf("%s:%d", transaction.TxID, vout)] = Trace{
 				TxID: transaction.TxID,
@@ -143,7 +144,7 @@ func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string
 		g.Go(func() error {
 			spending, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, output)
 			if e != nil {
-				if errors.Is(err, storage.ErrKeyNotFound) {
+				if errors.Is(err, errorx.ErrKeyNotFound) {
 					return nil
 				}
 				return e

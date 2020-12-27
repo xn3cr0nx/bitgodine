@@ -14,6 +14,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/cluster"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
@@ -172,7 +173,7 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 			}
 		}
 	} else {
-		if errors.Is(err, storage.ErrKeyNotFound) {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
 			code = http.StatusNotFound
 		}
 	}

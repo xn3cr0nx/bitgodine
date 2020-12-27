@@ -5,7 +5,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/imdario/mergo"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 
 	ctx "context"
 )
@@ -103,7 +104,7 @@ func (r *Redis) Read(key string) (value []byte, err error) {
 		return
 	}
 	if val == "" {
-		err = fmt.Errorf("%w: %s", storage.ErrKeyNotFound, key)
+		err = fmt.Errorf("%w: %s", errorx.ErrKeyNotFound, key)
 	}
 	value = []byte(val)
 	return

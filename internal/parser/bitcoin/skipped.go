@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 )
 
 // Skipped instance of key value store designed to treat block structs
@@ -44,7 +46,7 @@ func (s *Skipped) StoreBlockPrevHash(b *Block) {
 func (s *Skipped) GetBlock(hash *chainhash.Hash) (block Block, err error) {
 	block, ok := s.blocks[*hash]
 	if !ok {
-		err = errors.New("Block not found")
+		err = errorx.ErrKeyNotFound
 	}
 	return
 }

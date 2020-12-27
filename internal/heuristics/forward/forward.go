@@ -6,6 +6,7 @@ package forward
 import (
 	"errors"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -33,7 +34,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 		spendingTx, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, out.Index)
 		if e != nil {
 			// transaction not found => output not yet spent, but we can identify the change output anyway
-			if e.Error() == "transaction not found" {
+			if errors.Is(err, errorx.ErrKeyNotFound) {
 				continue
 			}
 			return nil, e

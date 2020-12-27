@@ -1,7 +1,7 @@
 package bitcoin
 
 import (
-	"errors"
+	"fmt"
 	"math"
 	"strconv"
 
@@ -94,45 +94,39 @@ func Parse(slice *[]uint8) (blk *Block, err error) {
 		*slice = (*slice)[1:]
 	}
 	if len(*slice) == 0 {
-		err = errors.New("Cannot read block from slice")
-		logger.Info("Blockchain", err.Error(), logger.Params{})
+		err = ErrEmptySliceParse
 		return
 	}
 	blockMagic, err := buffer.ReadUint32(slice)
 	if err != nil {
-		logger.Error("Blockchain", err, logger.Params{})
 		return
 	}
 	switch blockMagic {
 	case 0x00:
-		err = errors.New("Incomplete blk file")
+		err = ErrIncompleteBlockParse
 		return
 	case 0xd9b4bef9:
 		size, e := buffer.ReadUint32(slice)
 		if e != nil {
-			logger.Error("Blockchain", err, logger.Params{})
 			return nil, e
 		}
 		if size < 80 {
-			err = errors.New("Cannot parse block")
-			logger.Error("Blockchain", err, logger.Params{})
+			err = ErrBlockParse
 			return
 		}
 		block, e := buffer.ReadSlice(slice, uint(size))
 		if e != nil {
-			logger.Error("Blockchain", err, logger.Params{})
 			return nil, e
 		}
 		res, e := btcutil.NewBlockFromBytes(block)
 		if e != nil {
-			logger.Error("Blockchain", err, logger.Params{})
-			return nil, e
+			err = fmt.Errorf("%s: %w", ErrBlockFromBytes.Error(), e)
+			return
 		}
 		blk = &Block{Block: *res}
 		return
 	default:
-		err = errors.New("No magic bytes matching")
-		logger.Error("Blockchain", err, logger.Params{})
+		err = ErrMagicBytesMatching
 		return
 	}
 }

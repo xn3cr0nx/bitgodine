@@ -8,12 +8,12 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"net/http"
 	"runtime"
 	"sync"
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
@@ -28,9 +28,6 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 	ca := (*c).Get("cache").(*cache.Cache)
 	transaction, err := tx.GetFromHash(db, ca, txid)
 	if err != nil {
-		if err.Error() == "transaction not found" {
-			err = echo.NewHTTPError(http.StatusNotFound, err)
-		}
 		return
 	}
 
@@ -150,7 +147,8 @@ func MajorityLikelihood(v heuristics.Map) (likelihood map[uint32]map[heuristics.
 // MajorityVotingOutput return map with probability of change output for each output
 func MajorityVotingOutput(analyzed heuristics.Map) (likelihood map[uint32]map[heuristics.Mask]float64, err error) {
 	if len(analyzed) == 0 {
-		return nil, errors.New("Not feasible transaction")
+		err = ErrUnfeasibleTx
+		return
 	}
 	likelihood = make(map[uint32]map[heuristics.Mask]float64, 1)
 	if out, ok := analyzed[heuristics.Index("Address Reuse")]; ok {
@@ -265,7 +263,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 		for i := r.From; i <= r.To; i++ {
 			blk, e := block.ReadFromHeight(db, ca, i)
 			if e != nil {
-				if errors.Is(err, storage.ErrKeyNotFound) {
+				if errors.Is(err, errorx.ErrKeyNotFound) {
 					break
 				}
 				err = e

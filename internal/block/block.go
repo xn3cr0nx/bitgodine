@@ -2,10 +2,9 @@ package block
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -90,7 +89,7 @@ func ReadFromHeight(db storage.DB, c *cache.Cache, height int32) (block Block, e
 func ReadHeight(db storage.DB) (height int32, err error) {
 	h, err := db.Read("last")
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
 			return 0, nil
 		}
 		return
@@ -107,9 +106,6 @@ func ReadHeight(db storage.DB) (height int32, err error) {
 func GetFromHash(db storage.DB, c *cache.Cache, hash string) (Block, error) {
 	b, err := read(db, hash)
 	if err != nil {
-		if err.Error() == "Block not found" {
-			return Block{}, echo.NewHTTPError(http.StatusNotFound)
-		}
 		return Block{}, err
 	}
 
@@ -120,9 +116,6 @@ func GetFromHash(db storage.DB, c *cache.Cache, hash string) (Block, error) {
 func GetFromHeight(db storage.DB, c *cache.Cache, height int32) (*BlockOut, error) {
 	b, err := ReadFromHeight(db, c, height)
 	if err != nil {
-		if err.Error() == "Block not found" {
-			return nil, echo.NewHTTPError(http.StatusNotFound)
-		}
 		return nil, err
 	}
 
@@ -138,9 +131,6 @@ func GetFromHeight(db storage.DB, c *cache.Cache, height int32) (*BlockOut, erro
 func GetFromHashWithTxs(db storage.DB, c *cache.Cache, hash string) (*BlockOut, error) {
 	b, err := GetFromHash(db, c, hash)
 	if err != nil {
-		if err.Error() == "Block not found" {
-			return nil, echo.NewHTTPError(http.StatusNotFound)
-		}
 		return nil, err
 	}
 
@@ -249,7 +239,7 @@ func StoreFileParsed(db storage.DB, file int) (err error) {
 func GetFileParsed(db storage.DB) (file int, err error) {
 	f, err := db.Read("file")
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
 			return 0, nil
 		}
 		return

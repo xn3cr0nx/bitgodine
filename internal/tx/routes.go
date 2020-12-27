@@ -1,8 +1,10 @@
 package tx
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
@@ -25,8 +27,8 @@ func Routes(g *echo.Group) {
 	// db := c.Get("db")
 	// t, err := db.(storage.DB).GetTx(txid)
 	// 	if err != nil {
-	// 		if err.Error() == "transaction not found" {
-	// 			return echo.NewHTTPError(http.StatusNotFound, err)
+	// 		if errors.Is(err, errorx.ErrKeyNotFound) {
+	// 			err = echo.NewHTTPError(http.StatusNotFound, err)
 	// 		}
 	// 		return err
 	// 	}
@@ -51,14 +53,14 @@ func Routes(g *echo.Group) {
 	// db := c.Get("db")
 	// t, err := db.(storage.DB).GetTx(txid)
 	// 	if err != nil {
-	// 		if err.Error() == "transaction not found" {
-	// 			return echo.NewHTTPError(http.StatusNotFound, err)
+	// 		if errors.Is(err, errorx.ErrKeyNotFound) {
+	// 			err = echo.NewHTTPError(http.StatusNotFound, err)
 	// 		}
 	// 		return err
 	// 	}
 	// 	block, err := dgraph.GetTxBlock(txid)
 	// 	if err != nil {
-	// 		if err.Error() == "Block not found" {
+	// 		if errors.Is(err, errorx.ErrKeyNotFound) {
 	// 			return echo.NewHTTPError(http.StatusNotFound, err)
 	// 		}
 	// 		return err
@@ -104,6 +106,9 @@ func txID(c echo.Context) error {
 	}
 	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
 	if err != nil {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
+			err = echo.NewHTTPError(http.StatusNotFound, err)
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, t)
@@ -131,6 +136,9 @@ func txIDStatus(c echo.Context) error {
 	}
 	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
 	if err != nil {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
+			err = echo.NewHTTPError(http.StatusNotFound, err)
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, t.Status)

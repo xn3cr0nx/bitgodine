@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,7 +19,6 @@ var (
 	cfgFile, network, bitgodineDir, blocksDir, db, dbDir, btcClientHost, btcClientEp, btcClientUser, btcClientPass, btcClientCerts string
 	skippedLimit, startFile, restoredBlocks                                                                                        int
 	debug, realtime                                                                                                                bool
-	BitcoinNet                                                                                                                     chaincfg.Params
 )
 
 var rootCmd = &cobra.Command{
@@ -30,20 +28,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// trace.Start(os.Stdout)
 		// defer trace.Stop()
-
 		logger.Setup()
-
-		net, _ := cmd.Flags().GetString("network")
-		switch net {
-		case "mainnet":
-			BitcoinNet = chaincfg.MainNetParams
-		case "testnet3":
-			BitcoinNet = chaincfg.TestNet3Params
-		case "regtest":
-			BitcoinNet = chaincfg.RegressionNetParams
-		default:
-			logger.Panic("Initializing network", errors.New("Network not found"), logger.Params{"provided": net})
-		}
 	},
 }
 

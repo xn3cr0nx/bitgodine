@@ -1,12 +1,13 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/spider/bitcoinabuse"
 	"github.com/xn3cr0nx/bitgodine/internal/spider/checkbitcoinaddress"
 	"github.com/xn3cr0nx/bitgodine/internal/spider/walletexplorer"
@@ -148,13 +149,13 @@ resources, and sync the library of address tags with new reports.`,
 
 func configCheck() error {
 	if viper.GetString("spider.bitcoinabuse.url") == "" {
-		return errors.New("missing bitcoinabuse endpoint")
+		return fmt.Errorf("%w: missing bitcoinabuse endpoint", errorx.ErrInvalidArgument)
 	}
 	if viper.GetString("spider.bitcoinabuse.api") == "" {
-		return errors.New("missing bitcoinabuse api key")
+		return fmt.Errorf("%w: missing bitcoinabuse api key", errorx.ErrInvalidArgument)
 	}
 	if viper.GetString("spider.checkbitcoinaddress.url") == "" {
-		return errors.New("missing checkbitcoinaddress endpoint")
+		return fmt.Errorf("%w: missing checkbitcoinaddress endpoint", errorx.ErrInvalidArgument)
 	}
 
 	return nil

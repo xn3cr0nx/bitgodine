@@ -2,10 +2,10 @@ package disk
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -167,7 +167,7 @@ func (d *DisjointSet) PrepareMakeSet(x interface{}, batch *sync.Map) {
 func (d *DisjointSet) Find(x interface{}, batch *sync.Map) (uint64, error) {
 	pos, ok := d.hashMap.Load(x)
 	if !ok {
-		return 0, errors.New("Element not found")
+		return 0, errorx.ErrNotFound
 	}
 	return d.FindInternal(d.parent, pos.(uint64), batch), nil
 }

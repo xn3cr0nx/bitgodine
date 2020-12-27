@@ -1,13 +1,13 @@
 package jwt
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 )
 
 // CustomClaims custom token object
@@ -41,6 +41,7 @@ func NewToken(id string, d time.Duration) (string, error) {
 	return t, nil
 }
 
+// Validate returns an error is the token is invalid
 func Validate(t string) error {
 	// tk, err := token.Parse(t, func(tkn *token.Token) (interface{}, error) {
 	// 	return []byte("AllYourBase"), nil
@@ -59,19 +60,18 @@ func Validate(t string) error {
 		return nil
 	} else if ve, ok := err.(*token.ValidationError); ok {
 		if ve.Errors&token.ValidationErrorMalformed != 0 {
-			return errors.New("That's not even a token")
+			return fmt.Errorf("%w: That's not even a token", errorx.ErrInvalidArgument)
 		} else if ve.Errors&(token.ValidationErrorExpired|token.ValidationErrorNotValidYet) != 0 { // Token is either expired or not active yet
-			return errors.New("Timing is everything")
+			return fmt.Errorf("%w: Timing is everything", errorx.ErrInvalidArgument)
 		} else {
-			return errors.New(fmt.Sprintf("Couldn't handle this token: %s", err))
+			return fmt.Errorf("%w: %s", errorx.ErrUnknown, err.Error())
 		}
 	} else {
-		return errors.New(fmt.Sprintf("Couldn't handle this token: %s", err))
+		return fmt.Errorf("%w: %s", errorx.ErrUnknown, err.Error())
 	}
 }
 
 // Valid custom validation method for CustomClaims token object
 func (c *CustomClaims) Valid() error {
-	// return errors.New("Invalid")
 	return nil
 }

@@ -2,9 +2,9 @@ package dgraph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -67,7 +67,7 @@ func (d *Dgraph) GetUtxoSet() (UtxoSet, error) {
 		return UtxoSet{}, err
 	}
 	if len(r.U) == 0 {
-		return UtxoSet{}, errors.New("UtxoSet not found")
+		return UtxoSet{}, errorx.ErrNotFound
 	}
 
 	logger.Debug("Dgraph Cluster", "Retrieving Utxo", logger.Params{})
@@ -93,12 +93,12 @@ func (d *Dgraph) GetUtxoSetUID() (string, error) {
 		return "", err
 	}
 	if len(r.U) == 0 {
-		return "", errors.New("UtxoSet not found")
+		return "", errorx.ErrNotFound
 	}
 
 	if err == nil {
 		if !d.cache.Set("clusterUID", r.U[0].UtxoSet.UID, 1) {
-			logger.Error("Cache", errors.New("error caching"), logger.Params{})
+			logger.Error("Cache", errorx.ErrCache, logger.Params{})
 		}
 	}
 	return r.U[0].UtxoSet.UID, nil
@@ -133,15 +133,15 @@ func (d *Dgraph) GetUtxoSetByHash(hash string) (Utxo, error) {
 		return Utxo{}, err
 	}
 	if len(r.U) == 0 {
-		return Utxo{}, errors.New("Cluster not found")
+		return Utxo{}, errorx.ErrClusterNotFound
 	}
 	if len(r.U[0].UtxoSet.UtxoSet[0].Utxo) == 0 {
-		return Utxo{}, errors.New("Set not found")
+		return Utxo{}, fmt.Errorf("set %w", errorx.ErrNotFound)
 	}
 
 	if err == nil {
 		if !d.cache.Set(fmt.Sprintf("utxo_%s", hash), r.U[0].UtxoSet.UtxoSet[0], 1) {
-			logger.Error("Cache", errors.New("error caching"), logger.Params{})
+			logger.Error("Cache", errorx.ErrCache, logger.Params{})
 		}
 	}
 
@@ -208,7 +208,7 @@ func (d *Dgraph) RemoveStxo(txid string, index uint32) error {
 	// 	return err
 	// }
 	// if uid == "" {
-	// 	return errors.New("output not found")
+	// 	return errorx.ErrNotFound
 	// }
 	// if err := d.Delete(uid); err != nil {
 	// 	return err

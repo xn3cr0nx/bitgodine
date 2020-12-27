@@ -4,10 +4,11 @@
 package backward
 
 import (
-	"errors"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -82,7 +83,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 		}
 	}
 
-	err = errors.New("No output address matching backward heurisitic requirements found")
+	err = fmt.Errorf("%w: No output address matching backward heurisitic requirements", errorx.ErrNotFound)
 	return
 }
 

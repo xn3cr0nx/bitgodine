@@ -1,7 +1,6 @@
 package address
 
 import (
-	"errors"
 	"os"
 	"strconv"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -20,7 +20,7 @@ var occurencesCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if args[0] == "" {
-			logger.Error("Address", errors.New("Missing address"), logger.Params{})
+			logger.Error("Address", errorx.ErrInvalidArgument, logger.Params{})
 			os.Exit(1)
 		}
 

@@ -1,8 +1,7 @@
 package tx
 
 import (
-	"errors"
-
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
@@ -44,7 +43,7 @@ func GetFromHash(db storage.DB, c *cache.Cache, hash string) (transaction Tx, er
 	}
 
 	if !c.Set(transaction.TxID, transaction, 1) {
-		logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": transaction.TxID})
+		logger.Error("Cache", errorx.ErrCache, logger.Params{"hash": transaction.TxID})
 	}
 	return tx, nil
 }

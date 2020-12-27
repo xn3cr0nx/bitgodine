@@ -3,7 +3,6 @@ package dgraph
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"unsafe"
@@ -13,6 +12,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"google.golang.org/grpc"
@@ -54,7 +54,7 @@ var instance *Dgraph
 func Instance(conf *Config, c *cache.Cache) *Dgraph {
 	if instance == nil {
 		if conf == nil {
-			logger.Panic("DGraph", errors.New("missing configuration"), logger.Params{})
+			logger.Panic("DGraph", errorx.ErrConfig, logger.Params{})
 		}
 		// Dial a gRPC connection. The address to dial to can be configured when
 		// setting up the dgraph cluster.

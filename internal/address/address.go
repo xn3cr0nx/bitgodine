@@ -1,11 +1,11 @@
 package address
 
 import (
-	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -47,7 +47,7 @@ func GetFirstOccurenceHeight(db storage.DB, c *cache.Cache, address string) (hei
 	height = int32(h)
 
 	if !c.Set(address, height, 1) {
-		logger.Error("Cache", errors.New("error caching"), logger.Params{"address": address})
+		logger.Error("Cache", errorx.ErrCache, logger.Params{"address": address})
 	}
 	return
 }

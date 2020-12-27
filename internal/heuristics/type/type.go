@@ -5,10 +5,11 @@
 package class
 
 import (
-	"errors"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -24,7 +25,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 		for o, out := range transaction.Vout {
 			outputTypes[o] = out.ScriptpubkeyType
 			if o > 0 && outputTypes[o] == outputTypes[0] {
-				return errors.New("Two or more output of the same type, cannot determine change output")
+				return fmt.Errorf("%w: Two or more output of the same type, cannot determine change output", errorx.ErrUnknown)
 			}
 		}
 		return nil
@@ -40,7 +41,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 			}
 			inputTypes[i] = spentTx.Vout[in.Vout].ScriptpubkeyType
 			if inputTypes[i] != inputTypes[0] {
-				return errors.New("There are different kind of addresses between inputs")
+				return fmt.Errorf("%w: different kind of addresses between inputs", errorx.ErrUnknown)
 			}
 		}
 		return nil

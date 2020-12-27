@@ -1,11 +1,11 @@
 package postgres
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -46,7 +46,7 @@ func Conf() *Config {
 // in order to enable postgres to be connected with Connect on receiver method
 func NewPg(conf *Config) (*Pg, error) {
 	if conf.Host == "" {
-		return &Pg{}, errors.New("Missing or invalid host")
+		return &Pg{}, fmt.Errorf("%w: missing or invalid host", errorx.ErrConfig)
 	}
 	if conf.Port == 0 {
 		logger.Info("Postgres", "Missing postgres port, using default 5432", logger.Params{})

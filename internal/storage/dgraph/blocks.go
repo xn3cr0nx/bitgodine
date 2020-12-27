@@ -2,12 +2,12 @@ package dgraph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -90,12 +90,12 @@ func (d *Dgraph) GetBlockFromHash(hash string) (blk block.Block, err error) {
 		return
 	}
 	if len(r.Blk) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	if err == nil {
 		if !d.cache.Set(r.Blk[0].Block.ID, r.Blk[0].Block, 1) {
-			logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": r.Blk[0].Block.ID})
+			logger.Error("Cache", errorx.ErrCache, logger.Params{"hash": r.Blk[0].Block.ID})
 		}
 	}
 	blk, err = r.Blk[0].Block, nil
@@ -169,12 +169,12 @@ func (d *Dgraph) GetBlockFromHeight(height int32) (blk block.Block, err error) {
 		return
 	}
 	if len(r.Blk) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	if err == nil {
 		if !d.cache.Set(r.Blk[0].Block.Height, r.Blk[0].Block, 1) {
-			logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": r.Blk[0].Block.ID})
+			logger.Error("Cache", errorx.ErrCache, logger.Params{"hash": r.Blk[0].Block.ID})
 		}
 	}
 	blk, err = r.Blk[0].Block, nil
@@ -243,7 +243,7 @@ func (d *Dgraph) GetBlockFromHeightRange(height int32, first int) (blks []block.
 		return
 	}
 	if len(r.Blk) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	for _, b := range r.Blk {
@@ -281,7 +281,7 @@ func (d *Dgraph) GetLastBlockHeight() (height int32, err error) {
 		return
 	}
 	if len(r.H) != 1 {
-		err = errors.New("Something went wrong retrieving max height")
+		err = fmt.Errorf("%w: something went wrong retrieving max height", errorx.ErrUnknown)
 		return
 	}
 	height = r.H[0].Height
@@ -318,7 +318,7 @@ func (d *Dgraph) LastBlock() (blk block.Block, err error) {
 		return
 	}
 	if len(r.B) != 1 {
-		err = errors.New("Something went wrong retrieving last block")
+		err = fmt.Errorf("%w: something went wrong retrieving last block", errorx.ErrUnknown)
 		return
 	}
 	blk = r.B[0].Block
@@ -359,7 +359,7 @@ func (d *Dgraph) RemoveLastBlock() (err error) {
 	// var height int32
 	// block, err := d.LastBlock()
 	// if err != nil {
-	// 	if err.Error() == "Something went wrong retrieving last block" {
+	// 	if errors.Is(err, errorx.ErrBlockNotFound) {
 	// 		height, err = d.GetLastBlockHeight()
 	// 		if err != nil {
 	// 			return
@@ -411,7 +411,7 @@ func (d *Dgraph) getBlockUIDFromHeight(height int32) (uids []string, err error) 
 		return
 	}
 	if len(r.Block) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	for _, b := range r.Block {
@@ -447,7 +447,7 @@ func (d *Dgraph) GetBlockTxOutputsFromHash(hash string) (uids map[string][]strin
 		return
 	}
 	if len(r.Blk) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 
@@ -486,7 +486,7 @@ func (d *Dgraph) GetBlockTxOutputsFromRange(height int32, first int) (uids map[s
 		return
 	}
 	if len(r.Blk) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 

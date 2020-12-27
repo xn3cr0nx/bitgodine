@@ -1,7 +1,7 @@
 package bitcoin
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
@@ -30,7 +30,7 @@ func (s *Skipped) StoreBlock(v interface{}) (err error) {
 	b := v.(*Block)
 	// block validation
 	if s.IsStored(b.Hash()) {
-		err = errors.New("block " + b.Hash().String() + " already exists")
+		err = fmt.Errorf("%s %w", b.Hash().String(), errorx.ErrAlreadyExists)
 		return
 	}
 	s.blocks[*b.Hash()] = *b

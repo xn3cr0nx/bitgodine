@@ -105,7 +105,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 		select {
 		case x, ok := <-p.interrupt:
 			if !ok {
-				err = errors.New("Something wrong in interrupt signal")
+				err = ErrInterruptUnknown
 			}
 			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
 			err = ErrInterrupt
@@ -155,7 +155,7 @@ func WalkSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *i
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
 				p.skipped.StoreBlockPrevHash(block)
 				if p.skipped.Len() > skipped {
-					err = errors.New("too many skipped blocks, stopping process")
+					err = ErrExceededSize
 					s = p.skipped.Len()
 					return
 				}
@@ -249,7 +249,7 @@ func (p *Parser) findCheckPointByHash(chain [][]uint8, last *block.Block) (b *Bl
 		}
 		chain[k] = slice
 	}
-	err = errors.New("Checkpoint not found")
+	err = ErrCheckpointNotFound
 	return
 }
 

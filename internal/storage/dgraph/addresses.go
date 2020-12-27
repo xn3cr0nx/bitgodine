@@ -2,7 +2,9 @@ package dgraph
 
 import (
 	"context"
-	"errors"
+	"fmt"
+
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 )
 
 // GetOccurences returns an array containing the transactions where the address appears in the blockchain
@@ -31,7 +33,7 @@ func (d *Dgraph) GetOccurences(address string) (occurences []string, err error) 
 		return
 	}
 	if len(r.Txs) == 0 {
-		err = errors.New("no address occurences")
+		err = errorx.ErrNotFound
 		return
 	}
 	for _, tx := range r.Txs {
@@ -68,11 +70,11 @@ func (d *Dgraph) GetFirstOccurenceHeight(address string) (height int32, err erro
 		return
 	}
 	if len(r.First) == 0 {
-		err = errors.New("No address occurences")
+		err = errorx.ErrNotFound
 		return
 	}
 	if len(r.First) > 1 {
-		err = errors.New("the min returns more than an occurence. Strange behaviour")
+		err = fmt.Errorf("%w: the min returns more than an occurence", errorx.ErrUnknown)
 		return
 	}
 	height = r.First[0].Min

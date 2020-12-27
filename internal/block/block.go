@@ -292,7 +292,7 @@ func GetTxBlockHeight(db storage.DB, c *cache.Cache, hash string) (height int32,
 	height = int32(inth)
 
 	if !c.Set("h_"+hash, height, 1) {
-		logger.Error("Cache", errors.New("error caching"), logger.Params{"height": height})
+		logger.Error("Cache", errorx.ErrCache, logger.Params{"height": height})
 	}
 	return
 }

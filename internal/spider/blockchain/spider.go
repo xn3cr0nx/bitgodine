@@ -2,11 +2,11 @@
 package blockchain
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/gocolly/colly/v2"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
@@ -46,7 +46,7 @@ func (s *Spider) Sync() (err error) {
 		if next != "" {
 			split := strings.Split(next, "&")
 			if len(split) == 1 {
-				err = errors.New("Error in parsing next link")
+				err = fmt.Errorf("%w: error in parsing next link", errorx.ErrUnknown)
 			}
 			e.Request.Visit(s.target + "&" + split[1])
 		}

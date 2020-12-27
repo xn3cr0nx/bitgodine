@@ -8,6 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -125,7 +126,7 @@ func (d *Dgraph) GetTx(hash string) (transaction tx.Tx, err error) {
 	}
 
 	if len(r.Txs) == 0 {
-		err = errors.New("transaction not found")
+		err = errorx.ErrTxNotFound
 		return
 	}
 	for _, t := range r.Txs {
@@ -134,7 +135,7 @@ func (d *Dgraph) GetTx(hash string) (transaction tx.Tx, err error) {
 			bytes, err := json.Marshal(t.Tx)
 			if err == nil {
 				if !d.cache.Set(t.Tx.TxID, bytes, 1) {
-					logger.Error("Cache", errors.New("error caching"), logger.Params{"hash": t.Tx.TxID})
+					logger.Error("Cache", errorx.ErrCache, logger.Params{"hash": t.Tx.TxID})
 				}
 			}
 
@@ -142,7 +143,7 @@ func (d *Dgraph) GetTx(hash string) (transaction tx.Tx, err error) {
 		}
 	}
 
-	err = errors.New("transaction not found")
+	err = errorx.ErrTxNotFound
 	return
 }
 
@@ -165,7 +166,7 @@ func (d *Dgraph) GetTxUID(hash string) (uid string, err error) {
 		return
 	}
 	if len(r.Txs) == 0 {
-		err = errors.New("transaction not found")
+		err = errorx.ErrTxNotFound
 		return
 	}
 	// uid = r.Txs[0].Tx.UID
@@ -197,7 +198,7 @@ func (d *Dgraph) GetTxOutputs(hash string) (outputs []tx.Output, err error) {
 		return
 	}
 	if len(r.Transactions[0].Output) == 0 {
-		err = errors.New("outputs not found")
+		err = fmt.Errorf("outputs %w", errorx.ErrNotFound)
 		return
 	}
 	for _, o := range r.Transactions[0].Output {
@@ -244,14 +245,14 @@ func (d *Dgraph) GetSpentTxOutput(hash string, vout uint32) (output tx.Output, e
 	}
 
 	if len(r.Transactions) == 0 {
-		err = errors.New("output not found")
+		err = fmt.Errorf("outputs %w", errorx.ErrNotFound)
 		return
 	}
 
 	bytes, err := json.Marshal(r.Transactions[0].Output[0].Output)
 	if err == nil {
 		if !d.cache.Set(fmt.Sprintf("%s_%d", hash, vout), bytes, 1) {
-			logger.Error("Cache", errors.New("error caching"), logger.Params{"vout": r.Transactions[0].Output[0].Output.Index})
+			logger.Error("Cache", errorx.ErrCache, logger.Params{"vout": r.Transactions[0].Output[0].Output.Index})
 		}
 	}
 
@@ -286,7 +287,7 @@ func (d *Dgraph) GetFollowingTx(hash string, vout uint32) (transaction tx.Tx, er
 		return
 	}
 	if len(r.Txs) == 0 {
-		err = errors.New("transaction not found")
+		err = errorx.ErrTxNotFound
 		return
 	}
 	transaction = r.Txs[0].Tx
@@ -308,7 +309,7 @@ func (d *Dgraph) GetStoredTxs() (transactions []string, err error) {
 		return
 	}
 	if len(r.Txs) == 0 {
-		err = errors.New("no transaction stored")
+		err = errorx.ErrTxNotFound
 	}
 	for _, tx := range r.Txs {
 		transactions = append(transactions, tx.Tx.TxID)
@@ -333,7 +334,7 @@ func (d *Dgraph) GetTxBlockHeight(hash string) (height int32, err error) {
 		return
 	}
 	if len(r.Block) == 0 {
-		err = errors.New("Block height not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	height = r.Block[0].Height
@@ -365,7 +366,7 @@ func (d *Dgraph) GetTxBlock(hash string) (blk block.Block, err error) {
 		return
 	}
 	if len(r.Block) == 0 {
-		err = errors.New("Block not found")
+		err = errorx.ErrBlockNotFound
 		return
 	}
 	blk = r.Block[0].Block
@@ -378,7 +379,7 @@ func (d *Dgraph) IsSpent(tx string, index uint32) bool {
 	_, err := d.GetFollowingTx(tx, index)
 	if err != nil {
 		// just for sake of clarity, untill I'm going to refactor this piece to be more useful
-		if err.Error() == "transaction not found" {
+		if errors.Is(err, errorx.ErrTxNotFound) {
 			return false
 		}
 		return false

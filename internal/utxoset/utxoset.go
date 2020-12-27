@@ -1,8 +1,8 @@
+// Package utxoset package to keep track of utxoset during parsing. Currently NOT USED
 package utxoset
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -47,7 +48,7 @@ var instance *UtxoSet
 func Instance(conf *Config) *UtxoSet {
 	if instance == nil {
 		if conf == nil {
-			logger.Panic("Utxoset", errors.New("missing configuration"), logger.Params{})
+			logger.Panic("Utxoset", errorx.ErrConfig, logger.Params{})
 		}
 
 		instance = &UtxoSet{
@@ -105,7 +106,7 @@ func (u *UtxoSet) GetUtxo(hash string, vout uint32) (uid string, err error) {
 	uid, ok := u.set[hash][vout]
 	u.lock.RUnlock()
 	if !ok {
-		err = errors.New("index out of range")
+		err = errorx.ErrOutOfRange
 		return
 	}
 	return
@@ -114,16 +115,16 @@ func (u *UtxoSet) GetUtxo(hash string, vout uint32) (uid string, err error) {
 // GetStoredUtxo returns the bolt stored output
 func (u *UtxoSet) GetStoredUtxo(hash string, vout uint32) (uid string, err error) {
 	if !u.disk {
-		return "", errors.New("cannot retrieve, disk not initialized")
+		return "", fmt.Errorf("%w: disk not initialized", errorx.ErrConfig)
 	}
 	err = u.bolt.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(hash))
 		if b == nil {
-			return errors.New("index out of range")
+			return errorx.ErrOutOfRange
 		}
 		v := b.Get(Itob(int(vout)))
 		if v == nil {
-			return errors.New("index out of range")
+			return errorx.ErrOutOfRange
 		}
 
 		uid = string(v)
@@ -138,7 +139,7 @@ func (u *UtxoSet) GetUtxoSet(hash string) (uids map[uint32]string, err error) {
 	uids, ok := u.set[hash]
 	u.lock.RUnlock()
 	if !ok {
-		err = errors.New("index out of range")
+		err = errorx.ErrOutOfRange
 		return
 	}
 	return
@@ -152,7 +153,7 @@ func (u *UtxoSet) CheckUtxoSet(hash string) bool {
 	err := u.bolt.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(hash))
 		if b == nil {
-			return errors.New("index out of range")
+			return errorx.ErrOutOfRange
 		}
 		return nil
 	})
@@ -164,7 +165,7 @@ func (u *UtxoSet) DeleteUtxo(hash string, vout uint32) (err error) {
 	u.lock.RLock()
 	if _, ok := u.set[hash][vout]; !ok {
 		u.lock.RUnlock()
-		err = errors.New("utxo not found")
+		err = fmt.Errorf("utxo %w", errorx.ErrNotFound)
 		return
 	}
 	u.lock.RUnlock()
@@ -173,7 +174,7 @@ func (u *UtxoSet) DeleteUtxo(hash string, vout uint32) (err error) {
 		err = u.bolt.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(hash))
 			if b == nil {
-				return errors.New("bucket not found")
+				return fmt.Errorf("bucket %w", errorx.ErrNotFound)
 			}
 			if err := b.Delete(Itob(int(vout))); err != nil {
 				return err
@@ -203,7 +204,7 @@ func (u *UtxoSet) DeleteUtxoSet(hash string) (err error) {
 // Restore initialize memory set mapping the stored set
 func (u *UtxoSet) Restore(last string) (err error) {
 	if !u.disk {
-		return errors.New("cannot retrieve, disk not initialized")
+		return fmt.Errorf("%w: disk not initialized", errorx.ErrConfig)
 	}
 
 	err = u.bolt.View(func(tx *bolt.Tx) error {
@@ -221,7 +222,7 @@ func (u *UtxoSet) Restore(last string) (err error) {
 
 		c := tx.Cursor()
 		if k, _ := c.Seek([]byte(last)); k == nil {
-			err = errors.New("utxo set incomplete")
+			err = fmt.Errorf("%w: utxo set incomplete", errorx.ErrUnknown)
 		}
 		return err
 	})
@@ -307,7 +308,7 @@ func (u *UtxoSet) Close() error {
 // func (p *Parser) RestoreUtxoSet(rawChain [][]uint8, last *models.Block) (err error) {
 // 	logger.Debug("Blockchain", "restoring utxo set", logger.Params{"last": last.ID})
 // 	if err = p.utxoset.Restore(last.ID); err != nil {
-// 		if err.Error() == "utxo set incomplete" {
+// 		if errors.Is(err, errorx.Unknown) {
 // 			newChain := make([][]uint8, len(rawChain))
 // 			copy(newChain, rawChain)
 // 			if err = p.UtxoSetRecovery(last, newChain, true); err != nil {
@@ -434,11 +435,12 @@ func (u *UtxoSet) Close() error {
 // 							uidset := make(map[uint32]string)
 // 							for o := range transaction.MsgTx().TxOut {
 // 								if len(uids[block.Hash().String()][transaction.Hash().String()]) != len(transaction.MsgTx().TxOut) {
-// 									logger.Error("Blockchain", errors.New("inconsistency in block"), logger.Params{"block": block.Hash().String()})
+// 									err := fmt.Error("%w: inconsistent length of transaction outputs")
+// 									logger.Error("Blockchain", err, logger.Params{"block": block.Hash().String()})
 // 									if progress {
 // 										bar2.Abort(true)
 // 									}
-// 									alarm <- errors.New("inconsistent length of transaction outputs")
+// 									alarm <- err
 // 									return
 // 								}
 // 								uidset[uint32(o)] = uids[block.Hash().String()][transaction.Hash().String()][uint32(o)]
@@ -486,6 +488,6 @@ func (u *UtxoSet) Close() error {
 // 	if progress {
 // 		bar2.Abort(true)
 // 	}
-// 	err = errors.New("Parsed the entire chain, head not found")
+// 	err = errorx.ErrNotFound
 // 	return
 // }

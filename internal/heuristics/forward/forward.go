@@ -5,6 +5,7 @@ package forward
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
@@ -59,7 +60,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 		}
 	}
 
-	err = errors.New("No output address matching forward heurisitic requirements found")
+	err = fmt.Errorf("%w: No output address matching forward heurisitic requirements", errorx.ErrNotFound)
 	return
 }
 

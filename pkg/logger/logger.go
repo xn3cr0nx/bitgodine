@@ -1,10 +1,10 @@
 package logger
 
 import (
-	"errors"
 	"runtime"
 
 	"github.com/fatih/color"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -109,7 +109,7 @@ func Debug(action, message string, params Params) {
 func Error(action string, err error, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	if err == nil { // something's wrong. fix needed
-		err = errors.New("ERROR NOT PROVIDED")
+		err = errorx.ErrUnknown
 	}
 	fields := make(map[string]interface{})
 	fields["service"] = "bitgodine"
@@ -129,7 +129,7 @@ func Error(action string, err error, params Params) {
 func Panic(action string, err error, params Params) {
 	_, filename, line, _ := runtime.Caller(1)
 	if err == nil { // something's wrong. fix needed
-		err = errors.New("ERROR NOT PROVIDED")
+		err = errorx.ErrUnknown
 	}
 	fields := make(map[string]interface{})
 	fields["service"] = "bitgodine"

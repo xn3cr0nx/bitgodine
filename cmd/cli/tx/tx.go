@@ -2,13 +2,13 @@ package tx
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/httpx"
 
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
@@ -22,12 +22,12 @@ var TxCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 || args[0] == "" {
-			logger.Error("Tx", errors.New("Missing tx ID"), logger.Params{})
+			logger.Error("Tx", errorx.ErrInvalidArgument, logger.Params{})
 			os.Exit(1)
 		}
 
 		if !tx.IsID(args[0]) {
-			logger.Error("Block", errors.New("Wrong argument, must be tx ID"), logger.Params{})
+			logger.Error("Block", errorx.ErrInvalidArgument, logger.Params{})
 			os.Exit(1)
 		}
 

@@ -1,7 +1,6 @@
 package tag
 
 import (
-	"errors"
 	"os"
 
 	"github.com/fatih/color"
@@ -10,6 +9,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	// "github.com/xn3cr0nx/bitgodine/internal/cluster"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
@@ -100,7 +100,7 @@ func GetTaggedClusterSet(c *echo.Context, address string) (clusters []Model, err
 		) GROUP BY tags.message, tags.type`, address).Scan(&clusters).Error
 
 	if !ch.Set("ct_"+address, clusters, 1) {
-		logger.Error("Cache", errors.New("error caching"), logger.Params{"address": address})
+		logger.Error("Cache", errorx.ErrCache, logger.Params{"address": address})
 	}
 	return
 }

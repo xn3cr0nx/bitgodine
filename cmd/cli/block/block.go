@@ -2,7 +2,6 @@ package block
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/httpx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -24,7 +24,7 @@ var BlockCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 || args[0] == "" {
-			logger.Error("Block", errors.New("Missing block hash or height"), logger.Params{})
+			logger.Error("Block", errorx.ErrInvalidArgument, logger.Params{})
 			os.Exit(1)
 		}
 
@@ -44,7 +44,7 @@ var BlockCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		} else {
-			logger.Error("Block", errors.New("Wrong argument, must be block hash or height"), logger.Params{})
+			logger.Error("Block", errorx.ErrInvalidArgument, logger.Params{})
 			os.Exit(1)
 		}
 

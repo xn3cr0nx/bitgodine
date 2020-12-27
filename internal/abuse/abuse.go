@@ -1,12 +1,12 @@
 package abuse
 
 import (
-	"errors"
 	"os"
 
 	"github.com/fatih/structs"
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
@@ -91,7 +91,7 @@ func GetAbusedClusterSet(c *echo.Context, address string) (clusters []Model, err
 	) GROUP BY abuses.abuser`, address).Scan(&clusters).Error
 
 	if !ch.Set("ca_"+address, clusters, 1) {
-		logger.Error("Cache", errors.New("error caching"), logger.Params{"address": address})
+		logger.Error("Cache", errorx.ErrCache, logger.Params{"address": address})
 	}
 	return
 }

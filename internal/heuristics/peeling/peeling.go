@@ -8,8 +8,9 @@
 package peeling
 
 import (
-	"errors"
+	"fmt"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -62,7 +63,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 		}
 		return
 	}
-	err = errors.New("transaction is not like peeling chain")
+	err = fmt.Errorf("%w: transaction is not peeling chain like", errorx.ErrInvalidArgument)
 	return
 }
 

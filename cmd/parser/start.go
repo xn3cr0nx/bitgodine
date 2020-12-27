@@ -6,9 +6,11 @@ import (
 
 	// "github.com/pkg/profile"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -29,6 +31,19 @@ data representation to analyze the blockchain.`,
 
 		logger.Info("Start", "Start called", logger.Params{})
 
+		net, _ := cmd.Flags().GetString("network")
+		var network chaincfg.Params
+		switch net {
+		case "mainnet":
+			network = chaincfg.MainNetParams
+		case "testnet3":
+			network = chaincfg.TestNet3Params
+		case "regtest":
+			network = chaincfg.RegressionNetParams
+		default:
+			logger.Panic("Initializing network", errorx.ErrInvalidArgument, logger.Params{"provided": net})
+		}
+
 		c, err := cache.NewCache(nil)
 		if err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
@@ -39,8 +54,8 @@ data representation to analyze the blockchain.`,
 		defer db.Close()
 
 		skippedBlocksStorage := bitcoin.NewSkipped()
-		b := bitcoin.NewBlockchain(db, BitcoinNet)
-		if err := b.Read(""); err != nil {
+		chain := bitcoin.NewBlockchain(db, network)
+		if err := chain.Read(""); err != nil {
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
@@ -59,7 +74,7 @@ data representation to analyze the blockchain.`,
 		}
 
 		interrupt := make(chan int)
-		bp := bitcoin.NewParser(b, client, db, skippedBlocksStorage, nil, c, interrupt)
+		bp := bitcoin.NewParser(chain, client, db, skippedBlocksStorage, nil, c, interrupt)
 
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)

@@ -50,9 +50,8 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 
 // ExtractLikelihoodOutput function to return most probable output between applied heuristics results
 func ExtractLikelihoodOutput(analyzed heuristics.Map) (vout uint32, err error) {
-	fmt.Println("from heuristics analysis", analyzed)
 	if len(analyzed) == 0 {
-		return 0, errors.New("No effective analysis")
+		return 0, ErrUnfeasibleAnalysis
 	}
 	if len(analyzed) == 1 {
 		for _, v := range analyzed {
@@ -224,7 +223,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	db := (*c).Get("db").(storage.DB)
 	ca := (*c).Get("cache").(*cache.Cache)
 	if db == nil {
-		err = errors.New("db not initialized")
+		err = fmt.Errorf("%w: db not initialized", errorx.ErrConfig)
 		return
 	}
 

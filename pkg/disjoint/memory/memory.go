@@ -1,9 +1,9 @@
 package memory
 
 import (
-	"errors"
 	"sync"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -73,7 +73,7 @@ func (d *DisjointSet) PrepareMakeSet(x interface{}, clusters *dgraph.Clusters, l
 func (d *DisjointSet) Find(x interface{}) (uint64, error) {
 	pos, ok := d.hashMap.Load(x)
 	if !ok {
-		return 0, errors.New("Element not found")
+		return 0, errorx.ErrNotFound
 	}
 	return d.FindInternal(d.parent, pos.(uint64)), nil
 }

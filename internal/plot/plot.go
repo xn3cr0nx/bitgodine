@@ -1,11 +1,11 @@
 package plot
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/wcharczuk/go-chart"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 )
 
 // Coordinates wraps x and y coordinates to show on plot
@@ -80,7 +80,7 @@ func MultipleLineChart(title, xLabel, yLabel string, data map[string]Coordinates
 // BarChart plots a multibar chart
 func BarChart(title string, xLabel []string, percentages []float64) (err error) {
 	if len(xLabel) != len(percentages) {
-		err = errors.New("Wrong arguments length")
+		err = errorx.ErrInvalidArgument
 		return
 	}
 

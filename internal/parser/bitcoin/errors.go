@@ -1,21 +1,41 @@
 package bitcoin
 
-import "errors"
+import (
+	"errors"
+	"fmt"
 
-// ErrEmptySliceParse cannot parse block from empty slice error
-var ErrEmptySliceParse = errors.New("cannot parse block from empty slice")
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
+)
 
-// ErrIncompleteBlockParse cannot parse block due to incomplete file error
-var ErrIncompleteBlockParse = errors.New("cannot parse incomplete block")
+var (
+	// ErrEmptySliceParse cannot parse block from empty slice error
+	ErrEmptySliceParse = errors.New("cannot parse block from empty slice")
 
-// ErrBlockParse cannot parse block error
-var ErrBlockParse = errors.New("cannot parse block")
+	// ErrIncompleteBlockParse cannot parse block due to incomplete file error
+	ErrIncompleteBlockParse = errors.New("cannot parse incomplete block")
 
-// ErrBlockFromBytes cannot generate block from matched bytes error
-var ErrBlockFromBytes = errors.New("cannot generate block from matched bytes")
+	// ErrBlockParse cannot parse block error
+	ErrBlockParse = errors.New("cannot parse block")
 
-// ErrMagicBytesMatching cannot match magic bytes
-var ErrMagicBytesMatching = errors.New("cannot match magic bytes")
+	// ErrBlockFromBytes cannot generate block from matched bytes error
+	ErrBlockFromBytes = errors.New("cannot generate block from matched bytes")
 
-// ErrInterrupt interrupt signal error
-var ErrInterrupt = errors.New("parser input signal error")
+	// ErrMagicBytesMatching cannot match magic bytes
+	ErrMagicBytesMatching = errors.New("cannot match magic bytes")
+)
+
+var (
+	// ErrInterrupt interrupt signal error
+	ErrInterrupt = errors.New("parser input signal error")
+
+	// ErrInterruptUnknown interrupt signal error
+	ErrInterruptUnknown = errors.New("parser input signal unknown error")
+)
+
+var (
+	// ErrExceededSize skipped blocks size error
+	ErrExceededSize = errors.New("exceed skipped blocks size")
+
+	// ErrCheckpointNotFound checkpoint not found error
+	ErrCheckpointNotFound = fmt.Errorf("checkpoint %w", errorx.ErrNotFound)
+)

@@ -2,9 +2,9 @@ package dgraph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -119,7 +119,7 @@ func (d *Dgraph) GetClusters() (Clusters, error) {
 		return Clusters{}, err
 	}
 	if len(r.C) == 0 {
-		return Clusters{}, errors.New("Cluster not found")
+		return Clusters{}, errorx.ErrClusterNotFound
 	}
 
 	logger.Debug("Dgraph Cluster", "Retrieving Clusters", logger.Params{"size_parents": len(r.C[0].Clusters.Parents), "size_ranks": len(r.C[0].Clusters.Ranks)})
@@ -151,7 +151,7 @@ func (d *Dgraph) GetClusterUID() (string, error) {
 		return "", err
 	}
 	if len(r.C) == 0 {
-		return "", errors.New("Cluster not found")
+		return "", errorx.ErrClusterNotFound
 	}
 
 	if err == nil {
@@ -183,7 +183,7 @@ func (d *Dgraph) GetClusterHeight() (int32, error) {
 		return 0, err
 	}
 	if len(r.C) == 0 {
-		return 0, errors.New("Cluster not found")
+		return 0, errorx.ErrClusterNotFound
 	}
 
 	return r.C[0].Clusters.Height, nil
@@ -218,10 +218,10 @@ func (d *Dgraph) GetSetUID(set uint32) (string, error) {
 		return "", err
 	}
 	if len(r.C) == 0 {
-		return "", errors.New("Cluster not found")
+		return "", errorx.ErrClusterNotFound
 	}
 	if len(r.C[0].Clusters.Set) == 0 {
-		return "", errors.New("Set not found")
+		return "", fmt.Errorf("set %w", errorx.ErrNotFound)
 	}
 	return r.C[0].Clusters.Set[0].UID, nil
 }
@@ -332,13 +332,13 @@ func (d *Dgraph) GetParent(pos uint32) (Parent, error) {
 		return Parent{}, err
 	}
 	if len(r.C) == 0 {
-		return Parent{}, errors.New("Cluster not found")
+		return Parent{}, errorx.ErrClusterNotFound
 	}
 	if len(r.C[0].Parents) == 0 {
-		return Parent{}, errors.New("Parent not found")
+		return Parent{}, fmt.Errorf("parent %w", errorx.ErrNotFound)
 	}
 	if len(r.C[0].Parents) > 1 {
-		return Parent{}, errors.New("More than a parent found, something is wrong")
+		return Parent{}, fmt.Errorf("%w: more than a parent found", errorx.ErrUnknown)
 	}
 	return r.C[0].Parents[0], nil
 }
@@ -408,13 +408,13 @@ func (d *Dgraph) GetRank(pos uint32) (Rank, error) {
 		return Rank{}, err
 	}
 	if len(r.C) == 0 {
-		return Rank{}, errors.New("Cluster not found")
+		return Rank{}, errorx.ErrClusterNotFound
 	}
 	if len(r.C[0].Ranks) == 0 {
-		return Rank{}, errors.New("Rank not found")
+		return Rank{}, fmt.Errorf("rank %w", errorx.ErrNotFound)
 	}
 	if len(r.C[0].Ranks) > 1 {
-		return Rank{}, errors.New("More than a parent found, something is wrong")
+		return Rank{}, fmt.Errorf("%w: more than a parent found", errorx.ErrUnknown)
 	}
 	return r.C[0].Ranks[0], nil
 }

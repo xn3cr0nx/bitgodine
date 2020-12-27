@@ -1,6 +1,14 @@
 package errorx
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// ErrKeyNotFound key not found error
-var ErrKeyNotFound = fmt.Errorf("key %w", ErrNotFound)
+var (
+	// ErrKeyNotFound key not found error
+	ErrKeyNotFound = fmt.Errorf("key %w", ErrNotFound)
+
+	// ErrCache error setting cache key
+	ErrCache = errors.New("error caching")
+)

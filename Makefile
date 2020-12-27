@@ -59,6 +59,9 @@ install_server:
 server:
 	reflex -r '\.go$$' -R './docs/*.go' -s -- sh -c 'swag init -g cmd/server/main.go && config="./config/local.json" $(GORUN) $(SERVER) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis'
 
+docker-server:
+	$(DC) $(DCUP) bitgodine_server
+
 # cli
 .PHONY: build_cli
 build_cli: 
@@ -121,7 +124,7 @@ docker-deps:
 	$(DC) $(DCUP) postgres redis
 
 docker-otel:
-	$(DC) $(DCUP) jaeger prometheus grafana config-concat
+	$(DC) $(DCUP) jaeger prometheus grafana config-concat loki fluent-bit
 
 # # Cross compilation
 # linux: $(LNX_BUILD)

@@ -15,6 +15,12 @@ x-network: &network
   networks:
     - bitgodine
 
+x-fluentd: &fluentd
+  logging:
+      driver: fluentd
+      options:
+        fluentd-address: FLUENT_BIT_ADDRESS:24224
+
 services:
   bitcoind:
     image: kylemanna/bitcoind
@@ -97,7 +103,11 @@ services:
       - ./config:/root/config
     depends_on:
       - postgres
-    <<: *network
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: FLUENT_BIT_ADDRESS:24224
+    <<: [*network, *fluentd]
 
   bitgodine_clusterizer:
     container_name: clusterizer
@@ -127,7 +137,7 @@ services:
     depends_on:
       - postgres
     <<: *network
-    
+
   # bitgodine_plotter:
   #   container_name: plotter
   #   build:
@@ -138,9 +148,8 @@ services:
   #   networks:
   #    - bitgodine
 
-  #########################################
+  ##########################################
   # OpenTelemetry
-
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
@@ -194,6 +203,25 @@ services:
       - prometheus_config:/fragments/
       - ${PWD}/config/otel/prometheus/base_prometheus.yml:/base_prometheus.yml
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - 3100:3100
+    <<: *network
+
+  fluent-bit:
+    image: grafana/fluent-bit-plugin-loki:latest
+    container_name: fluent-bit
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+    volumes:
+      - ./config/otel/grafana/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    <<: *network
+
 volumes:
   dgraph:
   badger:
@@ -204,13 +232,13 @@ volumes:
   utxoset:
   bitcoind-data:
   postgres:
+
   grafana_lib:
   prometheus_data:
   prometheus_config:
     driver_opts:
       type: tmpfs
       device: tmpfs
-
 
 networks:
   bitgodine:

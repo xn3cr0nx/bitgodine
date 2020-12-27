@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
@@ -52,7 +53,7 @@ func StoreBlock(db storage.DB, b *Block, txs []tx.Tx) (err error) {
 			batch[o.ScriptpubkeyAddress+"_"+tx.TxID] = []byte(h)
 		}
 		for _, i := range tx.Vin {
-			batch[i.TxID+"_"+string(i.Vout)] = []byte(tx.TxID)
+			batch[i.TxID+"_"+fmt.Sprint(i.Vout)] = []byte(tx.TxID)
 		}
 	}
 

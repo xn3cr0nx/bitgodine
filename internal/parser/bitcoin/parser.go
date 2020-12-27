@@ -146,7 +146,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 		default:
 			if _, e := p.skipped.GetBlock(goalPrevHash); e == nil {
 				logger.Debug("Blockchain", "(rewind - pre-step) Block "+Itoa(*height)+" - "+lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+lastBlock.Hash().String(), logger.Params{})
-				if err = BlockWalk(p, lastBlock, height); err != nil {
+				if err = lastBlock.Store(p.db, height); err != nil {
 					return
 				}
 				(*height)++
@@ -154,7 +154,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 					if block, e := p.skipped.GetBlock(goalPrevHash); e == nil {
 						p.skipped.DeleteBlock(goalPrevHash)
 						logger.Debug("Blockchain", "(rewind) Block "+Itoa(*height)+" - "+block.MsgBlock().Header.PrevBlock.String()+" -> "+block.Hash().String(), logger.Params{})
-						if err = BlockWalk(p, &block, height); err != nil {
+						if err = block.Store(p.db, height); err != nil {
 							return
 						}
 						(*height)++
@@ -166,7 +166,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 				}
 			}
 
-			block, e := Parse(slice)
+			block, e := ExtractBlockFromSlice(slice)
 			if e != nil {
 				if !errors.Is(e, ErrEmptySliceParse) {
 					err = e
@@ -199,7 +199,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 					secondOrphan := block
 
 					for {
-						block, e := Parse(slice)
+						block, e := ExtractBlockFromSlice(slice)
 						if err != nil {
 							if !errors.Is(e, ErrEmptySliceParse) {
 								err = e
@@ -228,7 +228,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 
 			if lastBlock.CheckBlock() {
 				logger.Debug("Blockchain", "(last_block) Parsing block "+Itoa(*height)+" - "+lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+lastBlock.Hash().String(), logger.Params{})
-				if err = BlockWalk(p, lastBlock, height); err != nil {
+				if err = lastBlock.Store(p.db, height); err != nil {
 					return
 				}
 				(*height)++
@@ -265,7 +265,7 @@ func (p *Parser) findCheckPointByHash(chain [][]uint8, last *block.Block) (b *Bl
 		}
 
 		for len(slice) > 0 {
-			b, err = Parse(&slice)
+			b, err = ExtractBlockFromSlice(&slice)
 			if err != nil {
 				return
 			}

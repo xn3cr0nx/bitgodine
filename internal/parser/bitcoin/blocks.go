@@ -18,21 +18,14 @@ type Block struct {
 	btcutil.Block
 }
 
-// BlockWalk parses the block and iterates over block's transaction to parse them
-func BlockWalk(p *Parser, b *Block, height *int32) (err error) {
+// Store prepares the block struct and and call StoreBlock to store it
+func (b *Block) Store(db storage.DB, height *int32) (err error) {
 	b.SetHeight(*height)
 	if *height%100 == 0 {
 		logger.Info("Parser Blocks", "Block "+strconv.Itoa(int(b.Height())), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
 	logger.Debug("Parser Blocks", "Storing block", logger.Params{"hash": b.Hash().String(), "height": *height})
-	if err = b.Store(p.db); err != nil {
-		return
-	}
-	return
-}
 
-// Store prepares the dgraph block struct and and call StoreBlock to store it in dgraph
-func (b *Block) Store(db storage.DB) (err error) {
 	transactions, err := PrepareTransactions(db, b.Transactions())
 	if err != nil {
 		return
@@ -88,8 +81,8 @@ func CoinbaseValue(height int32) int64 {
 	return int64(5000000000 / math.Pow(2, float64(height/int32(210000))))
 }
 
-// Parse reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
-func Parse(slice *[]uint8) (blk *Block, err error) {
+// ExtractBlockFromSlice reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
+func ExtractBlockFromSlice(slice *[]uint8) (blk *Block, err error) {
 	for len(*slice) > 0 && (*slice)[0] == 0 {
 		*slice = (*slice)[1:]
 	}

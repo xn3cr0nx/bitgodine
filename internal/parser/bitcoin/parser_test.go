@@ -65,7 +65,7 @@ var _ = Describe("Blockchain", func() {
 
 			for _, slice := range chain {
 				for len(slice) > 0 {
-					block, err := bitcoin.Parse(&slice)
+					block, err := bitcoin.ExtractBlockFromSlice(&slice)
 					Expect(err).ToNot(HaveOccurred())
 					if block.Hash().String() == target {
 						blockTarget = block
@@ -78,7 +78,8 @@ var _ = Describe("Blockchain", func() {
 			}
 			Expect(blockTarget).ToNot(BeNil())
 
-			err := blockTarget.Store(db)
+			height := int32(0)
+			err := blockTarget.Store(db, &height)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

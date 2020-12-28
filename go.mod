@@ -38,7 +38,6 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.9.0 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
@@ -49,9 +48,11 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pingcap/failpoint v0.0.0-20200702092429-9f69995143ce // indirect
+	github.com/pingcap/gofail v0.0.0-20181217135706-6a951c1e42c3 // indirect
 	github.com/pingcap/kvproto v0.0.0-20201218082734-fc36d7869035 // indirect
 	github.com/pingcap/log v0.0.0-20201112100606-8f1e84a3abc8 // indirect
 	github.com/pingcap/parser v3.1.2+incompatible // indirect
+	github.com/pingcap/pd v2.1.19+incompatible // indirect
 	github.com/pingcap/pd/v4 v4.0.4 // indirect
 	github.com/pingcap/tidb v1.1.0-beta.0.20200701091151-ceec9d9c63c8
 	github.com/pingcap/tidb-tools v4.0.9+incompatible // indirect
@@ -84,7 +85,6 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout v0.15.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.15.0
 	go.opentelemetry.io/otel/sdk v0.15.0
-	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
@@ -105,8 +105,9 @@ require (
 )
 
 replace (
+	github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.4
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
-	github.com/uber-go/atomic => go.uber.org/atomic v1.5.0
+	github.com/uber-go/atomic => go.uber.org/atomic v1.4.0
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
 )
 

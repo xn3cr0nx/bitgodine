@@ -41,6 +41,7 @@ require (
 	github.com/swaggo/echo-swagger v1.1.0
 	github.com/swaggo/swag v1.7.0
 	github.com/uber-go/atomic v1.4.0 // indirect
+	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/wcharczuk/go-chart v2.0.2-0.20190910040548-3a7bc5543113+incompatible
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.15.1
@@ -49,6 +50,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout v0.15.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.15.0
 	go.opentelemetry.io/otel/sdk v0.15.0
+	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 // indirect
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11

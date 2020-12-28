@@ -27,9 +27,6 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup()
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("bitgodine host: %s\n", viper.GetString("host"))
-	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

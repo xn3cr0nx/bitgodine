@@ -1,10 +1,10 @@
-package storage
+package kv
 
 import (
 	"github.com/spf13/viper"
 
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/redis"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/redis"
 )
 
 // DB interface implements methods for a generic key value storage db
@@ -25,8 +25,8 @@ type DB interface {
 	Close() error
 }
 
-// NewStorage returns a new DB instance based on the environment
-func NewStorage() (db DB, err error) {
+// NewDB returns a new DB instance based on the environment
+func NewDB() (db DB, err error) {
 	switch viper.GetString("db") {
 	// case "tikv":
 	// 	db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))

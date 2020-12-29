@@ -1,7 +1,7 @@
 package dgraph_test
 
 import (
-	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 

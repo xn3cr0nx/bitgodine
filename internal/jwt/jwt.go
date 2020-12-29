@@ -12,7 +12,8 @@ import (
 
 // CustomClaims custom token object
 type CustomClaims struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
+	Email string `json:"email"`
 	token.StandardClaims
 }
 
@@ -26,9 +27,10 @@ func Config() middleware.JWTConfig {
 }
 
 // NewToken returns a new jwt token based on CustomClaims structure
-func NewToken(id string, d time.Duration) (string, error) {
+func NewToken(id, email string, d time.Duration) (string, error) {
 	claims := &CustomClaims{
 		id,
+		email,
 		token.StandardClaims{
 			ExpiresAt: time.Now().Add(d).Unix(),
 		},
@@ -41,22 +43,15 @@ func NewToken(id string, d time.Duration) (string, error) {
 	return t, nil
 }
 
-// Validate returns an error is the token is invalid
+// Validate receives a string token a verifies its validity
 func Validate(t string) error {
-	// tk, err := token.Parse(t, func(tkn *token.Token) (interface{}, error) {
-	// 	return []byte("AllYourBase"), nil
-	// })
 	tk, err := token.ParseWithClaims(t, &CustomClaims{}, func(*token.Token) (interface{}, error) {
-		return []byte("Boh don't understand"), nil
+		return []byte(viper.GetString("auth.secret")), nil
 	})
 	if err != nil {
-		fmt.Println("JWT VALIDATE ERROR", err)
 		return err
 	}
-	fmt.Println("what out", tk)
-
 	if tk.Valid {
-		fmt.Println("You look nice today")
 		return nil
 	} else if ve, ok := err.(*token.ValidationError); ok {
 		if ve.Errors&token.ValidationErrorMalformed != 0 {
@@ -74,4 +69,10 @@ func Validate(t string) error {
 // Valid custom validation method for CustomClaims token object
 func (c *CustomClaims) Valid() error {
 	return nil
+}
+
+// Decode takes the token string and returnes the CustomClaims instance
+func Decode(t interface{}) (*CustomClaims, error) {
+	tk := t.(*token.Token)
+	return tk.Claims.(*CustomClaims), nil
 }

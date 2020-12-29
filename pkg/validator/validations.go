@@ -1,11 +1,9 @@
 package validator
 
 import (
-	"fmt"
-
 	"github.com/xn3cr0nx/bitgodine/internal/jwt"
 
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/go-playground/validator/v10"
 )
 
 // type SignupInfo struct {
@@ -64,9 +62,18 @@ func TestingValidator(fl validator.FieldLevel) bool {
 // JWTValidator validates that the field contains a valid jwt token
 func JWTValidator(fl validator.FieldLevel) bool {
 	token := fl.Field().String()
-	fmt.Println("TOKEN VALIDATION", token)
 	if err := jwt.Validate(token); err != nil {
 		return false
 	}
 	return true
+}
+
+// LimitValidator to test custom validators
+func LimitValidator(fl validator.FieldLevel) bool {
+	return fl.Field().Int() < 500 && fl.Field().Int()%5 == 0
+}
+
+// PasswordValidator to test custom validators
+func PasswordValidator(fl validator.FieldLevel) bool {
+	return len(fl.Field().String()) > 6
 }

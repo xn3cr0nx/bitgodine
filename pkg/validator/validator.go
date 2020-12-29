@@ -3,8 +3,8 @@ package validator
 import (
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 // CustomValidator wrapper for validator
@@ -14,7 +14,6 @@ type CustomValidator struct {
 
 // NewValidator returns new validator instance
 func NewValidator() *CustomValidator {
-	// return &CustomValidator{validator: validator.New()}
 	v := &CustomValidator{validator: validator.New()}
 	v.RegisterCustomValidations()
 	return v
@@ -40,6 +39,8 @@ func (cv *CustomValidator) Var(i interface{}, tag string) (err error) {
 func (cv *CustomValidator) RegisterCustomValidations() {
 	_ = cv.validator.RegisterValidation("testing", TestingValidator)
 	_ = cv.validator.RegisterValidation("jwt", JWTValidator)
+	_ = cv.validator.RegisterValidation("password", PasswordValidator)
+	_ = cv.validator.RegisterValidation("limit", LimitValidator)
 }
 
 // Struct this is not a middleware, but I would like it to be

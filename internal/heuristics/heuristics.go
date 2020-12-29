@@ -11,7 +11,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics/reuse"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics/shadow"
 	class "github.com/xn3cr0nx/bitgodine/internal/heuristics/type"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
@@ -143,8 +143,8 @@ func Index(h string) Heuristic {
 }
 
 // VulnerableFunction returns vulnerable function to be applied to analysis
-func (h Heuristic) VulnerableFunction() func(storage.DB, *cache.Cache, *tx.Tx) bool {
-	functions := map[Heuristic](func(storage.DB, *cache.Cache, *tx.Tx) bool){
+func (h Heuristic) VulnerableFunction() func(kv.DB, *cache.Cache, *tx.Tx) bool {
+	functions := map[Heuristic](func(kv.DB, *cache.Cache, *tx.Tx) bool){
 		Locktime:        locktime.Vulnerable,
 		Peeling:         peeling.Vulnerable,
 		PowerOfTen:      power.Vulnerable,
@@ -161,8 +161,8 @@ func (h Heuristic) VulnerableFunction() func(storage.DB, *cache.Cache, *tx.Tx) b
 }
 
 // ChangeFunction returns change output function to be applied to analysis
-func (h Heuristic) ChangeFunction() func(storage.DB, *cache.Cache, *tx.Tx) ([]uint32, error) {
-	functions := map[Heuristic](func(storage.DB, *cache.Cache, *tx.Tx) ([]uint32, error)){
+func (h Heuristic) ChangeFunction() func(kv.DB, *cache.Cache, *tx.Tx) ([]uint32, error) {
+	functions := map[Heuristic](func(kv.DB, *cache.Cache, *tx.Tx) ([]uint32, error)){
 		Locktime:        locktime.ChangeOutput,
 		Peeling:         peeling.ChangeOutput,
 		PowerOfTen:      power.ChangeOutput,
@@ -190,28 +190,28 @@ func (h Heuristic) ConditionFunction() func(*tx.Tx) bool {
 }
 
 // Apply applies the heuristic specified to the passed transaction
-func (h Heuristic) Apply(db storage.DB, c *cache.Cache, transaction tx.Tx, vuln *Mask) {
+func (h Heuristic) Apply(db kv.DB, c *cache.Cache, transaction tx.Tx, vuln *Mask) {
 	if h.VulnerableFunction()(db, c, &transaction) {
 		vuln.Sum(MaskFromPower(h))
 	}
 }
 
 // ApplyFullSet applies the set of heuristics to the passed transaction
-func ApplyFullSet(db storage.DB, c *cache.Cache, transaction tx.Tx, vuln *Mask) {
+func ApplyFullSet(db kv.DB, c *cache.Cache, transaction tx.Tx, vuln *Mask) {
 	for _, h := range List() {
 		h.Apply(db, c, transaction, vuln)
 	}
 }
 
 // ApplySet applies the set of passed heuristics to the passed transaction
-func ApplySet(db storage.DB, c *cache.Cache, transaction tx.Tx, heuristicsList Mask, vuln *Mask) {
+func ApplySet(db kv.DB, c *cache.Cache, transaction tx.Tx, heuristicsList Mask, vuln *Mask) {
 	for _, h := range heuristicsList.ToList() {
 		h.Apply(db, c, transaction, vuln)
 	}
 }
 
 // ApplyChange applies the heuristic specified to the passed transaction
-func (h Heuristic) ApplyChange(db storage.DB, ca *cache.Cache, transaction tx.Tx, vuln *Map) {
+func (h Heuristic) ApplyChange(db kv.DB, ca *cache.Cache, transaction tx.Tx, vuln *Map) {
 	c, err := h.ChangeFunction()(db, ca, &transaction)
 	if err != nil {
 		return
@@ -222,35 +222,35 @@ func (h Heuristic) ApplyChange(db storage.DB, ca *cache.Cache, transaction tx.Tx
 }
 
 // ApplyChangeSet applies the set of passed heuristics to the passed transaction
-func ApplyChangeSet(db storage.DB, c *cache.Cache, transaction tx.Tx, heuristicsList Mask, vuln *Map) {
+func ApplyChangeSet(db kv.DB, c *cache.Cache, transaction tx.Tx, heuristicsList Mask, vuln *Map) {
 	for _, h := range heuristicsList.ToList() {
 		h.ApplyChange(db, c, transaction, vuln)
 	}
 }
 
 // ApplyCondition applies the heuristic specified to the passed transaction
-func (h Heuristic) ApplyCondition(db storage.DB, transaction tx.Tx, vuln *Mask) {
+func (h Heuristic) ApplyCondition(db kv.DB, transaction tx.Tx, vuln *Mask) {
 	if h.ConditionFunction()(&transaction) {
 		vuln.Sum(MaskFromPower(h))
 	}
 }
 
 // ApplyConditionSet applies the set of passed heuristics to the passed transaction
-func ApplyConditionSet(db storage.DB, transaction tx.Tx, vuln *Mask) {
+func ApplyConditionSet(db kv.DB, transaction tx.Tx, vuln *Mask) {
 	for _, h := range conditionsList() {
 		h.ApplyCondition(db, transaction, vuln)
 	}
 }
 
 // ApplyChangeCondition applies the heuristic specified to the passed transaction
-func (h Heuristic) ApplyChangeCondition(db storage.DB, transaction tx.Tx, vuln *Map) {
+func (h Heuristic) ApplyChangeCondition(db kv.DB, transaction tx.Tx, vuln *Map) {
 	if h.ConditionFunction()(&transaction) {
 		(*vuln)[h] = 1
 	}
 }
 
 // ApplyChangeConditionSet applies the set of passed heuristics to the passed transaction
-func ApplyChangeConditionSet(db storage.DB, transaction tx.Tx, vuln *Map) {
+func ApplyChangeConditionSet(db kv.DB, transaction tx.Tx, vuln *Map) {
 	for _, h := range conditionsList() {
 		h.ApplyChangeCondition(db, transaction, vuln)
 	}

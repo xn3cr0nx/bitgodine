@@ -7,7 +7,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 
@@ -17,7 +17,7 @@ import (
 
 type TestBlocksSuite struct {
 	suite.Suite
-	db storage.DB
+	db kv.DB
 }
 
 func (suite *TestBlocksSuite) SetupSuite() {

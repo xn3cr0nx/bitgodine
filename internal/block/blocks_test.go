@@ -10,8 +10,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -19,11 +18,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 )
 
 var _ = Describe("Testing key value storage blocks methods", func() {
 	var (
-		db storage.DB
+		db kv.DB
 	)
 
 	BeforeEach(func() {

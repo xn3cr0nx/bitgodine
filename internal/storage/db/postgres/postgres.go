@@ -25,7 +25,7 @@ type Config struct {
 
 // Pg instance of Postgres db with configuration details
 type Pg struct {
-	DB   *gorm.DB
+	*gorm.DB
 	conf *Config
 }
 
@@ -91,4 +91,9 @@ func (pg *Pg) Connect() error {
 	pg.DB = db
 
 	return nil
+}
+
+// Error returns query error
+func (pg *Pg) Error() error {
+	return pg.DB.Error
 }

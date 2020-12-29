@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -49,7 +49,7 @@ data representation to analyze the blockchain.`,
 			os.Exit(-1)
 		}
 
-		db, err := storage.NewStorage()
+		db, err := kv.NewDB()
 		defer db.Close()
 
 		skippedBlocksStorage := bitcoin.NewSkipped()

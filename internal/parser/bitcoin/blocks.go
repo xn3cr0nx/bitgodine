@@ -7,7 +7,7 @@ import (
 
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/buffer"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -19,7 +19,7 @@ type Block struct {
 }
 
 // Store prepares the block struct and and call StoreBlock to store it
-func (b *Block) Store(db storage.DB, height *int32) (err error) {
+func (b *Block) Store(db kv.DB, height *int32) (err error) {
 	b.SetHeight(*height)
 	if *height%100 == 0 {
 		logger.Info("Parser Blocks", "Block "+strconv.Itoa(int(b.Height())), logger.Params{"hash": b.Hash().String(), "height": b.Height()})

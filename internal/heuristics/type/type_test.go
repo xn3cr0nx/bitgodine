@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -15,7 +15,7 @@ import (
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	db     storage.DB
+	db     kv.DB
 	target tx.Tx
 }
 
@@ -24,7 +24,7 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 
 	db, err := test.InitTestDB()
 	require.Nil(suite.T(), err)
-	suite.db = db.(storage.DB)
+	suite.db = db.(kv.DB)
 
 	suite.Setup()
 }

@@ -10,9 +10,9 @@ import (
 
 	// "github.com/xn3cr0nx/bitgodine/internal/cluster"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 func printTagsTable(tags []Model) {

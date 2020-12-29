@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/server"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/migration"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 var (
@@ -51,7 +51,7 @@ func start(cmd *cobra.Command, args []string) {
 		os.Exit(-1)
 	}
 
-	db, err := storage.NewStorage()
+	db, err := kv.NewDB()
 	defer db.Close()
 
 	pg, err := postgres.NewPg(postgres.Conf())

@@ -12,7 +12,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -24,7 +24,7 @@ import (
 type Parser struct {
 	blockchain *Blockchain
 	client     *rpcclient.Client
-	db         storage.DB
+	db         kv.DB
 	skipped    *Skipped
 	utxoset    *utxoset.UtxoSet
 	cache      *cache.Cache
@@ -32,7 +32,7 @@ type Parser struct {
 }
 
 // NewParser return a new instance to Bitcoin blockchai parser
-func NewParser(blockchain *Blockchain, client *rpcclient.Client, db storage.DB, skipped *Skipped, utxoset *utxoset.UtxoSet, c *cache.Cache, interrupt chan int) Parser {
+func NewParser(blockchain *Blockchain, client *rpcclient.Client, db kv.DB, skipped *Skipped, utxoset *utxoset.UtxoSet, c *cache.Cache, interrupt chan int) Parser {
 	return Parser{
 		blockchain: blockchain,
 		client:     client,

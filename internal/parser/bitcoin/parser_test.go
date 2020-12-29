@@ -10,8 +10,8 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
 	. "github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -23,7 +23,7 @@ var _ = Describe("Blockchain", func() {
 		// bp   *Parser
 		b    *bitcoin.Blockchain
 		utxo *utxoset.UtxoSet
-		db   storage.DB
+		db   kv.DB
 	)
 
 	BeforeSuite(func() {

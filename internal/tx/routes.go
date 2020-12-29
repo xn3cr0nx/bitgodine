@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
@@ -25,7 +25,7 @@ func Routes(g *echo.Group) {
 	// 		return err
 	// 	}
 	// db := c.Get("db")
-	// t, err := db.(storage.DB).GetTx(txid)
+	// t, err := db.(kv.DB).GetTx(txid)
 	// 	if err != nil {
 	// 		if errors.Is(err, errorx.ErrKeyNotFound) {
 	// 			err = echo.NewHTTPError(http.StatusNotFound, err)
@@ -51,7 +51,7 @@ func Routes(g *echo.Group) {
 	// 		return err
 	// 	}
 	// db := c.Get("db")
-	// t, err := db.(storage.DB).GetTx(txid)
+	// t, err := db.(kv.DB).GetTx(txid)
 	// 	if err != nil {
 	// 		if errors.Is(err, errorx.ErrKeyNotFound) {
 	// 			err = echo.NewHTTPError(http.StatusNotFound, err)
@@ -104,7 +104,7 @@ func txID(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 		return err
 	}
-	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
+	t, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), txid)
 	if err != nil {
 		if errors.Is(err, errorx.ErrKeyNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, err)
@@ -134,7 +134,7 @@ func txIDStatus(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
 		return err
 	}
-	t, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), txid)
+	t, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), txid)
 	if err != nil {
 		if errors.Is(err, errorx.ErrKeyNotFound) {
 			err = echo.NewHTTPError(http.StatusNotFound, err)

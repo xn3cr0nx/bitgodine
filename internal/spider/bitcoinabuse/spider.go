@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/httpx"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"gorm.io/gorm"
 )
 

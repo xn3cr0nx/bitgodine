@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -17,11 +17,11 @@ type DisjointSet struct {
 	parent  []uint64
 	rank    []uint64
 	hashMap sync.Map
-	storage storage.DB
+	storage kv.DB
 }
 
 // NewDisjointSet creates a new instance of DisjointSet
-func NewDisjointSet(db storage.DB, disk, memory bool) (d DisjointSet, err error) {
+func NewDisjointSet(db kv.DB, disk, memory bool) (d DisjointSet, err error) {
 	const CAPACITY uint64 = 2147483647
 	d = DisjointSet{
 		size:    0,

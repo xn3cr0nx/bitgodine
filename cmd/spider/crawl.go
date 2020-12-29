@@ -11,9 +11,9 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/spider/bitcoinabuse"
 	"github.com/xn3cr0nx/bitgodine/internal/spider/checkbitcoinaddress"
 	"github.com/xn3cr0nx/bitgodine/internal/spider/walletexplorer"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/migration"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 )
 
 // crawlCmd represents the crawl command

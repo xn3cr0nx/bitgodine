@@ -6,7 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )

@@ -8,12 +8,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine/internal/clusterizer/bitcoin"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
-
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
 )
 
 var (
@@ -36,7 +35,7 @@ in a persistent way in storage layer.`,
 			os.Exit(-1)
 		}
 
-		db, err := storage.NewStorage()
+		db, err := kv.NewDB()
 		defer db.Close()
 
 		set, err := disk.NewDisjointSet(db, true, true)

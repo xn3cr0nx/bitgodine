@@ -11,14 +11,14 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // Worker struct implementing workers pool
 type Worker struct {
-	db          storage.DB
+	db          kv.DB
 	ca          *cache.Cache
 	output      tx.Output
 	vout        int
@@ -40,7 +40,7 @@ func (w *Worker) Work() (err error) {
 
 // ChangeOutput returns the index of the output which appears for the first time in the chain based on client behaviour heuristic
 // TODO: violates DRY, just different evaluation in output change, but same operations
-func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	candidates := make([]uint32, len(transaction.Vout))
 	blockHeight, err := block.GetTxBlockHeight(db, ca, transaction.TxID)
 	if err != nil {
@@ -67,7 +67,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
 	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

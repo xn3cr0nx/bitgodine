@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
@@ -53,7 +53,7 @@ func blockHeight(c echo.Context) error {
 		return err
 	}
 
-	b, err := GetFromHeight(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), int32(height))
+	b, err := GetFromHeight(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), int32(height))
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func blockHeight(c echo.Context) error {
 // 		return err
 // 	}
 // 	db := c.Get("db")
-// 	b, err := db.(storage.DB).GetFromHash(hash)
+// 	b, err := db.(kv.DB).GetFromHash(hash)
 // 	if err != nil {
 // 		if errors.Is(err, errorx.ErrKeyNotFound) {
 // 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -96,7 +96,7 @@ func blockHash(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 		return err
 	}
-	b, err := GetFromHashWithTxs(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
+	b, err := GetFromHashWithTxs(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func blockHashTxs(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 		return err
 	}
-	b, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
+	b, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func blockHashTxIDs(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
 		return err
 	}
-	b, err := GetFromHash(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), hash)
+	b, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func blocksHeight(c echo.Context) error {
 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
 		return err
 	}
-	blocks, err := GetFromHeightRange(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache), int32(start), 10)
+	blocks, err := GetFromHeightRange(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), int32(start), 10)
 	if err != nil {
 		if errors.Is(err, errorx.ErrKeyNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, err)
@@ -228,7 +228,7 @@ func blocksHeight(c echo.Context) error {
 // @Success 200 {number} int
 // @Success 500 {string} string
 func tipHeight(c echo.Context) error {
-	b, err := GetLast(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache))
+	b, err := GetLast(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache))
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func tipHeight(c echo.Context) error {
 // @Success 200 {string} hash
 // @Success 500 {string} string
 func tipHash(c echo.Context) error {
-	b, err := GetLast(c.Get("db").(storage.DB), c.Get("cache").(*cache.Cache))
+	b, err := GetLast(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache))
 	if err != nil {
 		return err
 	}

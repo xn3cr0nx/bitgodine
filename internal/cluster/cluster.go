@@ -7,7 +7,7 @@ import (
 	"github.com/fatih/structs"
 	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 )
 
 func printClustersTable(clusters []Model) {

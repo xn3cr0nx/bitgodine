@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
@@ -18,7 +18,7 @@ func IsBitcoinAddress(text string) bool {
 }
 
 // GetOccurences returnes an array containing the transactions where the address appears in the blockchain
-func GetOccurences(db storage.DB, c *cache.Cache, address string) (occurences []string, err error) {
+func GetOccurences(db kv.DB, c *cache.Cache, address string) (occurences []string, err error) {
 	occurences, err = db.ReadKeysWithPrefix(address + "_")
 	if err != nil {
 		return
@@ -30,7 +30,7 @@ func GetOccurences(db storage.DB, c *cache.Cache, address string) (occurences []
 }
 
 // GetFirstOccurenceHeight returnes the height of the block in which the address appeared for the first time
-func GetFirstOccurenceHeight(db storage.DB, c *cache.Cache, address string) (height int32, err error) {
+func GetFirstOccurenceHeight(db kv.DB, c *cache.Cache, address string) (height int32, err error) {
 	if cached, ok := c.Get(address); ok {
 		height = cached.(int32)
 		return

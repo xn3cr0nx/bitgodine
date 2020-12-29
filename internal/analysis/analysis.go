@@ -16,7 +16,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
@@ -24,7 +24,7 @@ import (
 
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
 func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error) {
-	db := (*c).Get("db").(storage.DB)
+	db := (*c).Get("db").(kv.DB)
 	ca := (*c).Get("cache").(*cache.Cache)
 	transaction, err := tx.GetFromHash(db, ca, txid)
 	if err != nil {
@@ -174,7 +174,7 @@ func MajorityVotingOutput(analyzed heuristics.Map) (likelihood map[uint32]map[he
 
 // Worker basic worker to partecipate in task pool
 type Worker struct {
-	db             storage.DB
+	db             kv.DB
 	ca             *cache.Cache
 	height         int32
 	tx             tx.Tx
@@ -220,7 +220,7 @@ func (w *ReliabilityWorker) Work() (err error) {
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
 func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, analysisType, criteria, chart string, force bool) (err error) {
-	db := (*c).Get("db").(storage.DB)
+	db := (*c).Get("db").(kv.DB)
 	ca := (*c).Get("cache").(*cache.Cache)
 	if db == nil {
 		err = fmt.Errorf("%w: db not initialized", errorx.ErrConfig)

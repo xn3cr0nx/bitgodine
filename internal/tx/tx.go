@@ -2,14 +2,14 @@ package tx
 
 import (
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
 // read retrieves tx by hash
-func read(db storage.DB, hash string) (transaction Tx, err error) {
+func read(db kv.DB, hash string) (transaction Tx, err error) {
 	r, err := db.Read(hash)
 	if err != nil {
 		return
@@ -21,7 +21,7 @@ func read(db storage.DB, hash string) (transaction Tx, err error) {
 }
 
 // readFollowing retrieves spending tx of the output based on hash and index
-func readFollowing(db storage.DB, hash string, vout uint32) (transaction string, err error) {
+func readFollowing(db kv.DB, hash string, vout uint32) (transaction string, err error) {
 	bytes, err := db.Read(hash + "_" + string(vout))
 	if err != nil {
 		return
@@ -31,7 +31,7 @@ func readFollowing(db storage.DB, hash string, vout uint32) (transaction string,
 }
 
 // GetFromHash return block structure based on block hash
-func GetFromHash(db storage.DB, c *cache.Cache, hash string) (transaction Tx, err error) {
+func GetFromHash(db kv.DB, c *cache.Cache, hash string) (transaction Tx, err error) {
 	if cached, ok := c.Get(hash); ok {
 		transaction = cached.(Tx)
 		return
@@ -49,7 +49,7 @@ func GetFromHash(db storage.DB, c *cache.Cache, hash string) (transaction Tx, er
 }
 
 // GetOutputsFromHash retrieves tx's outputs by hash
-func GetOutputsFromHash(db storage.DB, c *cache.Cache, hash string) (outputs []Output, err error) {
+func GetOutputsFromHash(db kv.DB, c *cache.Cache, hash string) (outputs []Output, err error) {
 	tx, err := GetFromHash(db, c, hash)
 	if err != nil {
 		return
@@ -59,7 +59,7 @@ func GetOutputsFromHash(db storage.DB, c *cache.Cache, hash string) (outputs []O
 }
 
 // GetSpentOutputFromHash retrieves spent tx output based on hash and index
-func GetSpentOutputFromHash(db storage.DB, c *cache.Cache, hash string, vout uint32) (output Output, err error) {
+func GetSpentOutputFromHash(db kv.DB, c *cache.Cache, hash string, vout uint32) (output Output, err error) {
 	tx, err := GetFromHash(db, c, hash)
 	if err != nil {
 		return
@@ -69,7 +69,7 @@ func GetSpentOutputFromHash(db storage.DB, c *cache.Cache, hash string, vout uin
 }
 
 // GetSpendingFromHash retrieves spending tx of the output based on hash and index
-func GetSpendingFromHash(db storage.DB, c *cache.Cache, hash string, vout uint32) (transaction Tx, err error) {
+func GetSpendingFromHash(db kv.DB, c *cache.Cache, hash string, vout uint32) (transaction Tx, err error) {
 	spendingHash, err := readFollowing(db, hash, vout)
 	if err != nil {
 		return
@@ -80,7 +80,7 @@ func GetSpendingFromHash(db storage.DB, c *cache.Cache, hash string, vout uint32
 
 // IsSpent returnes true if exists a transaction that takes as input to the new tx
 // the output corresponding to the index passed to the function
-func IsSpent(db storage.DB, c *cache.Cache, tx string, index uint32) bool {
+func IsSpent(db kv.DB, c *cache.Cache, tx string, index uint32) bool {
 	_, err := GetSpendingFromHash(db, c, tx, index)
 	return err == nil
 }

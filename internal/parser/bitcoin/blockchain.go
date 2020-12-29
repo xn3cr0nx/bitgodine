@@ -10,7 +10,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
@@ -18,14 +18,14 @@ import (
 type Blockchain struct {
 	Maps    []mmap.MMap
 	Network chaincfg.Params
-	db      storage.DB
+	db      kv.DB
 	height  int32
 }
 
 var blockchain *Blockchain
 
 // NewBlockchain singleton pattern return always the same instance of blockchain. In the first time initializes the blockchain
-func NewBlockchain(db storage.DB, network chaincfg.Params) *Blockchain {
+func NewBlockchain(db kv.DB, network chaincfg.Params) *Blockchain {
 	if blockchain == nil {
 		blockchain = new(Blockchain)
 		blockchain.Network = network

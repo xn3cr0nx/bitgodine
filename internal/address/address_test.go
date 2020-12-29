@@ -10,8 +10,8 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/internal/test"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -23,7 +23,7 @@ import (
 
 var _ = Describe("Testing key value storage addresses methods", func() {
 	var (
-		db storage.DB
+		db kv.DB
 	)
 
 	BeforeEach(func() {

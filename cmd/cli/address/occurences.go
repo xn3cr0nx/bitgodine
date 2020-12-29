@@ -9,7 +9,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/dgraph"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/dgraph"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 

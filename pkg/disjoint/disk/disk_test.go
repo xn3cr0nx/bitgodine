@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	. "github.com/xn3cr0nx/bitgodine/pkg/disjoint/disk"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )

@@ -3,12 +3,12 @@ package analysis
 import (
 	"fmt"
 
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/encoding"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-func restorePreviousAnalysis(db storage.DB, from, to, interval int32, analysisType string) (intervals []Chunk) {
+func restorePreviousAnalysis(db kv.DB, from, to, interval int32, analysisType string) (intervals []Chunk) {
 	if to-from >= interval {
 		upper := upperBoundary(from, interval)
 		lower := lowerBoundary(to, interval)
@@ -46,7 +46,7 @@ func restorePreviousAnalysis(db storage.DB, from, to, interval int32, analysisTy
 }
 
 // storeRange stores sub chunks of analysis graph based on the interval
-func storeRange(db storage.DB, r Range, interval int32, vuln Graph, analysisType string) (err error) {
+func storeRange(db kv.DB, r Range, interval int32, vuln Graph, analysisType string) (err error) {
 	upper := upperBoundary(r.From, interval)
 	lower := lowerBoundary(r.To, interval)
 

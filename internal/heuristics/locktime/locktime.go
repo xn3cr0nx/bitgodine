@@ -9,7 +9,7 @@ package locktime
 import (
 	"sync"
 
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"golang.org/x/sync/errgroup"
@@ -19,7 +19,7 @@ import (
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
 // If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
-func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	if transaction.Locktime == 0 {
 		return
 	}
@@ -49,7 +49,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
 	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

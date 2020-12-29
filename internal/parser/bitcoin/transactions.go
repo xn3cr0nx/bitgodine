@@ -9,9 +9,9 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 	"github.com/xn3cr0nx/bitgodine/pkg/task"
 )
@@ -27,7 +27,7 @@ type Tx struct {
 // I have to define the id of the transaction with interested output and link the culprit inputs through that it. The approach are two:
 // 1) my current solution starts from the assumption that this situation is uncommon, so is better to handle it just in those uncommon cases
 // 2) if this situation is more common than I though, well is better to check this condition before to start parsing the tx, so I'll refactor
-func PrepareTransactions(db storage.DB, txs []*btcutil.Tx) (transactions []tx.Tx, err error) {
+func PrepareTransactions(db kv.DB, txs []*btcutil.Tx) (transactions []tx.Tx, err error) {
 	transactions = make([]tx.Tx, len(txs))
 
 	pool := task.New(runtime.NumCPU() * 2)

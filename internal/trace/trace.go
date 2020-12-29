@@ -10,13 +10,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"golang.org/x/sync/errgroup"
 )
@@ -55,7 +55,7 @@ type Flow struct {
 func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *Flow, err error) {
 	fmt.Println("Tracing address", addr)
 
-	db := (*c).Get("db").(storage.DB)
+	db := (*c).Get("db").(kv.DB)
 	ca := (*c).Get("cache").(*cache.Cache)
 	occurences, err := address.GetOccurences(db, ca, addr)
 	if err != nil {
@@ -107,7 +107,7 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 	return
 }
 
-func followFlow(c *echo.Context, db storage.DB, ca *cache.Cache, flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
+func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
 	changes, err := analysis.AnalyzeTx(c, transaction.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
 		if errors.Is(err, analysis.ErrUnfeasibleTx) {

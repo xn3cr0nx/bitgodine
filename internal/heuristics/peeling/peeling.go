@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
@@ -22,7 +22,7 @@ func PeelingLikeCondition(transaction *tx.Tx) bool {
 }
 
 // IsPeelingChain returns true id the transaction is part of a peeling chain
-func IsPeelingChain(db storage.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err error) {
+func IsPeelingChain(db kv.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err error) {
 	if !PeelingLikeCondition(transaction) {
 		return
 	}
@@ -50,7 +50,7 @@ func IsPeelingChain(db storage.DB, c *cache.Cache, transaction *tx.Tx) (is bool,
 }
 
 // ChangeOutput returns the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	is, err := IsPeelingChain(db, ca, transaction)
 	if err != nil {
 		return
@@ -68,7 +68,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, c *cache.Cache, transaction *tx.Tx) bool {
+func Vulnerable(db kv.DB, c *cache.Cache, transaction *tx.Tx) bool {
 	_, err := ChangeOutput(db, c, transaction)
 	return err == nil
 }

@@ -6,13 +6,13 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/badger"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // InitTestDB setup badger db for test
-func InitTestDB() (db storage.DB, err error) {
+func InitTestDB() (db kv.DB, err error) {
 	conf := &badger.Config{
 		Dir: filepath.Join(".", "test"),
 	}
@@ -30,7 +30,7 @@ func InitTestDB() (db storage.DB, err error) {
 }
 
 // InitDB setup badger db for test
-func InitDB() (db storage.DB, err error) {
+func InitDB() (db kv.DB, err error) {
 	viper.SetDefault("dbDir", filepath.Join(".", "test"))
 	hd, err := homedir.Dir()
 	if err != nil {
@@ -50,6 +50,6 @@ func InitDB() (db storage.DB, err error) {
 }
 
 // CleanTestDB cleanup badger db for test
-func CleanTestDB(db storage.DB) (err error) {
+func CleanTestDB(db kv.DB) (err error) {
 	return db.Empty()
 }

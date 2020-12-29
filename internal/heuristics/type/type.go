@@ -10,13 +10,13 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
 // ChangeOutput returns the index of the output which address type corresponds to input addresses type
-func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
 	inputTypes := make([]string, len(transaction.Vin))
 	outputTypes := make([]string, len(transaction.Vout))
 
@@ -62,7 +62,7 @@ func ChangeOutput(db storage.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint3
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db storage.DB, ca *cache.Cache, transaction *tx.Tx) bool {
+func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
 	c, err := ChangeOutput(db, ca, transaction)
 	return err == nil && len(c) > 0
 }

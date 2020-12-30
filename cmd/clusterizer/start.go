@@ -55,10 +55,6 @@ in a persistent way in storage layer.`,
 			logger.Error("Clusterizer", err, logger.Params{})
 			os.Exit(-1)
 		}
-		if err := pg.Connect(); err != nil {
-			logger.Error("Clusterizer", err, logger.Params{})
-			os.Exit(-1)
-		}
 
 		interrupt := make(chan int)
 		done := make(chan int)

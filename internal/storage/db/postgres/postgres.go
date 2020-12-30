@@ -26,7 +26,6 @@ type Config struct {
 // Pg instance of Postgres db with configuration details
 type Pg struct {
 	*gorm.DB
-	conf *Config
 }
 
 // Conf defines needed field for connecting to Postgres instance
@@ -59,7 +58,20 @@ func NewPg(conf *Config) (*Pg, error) {
 		logger.Info("Postgres", "Missing postgres ssl mode, disabled by default", logger.Params{})
 		conf.SSLMode = "disable"
 	}
-	return &Pg{conf: conf}, nil
+
+	conStr := conf.String()
+	level := gormLogger.Error
+	if conf.Debug {
+		level = gormLogger.Info
+	}
+
+	db, err := gorm.Open(postgres.Open(conStr), &gorm.Config{
+		Logger: gormLogger.Default.LogMode(level),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Pg{db}, nil
 }
 
 // String returns the connection string for connecting to postgres
@@ -74,26 +86,32 @@ func (c *Config) MigrationString() string {
 	return fmt.Sprintf(strBase, c.User, c.Pass, c.Host, strconv.Itoa(c.Port), c.Name, c.SSLMode)
 }
 
-// Connect open postgres connection using configuration details provided in conf field
-func (pg *Pg) Connect() error {
-	conStr := pg.conf.String()
-	level := gormLogger.Error
-	if pg.conf.Debug {
-		level = gormLogger.Info
-	}
+// // repository interface compatibility
+// func wrap(db *gorm.DB) *Pg {
+// 	return &Pg{db}
+// }
 
-	db, err := gorm.Open(postgres.Open(conStr), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(level),
-	})
-	if err != nil {
-		return err
-	}
-	pg.DB = db
+// // Create wrapper form gorm DB wrapper
+// func (pg *Pg) Create(value interface{}) *Pg {
+// 	return wrap(pg.DB.Create(value))
+// }
 
-	return nil
-}
+// // Model wrapper form gorm DB wrapper
+// func (pg *Pg) Model(value interface{}) *Pg {
+// 	return wrap(pg.DB.Model(value))
+// }
 
-// Error returns query error
-func (pg *Pg) Error() error {
-	return pg.DB.Error
-}
+// // Find wrapper form gorm DB wrapper
+// func (pg *Pg) Find(dest interface{}, conds ...interface{}) *Pg {
+// 	return wrap(pg.DB.Find(dest, conds))
+// }
+
+// // Where wrapper form gorm DB wrapper
+// func (pg *Pg) Where(query interface{}, conds ...interface{}) *Pg {
+// 	return wrap(pg.DB.Where(query, conds))
+// }
+
+// // Error returns query error
+// func (pg *Pg) Error() error {
+// 	return pg.DB.Error
+// }

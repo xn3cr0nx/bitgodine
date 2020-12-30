@@ -53,10 +53,6 @@ var exportCmd = &cobra.Command{
 			logger.Error("Spider", err, logger.Params{})
 			os.Exit(-1)
 		}
-		if err := pg.Connect(); err != nil {
-			logger.Error("Spider", err, logger.Params{})
-			os.Exit(-1)
-		}
 
 		interrupt := make(chan int)
 		done := make(chan int)

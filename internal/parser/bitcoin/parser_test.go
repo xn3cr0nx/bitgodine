@@ -43,7 +43,7 @@ var _ = Describe("Blockchain", func() {
 		skippedBlocksStorage := NewSkipped()
 		utxo = utxoset.Instance(utxoset.Conf("", false))
 		b = bitcoin.NewBlockchain(db, chaincfg.MainNetParams)
-		b.Read("")
+		b.Read("", 0)
 
 		NewParser(b, nil, db, skippedBlocksStorage, utxo, ca, nil)
 	})
@@ -63,9 +63,9 @@ var _ = Describe("Blockchain", func() {
 				chain = append(chain, []uint8(ref))
 			}
 
-			for _, slice := range chain {
-				for len(slice) > 0 {
-					block, err := bitcoin.ExtractBlockFromSlice(&slice)
+			for _, file := range chain {
+				for len(file) > 0 {
+					block, err := bitcoin.ExtractBlockFromFile(&file)
 					Expect(err).ToNot(HaveOccurred())
 					if block.Hash().String() == target {
 						blockTarget = block
@@ -79,7 +79,7 @@ var _ = Describe("Blockchain", func() {
 			Expect(blockTarget).ToNot(BeNil())
 
 			height := int32(0)
-			err := blockTarget.Store(db, &height)
+			err := blockTarget.Store(db, height)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -41,7 +41,7 @@ func (suite *TestBlocksSuite) TestParse() {
 
 	genesisBlockHash := chaincfg.MainNetParams.GenesisHash.String()
 	genesisTxHash := "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
-	block, err := bitcoin.ExtractBlockFromSlice(&f)
+	block, err := bitcoin.ExtractBlockFromFile(&f)
 	if err != nil {
 		logger.Panic("Test Blockchain", err, logger.Params{"op": "Error reading block"})
 	}
@@ -53,7 +53,7 @@ func (suite *TestBlocksSuite) TestParse() {
 
 func (suite *TestBlocksSuite) TestCheckBlock() {
 	f, _ := ioutil.ReadFile("/home/xn3cr0nx/.bitcoin/blocks/blk00000.dat")
-	block, err := bitcoin.ExtractBlockFromSlice(&f)
+	block, err := bitcoin.ExtractBlockFromFile(&f)
 	if err != nil {
 		logger.Panic("Test Block", err, logger.Params{"op": "Error reading block"})
 	}

@@ -19,12 +19,12 @@ type Block struct {
 }
 
 // Store prepares the block struct and and call StoreBlock to store it
-func (b *Block) Store(db kv.DB, height *int32) (err error) {
-	b.SetHeight(*height)
-	if *height%100 == 0 {
+func (b *Block) Store(db kv.DB, height int32) (err error) {
+	b.SetHeight(height)
+	if height%100 == 0 {
 		logger.Info("Parser Blocks", "Block "+strconv.Itoa(int(b.Height())), logger.Params{"hash": b.Hash().String(), "height": b.Height()})
 	}
-	logger.Debug("Parser Blocks", "Storing block", logger.Params{"hash": b.Hash().String(), "height": *height})
+	logger.Debug("Parser Blocks", "Storing block", logger.Params{"hash": b.Hash().String(), "height": height})
 
 	transactions, err := PrepareTransactions(db, b.Transactions())
 	if err != nil {
@@ -81,8 +81,8 @@ func CoinbaseValue(height int32) int64 {
 	return int64(5000000000 / math.Pow(2, float64(height/int32(210000))))
 }
 
-// ExtractBlockFromSlice reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
-func ExtractBlockFromSlice(slice *[]uint8) (blk *Block, err error) {
+// ExtractBlockFromFile reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
+func ExtractBlockFromFile(slice *[]uint8) (blk *Block, err error) {
 	for len(*slice) > 0 && (*slice)[0] == 0 {
 		*slice = (*slice)[1:]
 	}

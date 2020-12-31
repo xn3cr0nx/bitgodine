@@ -70,7 +70,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&btcClientPass, "btcPass", "pass", "Specify bitcoin client connection password")
 	rootCmd.PersistentFlags().StringVar(&btcClientCerts, "btcCerts", "~/.bitcoin/rpc.cert", "Specify bitcoin client connection certificates")
 
-	rootCmd.PersistentFlags().IntVar(&startFile, "file", 0, "Sets the data file to start parsing from")
 	rootCmd.PersistentFlags().IntVar(&restoredBlocks, "restored", 50000, "Sets the number of blocks to restore before the current synced height")
 }
 
@@ -94,7 +93,6 @@ func initConfig() {
 	viper.SetDefault("btcPass", "pass")
 	viper.SetDefault("btcCerts", "~/.bitcoin/rpc.cert")
 	viper.SetDefault("skipped", 50000)
-	viper.SetDefault("file", 0)
 	viper.SetDefault("restored", 50000)
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
@@ -110,7 +108,6 @@ func initConfig() {
 	viper.BindPFlag("bitcoin.client.btcPass", rootCmd.PersistentFlags().Lookup("btcPass"))
 	viper.BindPFlag("bitcoin.client.btcCerts", rootCmd.PersistentFlags().Lookup("btcCerts"))
 	viper.BindPFlag("skipped", rootCmd.PersistentFlags().Lookup("skipped"))
-	viper.BindPFlag("file", rootCmd.PersistentFlags().Lookup("file"))
 	viper.BindPFlag("restored", rootCmd.PersistentFlags().Lookup("restored"))
 
 	viper.SetEnvPrefix("parser")

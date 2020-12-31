@@ -39,7 +39,7 @@ func NewBlockchain(db kv.DB, network chaincfg.Params) *Blockchain {
 	return blockchain
 }
 
-func (b *Blockchain) Read(path string) error {
+func (b *Blockchain) Read(path string, from int) error {
 	var Maps []mmap.MMap
 	netPath := b.Network.Name
 	if path == "" {
@@ -57,7 +57,7 @@ func (b *Blockchain) Read(path string) error {
 	}
 	path = filepath.Join(path, ".bitcoin", netPath, "blocks")
 
-	for n := 0; ; n++ {
+	for n := from; ; n++ {
 		f, err := os.OpenFile(filepath.Join(path, fmt.Sprintf("blk%05d.dat", n)), os.O_RDWR, 0644)
 		defer f.Close()
 		if err != nil {

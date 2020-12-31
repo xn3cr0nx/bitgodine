@@ -6,17 +6,20 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
+
+// FileKey key for kv stored parsed files counter
+const FileKey = "file"
 
 // Parser defines the objects involved in the parsing of Bitcoin blockchain
 // The involved objects include the parsed structure, the kind of parser, storage instances
@@ -29,6 +32,13 @@ type Parser struct {
 	utxoset    *utxoset.UtxoSet
 	cache      *cache.Cache
 	interrupt  chan int
+}
+
+// CheckPoint represents the last parse state
+type CheckPoint struct {
+	height       int32
+	goalPrevHash *chainhash.Hash
+	lastBlock    *Block
 }
 
 // NewParser return a new instance to Bitcoin blockchai parser
@@ -58,7 +68,20 @@ func (p *Parser) InfinitelyParse() (err error) {
 	go handleInterrupt(ch, p.interrupt)
 
 	for {
-		if err = p.blockchain.Read(""); err != nil {
+		var file int
+		v, e := p.db.Read(FileKey)
+		if e != nil {
+			if !errors.Is(e, errorx.ErrKeyNotFound) {
+				return e
+			}
+		} else {
+			file, err = strconv.Atoi(string(v))
+			if err != nil {
+				return
+			}
+		}
+
+		if err = p.blockchain.Read("", file); err != nil {
 			return
 		}
 
@@ -66,10 +89,6 @@ func (p *Parser) InfinitelyParse() (err error) {
 			if errors.Is(err, ErrInterrupt) {
 				break
 			}
-			// if errors.Is(err, ErrExceededSize) {
-			// 	p.skipped.Empty()
-			// 	continue
-			// }
 			return err
 		}
 	}
@@ -78,62 +97,44 @@ func (p *Parser) InfinitelyParse() (err error) {
 
 // Parse goes through the blockchain block by block
 func (p *Parser) Parse() (err error) {
-	goalPrevHash, _ := chainhash.NewHash(make([]byte, 32))
-	var lastBlock *Block
-	height, err := p.blockchain.Height()
-	if err != nil {
-		return
-	}
-
 	var rawChain [][]uint8
 	for _, ref := range p.blockchain.Maps {
 		rawChain = append(rawChain, []uint8(ref))
 	}
 	logger.Debug("Blockchain", "Files converted to be parsed: "+fmt.Sprintf("%v", len(rawChain)), logger.Params{})
 
-	if height > 0 {
-		last, e := p.blockchain.Head()
-		if e != nil {
-			err = e
-			return
-		}
-
-		logger.Debug("Blockchain", "reaching endpoint to start from "+Itoa(height)+" - "+last.ID, logger.Params{})
-		lastBlock, err = p.findCheckPointByHash(rawChain, &last)
-		if err != nil {
-			return
-		}
-		fmt.Println("Restored", p.skipped.Len(), last.ID, lastBlock.MsgBlock().Header.PrevBlock.String())
-
-		height++
-		goalPrevHash = lastBlock.Hash()
-
-		logger.Info("Blockchain", "Start syncing from block "+Itoa(height), logger.Params{"hash": lastBlock.Hash().String()})
+	check, err := p.FindCheckPoint(rawChain)
+	if err != nil {
+		return
 	}
+	logger.Info("Blockchain", "Start syncing from block "+Itoa(check.height), logger.Params{})
 
-	for k, ref := range rawChain {
-		if len(ref) == 0 {
+	for k, file := range rawChain {
+		if len(file) == 0 {
 			continue
 		}
-		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(height), "lastBlock": goalPrevHash.String()})
-		if goalPrevHash, lastBlock, err = ParseSlice(p, &ref, goalPrevHash, lastBlock, &height); err != nil {
+		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(check.height), "lastBlock": check.goalPrevHash.String()})
+		// if check, err = ParseFile(p, &file, check); err != nil {
+		if err = ParseFile(p, check, &file); err != nil {
 			return
 		}
-	}
 
-	if viper.GetBool("realtime") {
-		logger.Info("Blockchain", "Waiting for new blocks", logger.Params{"height": height})
-		time.Sleep(2 * time.Second)
+		// keep track of parsed files
+		if err = p.db.Store(FileKey, []byte(strconv.Itoa(k))); err != nil {
+			return
+		}
+
+		if err = p.blockchain.Maps[k].Unmap(); err != nil {
+			return
+		}
 	}
 
 	return
 }
 
-// ParseSlice goes through a slice (block) of the chain
-func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *int32) (goalPrevHash *chainhash.Hash, lastBlock *Block, err error) {
-	goalPrevHash = g
-	lastBlock = l
-	for len(*slice) > 0 {
+// ParseFile walks through the raw file and extract blocks
+func ParseFile(p *Parser, check *CheckPoint, file *[]uint8) (err error) {
+	for len(*file) > 0 {
 		select {
 		case x, ok := <-p.interrupt:
 			if !ok {
@@ -144,29 +145,29 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 			return
 
 		default:
-			if _, e := p.skipped.GetBlock(goalPrevHash); e == nil {
-				logger.Debug("Blockchain", "(rewind - pre-step) Block "+Itoa(*height)+" - "+lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+lastBlock.Hash().String(), logger.Params{})
-				if err = lastBlock.Store(p.db, height); err != nil {
+			if _, e := p.skipped.GetBlock(check.goalPrevHash); e == nil {
+				logger.Debug("Blockchain", "(rewind - pre-step) Block "+Itoa(check.height)+" - "+check.lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+check.lastBlock.Hash().String(), logger.Params{})
+				if err = check.lastBlock.Store(p.db, check.height); err != nil {
 					return
 				}
-				(*height)++
+				check.height++
 				for {
-					if block, e := p.skipped.GetBlock(goalPrevHash); e == nil {
-						p.skipped.DeleteBlock(goalPrevHash)
-						logger.Debug("Blockchain", "(rewind) Block "+Itoa(*height)+" - "+block.MsgBlock().Header.PrevBlock.String()+" -> "+block.Hash().String(), logger.Params{})
-						if err = block.Store(p.db, height); err != nil {
+					if block, e := p.skipped.GetBlock(check.goalPrevHash); e == nil {
+						p.skipped.DeleteBlock(check.goalPrevHash)
+						logger.Debug("Blockchain", "(rewind) Block "+Itoa(check.height)+" - "+block.MsgBlock().Header.PrevBlock.String()+" -> "+block.Hash().String(), logger.Params{})
+						if err = block.Store(p.db, check.height); err != nil {
 							return
 						}
-						(*height)++
-						goalPrevHash = block.Hash()
-						lastBlock = nil
+						check.height++
+						check.goalPrevHash = block.Hash()
+						check.lastBlock = nil
 						continue
 					}
 					break
 				}
 			}
 
-			block, e := ExtractBlockFromSlice(slice)
+			block, e := ExtractBlockFromFile(file)
 			if e != nil {
 				if !errors.Is(e, ErrEmptySliceParse) {
 					err = e
@@ -175,7 +176,7 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 				break
 			}
 
-			logger.Debug("Blockchain", "Block candidate for height "+Itoa(*height)+" - goal_prev_hash = "+goalPrevHash.String()+", prev_hash = "+block.MsgBlock().Header.PrevBlock.String()+", cur_hash = "+block.Hash().String(), logger.Params{})
+			logger.Debug("Blockchain", "Block candidate for height "+Itoa(check.height)+" - goal_prev_hash = "+check.goalPrevHash.String()+", prev_hash = "+block.MsgBlock().Header.PrevBlock.String()+", cur_hash = "+block.Hash().String(), logger.Params{})
 
 			// Explanation: parsing the dat files means find a not ordinate sequence of  In most cases parsing the next block means
 			// find a block that it's been added to blockchain many blocks after, so at a higher height. This means that, that block, will
@@ -183,23 +184,19 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 			// block. This is why the skipped slice is built, is where we keep the unordinate blocks already parsed. If we stop the parsing
 			// process and restart it, we need to restore the skipped block slice too, because otherwire we wouldn't have all the blocks
 			// needed to complete the chain.
-			if !block.MsgBlock().Header.PrevBlock.IsEqual(goalPrevHash) {
+			if !block.MsgBlock().Header.PrevBlock.IsEqual(check.goalPrevHash) {
 				logger.Debug("Blockchain", "Skipped block", logger.Params{"prev": block.MsgBlock().Header.PrevBlock.String()})
 				p.skipped.StoreBlockPrevHash(block)
-				// if p.skipped.Len() > skipped {
-				// 	err = fmt.Errorf("%w: %d", ErrExceededSize, p.skipped.Len())
-				// 	return
-				// }
 
 				// check if last_block.is_some() condition is correctly replaced with checkBlock()
-				if lastBlock.CheckBlock() && block.MsgBlock().Header.PrevBlock.String() == lastBlock.MsgBlock().Header.PrevBlock.String() {
-					logger.Debug("Blockchain", "Chain split detected: "+lastBlock.Hash().String()+"% <-> "+block.Hash().String()+". Detecting main chain and orphan.", logger.Params{})
+				if check.lastBlock.CheckBlock() && block.MsgBlock().Header.PrevBlock.String() == check.lastBlock.MsgBlock().Header.PrevBlock.String() {
+					logger.Debug("Blockchain", "Chain split detected: "+check.lastBlock.Hash().String()+"% <-> "+block.Hash().String()+". Detecting main chain and orphan.", logger.Params{})
 
-					firstOrphan := lastBlock
+					firstOrphan := check.lastBlock
 					secondOrphan := block
 
 					for {
-						block, e := ExtractBlockFromSlice(slice)
+						block, e := ExtractBlockFromFile(file)
 						if err != nil {
 							if !errors.Is(e, ErrEmptySliceParse) {
 								err = e
@@ -217,8 +214,8 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 						if block.MsgBlock().Header.PrevBlock.IsEqual(secondOrphan.Hash()) {
 							// Second wins
 							logger.Debug("Blockchain", "Chain split: "+secondOrphan.Hash().String()+" is on the main chain!", logger.Params{})
-							goalPrevHash = secondOrphan.Hash()
-							*lastBlock = *secondOrphan
+							check.goalPrevHash = secondOrphan.Hash()
+							check.lastBlock = secondOrphan
 							break
 						}
 					}
@@ -226,24 +223,55 @@ func ParseSlice(p *Parser, slice *[]uint8, g *chainhash.Hash, l *Block, height *
 				continue
 			}
 
-			if lastBlock.CheckBlock() {
-				logger.Debug("Blockchain", "(last_block) Parsing block "+Itoa(*height)+" - "+lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+lastBlock.Hash().String(), logger.Params{})
-				if err = lastBlock.Store(p.db, height); err != nil {
+			if check.lastBlock.CheckBlock() {
+				logger.Debug("Blockchain", "(last_block) Parsing block "+Itoa(check.height)+" - "+check.lastBlock.MsgBlock().Header.PrevBlock.String()+" -> "+check.lastBlock.Hash().String(), logger.Params{})
+				if err = check.lastBlock.Store(p.db, check.height); err != nil {
 					return
 				}
-				(*height)++
+				check.height++
 			}
 
-			logger.Debug("Blockchain", "(next_block) Updating block "+Itoa(*height)+": "+block.Hash().String(), logger.Params{})
-			goalPrevHash = block.Hash()
-			lastBlock = block
+			logger.Debug("Blockchain", "(next_block) Updating block "+Itoa(check.height)+": "+block.Hash().String(), logger.Params{})
+			check.goalPrevHash = block.Hash()
+			check.lastBlock = block
 		}
 	}
 
 	return
 }
 
-func (p *Parser) findCheckPointByHash(chain [][]uint8, last *block.Block) (b *Block, err error) {
+// FindCheckPoint restores the parsed files' state from last parsing and return a CheckPoint instance the keep parsing
+func (p *Parser) FindCheckPoint(rawChain [][]uint8) (check *CheckPoint, err error) {
+	check = &CheckPoint{}
+	check.goalPrevHash, _ = chainhash.NewHash(make([]byte, 32))
+
+	check.height, err = p.blockchain.Height()
+	if err != nil {
+		return
+	}
+
+	if check.height > 0 {
+		last, e := p.blockchain.Head()
+		if e != nil {
+			err = e
+			return
+		}
+
+		logger.Debug("Blockchain", "reaching endpoint to start from "+Itoa(check.height)+" - "+last.ID, logger.Params{})
+		check.lastBlock, err = restoreFileState(p, rawChain, &last)
+		if err != nil {
+			return
+		}
+		fmt.Println("Restored", p.skipped.Len(), last.ID, check.lastBlock.MsgBlock().Header.PrevBlock.String())
+
+		check.height++
+		check.goalPrevHash = check.lastBlock.Hash()
+	}
+
+	return
+}
+
+func restoreFileState(p *Parser, chain [][]uint8, last *block.Block) (b *Block, err error) {
 	step := int32(viper.GetInt("restoredBlocks"))
 	from := last.Height - step
 	if from < 0 {
@@ -255,30 +283,22 @@ func (p *Parser) findCheckPointByHash(chain [][]uint8, last *block.Block) (b *Bl
 	}
 	logger.Info("Blockchain", "Blocks list fetched", logger.Params{"length": len(list)})
 
-	file := viper.GetInt("file")
-	logger.Info("Blockchain", "Files already parsed", logger.Params{"number": file})
-
-	for k, slice := range chain {
-		if k < file {
-			chain[k] = []uint8{}
-			continue
-		}
-
-		for len(slice) > 0 {
-			b, err = ExtractBlockFromSlice(&slice)
+	for k, file := range chain {
+		for len(file) > 0 {
+			b, err = ExtractBlockFromFile(&file)
 			if err != nil {
 				return
 			}
 
 			if b.MsgBlock().Header.PrevBlock.String() == last.ID {
-				chain[k] = slice
+				chain[k] = file
 				return
 			}
 			if _, stored := list[b.Hash().String()]; !stored {
 				p.skipped.StoreBlockPrevHash(b)
 			}
 		}
-		chain[k] = slice
+		chain[k] = file
 	}
 	err = ErrCheckpointNotFound
 	return

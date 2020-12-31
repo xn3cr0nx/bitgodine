@@ -5,4 +5,5 @@ package parser
 type Parser interface {
 	InfinitelyParse() error
 	Parse() error
+	FindCheckPoint(rawChain [][]uint8) (interface{}, error)
 }

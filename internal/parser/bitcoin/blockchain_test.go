@@ -25,8 +25,8 @@ var _ = Describe("Blockchain", func() {
 		})
 
 		It("Should parse a block correctly out of file 300", func() {
-			slice := []uint8(bc.Maps[len(bc.Maps)-1])
-			block, err := bitcoin.ExtractBlockFromSlice(&slice)
+			file := []uint8(bc.Maps[len(bc.Maps)-1])
+			block, err := bitcoin.ExtractBlockFromFile(&file)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(block.Hash()).ToNot(BeNil())
 			Expect(block.Hash().String()).ToNot(BeEmpty())
@@ -36,9 +36,9 @@ var _ = Describe("Blockchain", func() {
 			n := 0
 			nBlocks := 0
 			for n < 2 {
-				slice := []uint8(bc.Maps[n])
-				for len(slice) > 0 {
-					block, err := bitcoin.ExtractBlockFromSlice(&slice)
+				file := []uint8(bc.Maps[n])
+				for len(file) > 0 {
+					block, err := bitcoin.ExtractBlockFromFile(&file)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(block.Hash()).ToNot(BeNil())
 					Expect(block.Hash().String()).ToNot(BeEmpty())

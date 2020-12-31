@@ -11,11 +11,10 @@ func ReadSlice(slice *[]uint8, length uint) ([]uint8, error) {
 	if len(*slice) < int(length) {
 		*slice = make([]uint8, 0)
 		return nil, errorx.ErrEOF
-	} else {
-		res := (*slice)[:length]
-		*slice = (*slice)[length:]
-		return res, nil
 	}
+	res := (*slice)[:length]
+	*slice = (*slice)[length:]
+	return res, nil
 }
 
 // ReadArray extracts required length from slice

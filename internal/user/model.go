@@ -22,7 +22,7 @@ type Model struct {
 
 	LastLogin time.Time `json:"last_login" validate:""`
 
-	Verified  bool           `json:"verified,omitempty" gorm:"default:false"`
+	IsActive  bool           `json:"is_active,omitempty" gorm:"default:false"`
 	Lang      string         `json:"lang,omitempty" gorm:"default:'en'"`
 	IsBlocked bool           `json:"isBlocked" gorm:"default:false"`
 	APIKeys   pq.StringArray `json:"apiKeys,omitempty" gorm:"type:varchar(255)[]"`

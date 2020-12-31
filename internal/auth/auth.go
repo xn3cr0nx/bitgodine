@@ -42,9 +42,12 @@ func (s *service) Login(body *LoginBody) (*LoginResp, error) {
 		return nil, echo.NewHTTPError(http.StatusUnauthorized, echo.ErrUnauthorized)
 	}
 
-	// TODO: save last login
-
 	t, err := jwt.NewToken(user.ID.String(), user.Email, time.Hour*24)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, echo.ErrValidatorNotRegistered)
+	}
+
+	lastLogin, err := userService.NewLogin(user.ID)
 	if err != nil {
 		return nil, echo.NewHTTPError(http.StatusInternalServerError, echo.ErrValidatorNotRegistered)
 	}
@@ -54,8 +57,8 @@ func (s *service) Login(body *LoginBody) (*LoginResp, error) {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Username:  user.Username,
-		LastLogin: user.LastLogin,
-		Verified:  user.Verified,
+		LastLogin: lastLogin,
+		IsActive:  user.IsActive,
 		Lang:      user.Lang,
 		IsBlocked: user.IsBlocked,
 		APIKeys:   user.APIKeys,
@@ -84,7 +87,7 @@ func (s *service) Signup(body *SignupBody) (*SignupResp, error) {
 		LastName:  body.LastName,
 		Username:  body.Username,
 		Lang:      "en",
-		Verified:  verified,
+		IsActive:  verified,
 	}
 
 	// TODO: save uuid

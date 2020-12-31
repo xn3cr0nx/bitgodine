@@ -1,6 +1,9 @@
 package user
 
 import (
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 )
 
@@ -33,4 +36,11 @@ func (s *service) GetUserByEmail(email string) (*Model, error) {
 // CreateUser creates a new user
 func (s *service) CreateUser(user *Model) error {
 	return s.Repository.Model(&Model{}).Create(user).Error
+}
+
+// NewLogin updates last_login to a new tiemstamp
+func (s *service) NewLogin(ID uuid.UUID) (time.Time, error) {
+	t := time.Now()
+	err := s.Repository.Model(&Model{}).Where("id = ?", ID).Update("last_login", t).Error
+	return t, err
 }

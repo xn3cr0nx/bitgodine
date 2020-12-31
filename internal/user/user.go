@@ -27,7 +27,7 @@ func NewService(r *postgres.Pg) *service {
 // GetUserByEmail retrieves the user by email
 func (s *service) GetUserByEmail(email string) (*Model, error) {
 	var user Model
-	if err := s.Repository.Where("email = ?", email).Find(&user).Error; err != nil {
+	if err := s.Repository.Preload("preferences").Where("email = ?", email).Find(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

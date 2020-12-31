@@ -7,12 +7,12 @@ import (
 	// "github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/migration"
 	"github.com/xn3cr0nx/bitgodine/internal/server"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
-	"github.com/xn3cr0nx/bitgodine/pkg/migration"
 )
 
 var (

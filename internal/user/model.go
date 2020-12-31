@@ -7,10 +7,12 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
+	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/password"
+	"github.com/xn3cr0nx/bitgodine/internal/preferences"
 )
 
-// Model cluster struct with validation
+// Model user struct with validation
 type Model struct {
 	gorm.Model
 	ID        uuid.UUID `json:"id" gorm:"primary_key;index;unique"`
@@ -26,6 +28,9 @@ type Model struct {
 	Lang      string         `json:"lang,omitempty" gorm:"default:'en'"`
 	IsBlocked bool           `json:"isBlocked" gorm:"default:false"`
 	APIKeys   pq.StringArray `json:"apiKeys,omitempty" gorm:"type:varchar(255)[]"`
+
+	Preferences preferences.Model `gorm:"constraint:OnDelete:CASCADE;"`
+	Analysis    []analysis.Model
 }
 
 // BeforeCreate encrypt the password before creating

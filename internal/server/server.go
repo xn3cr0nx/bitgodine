@@ -12,26 +12,27 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
+	"github.com/xn3cr0nx/bitgodine/internal/auth"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/cluster"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"github.com/xn3cr0nx/bitgodine/internal/trace"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/meter"
-	"github.com/xn3cr0nx/bitgodine/pkg/postgres"
 	"github.com/xn3cr0nx/bitgodine/pkg/pprof"
 	"github.com/xn3cr0nx/bitgodine/pkg/tracer"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 	"go.opentelemetry.io/otel/label"
 
+	v "github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
-	v "gopkg.in/go-playground/validator.v9"
 
 	otleTrace "go.opentelemetry.io/otel/trace"
 
@@ -43,7 +44,7 @@ type (
 	Server struct {
 		port   string
 		router *echo.Echo
-		db     storage.DB
+		db     kv.DB
 		cache  *cache.Cache
 		pg     *postgres.Pg
 	}
@@ -52,7 +53,7 @@ type (
 var server *Server
 
 // NewServer singleton pattern that returns pointer to server
-func NewServer(port int, db storage.DB, c *cache.Cache, pg *postgres.Pg) *Server {
+func NewServer(port int, db kv.DB, c *cache.Cache, pg *postgres.Pg) *Server {
 	if server != nil {
 		return server
 	}
@@ -123,6 +124,9 @@ func (s *Server) Listen() {
 	s.router.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	api := s.router.Group("/api")
+
+	authService := auth.NewService(s.pg)
+	auth.Routes(api, authService)
 	tx.Routes(api)
 	block.Routes(api)
 	address.Routes(api)

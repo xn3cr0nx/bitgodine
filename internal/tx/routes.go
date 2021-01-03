@@ -14,7 +14,7 @@ import (
 
 // Routes mounts all /tx based routes on the main group
 func Routes(g *echo.Group) {
-	r := g.Group("/tx")
+	r := g.Group("/tx", validator.JWT())
 	r.GET("/:txid", txID)
 	r.GET("/:txid/status", txIDStatus)
 
@@ -92,6 +92,8 @@ func Routes(g *echo.Group) {
 // @Description get transaction from id
 // @Tags tx
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //
@@ -121,6 +123,8 @@ func txID(c echo.Context) error {
 // @Summary Tx status from id
 // @Description get transaction's status from id
 // @Tags tx
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json

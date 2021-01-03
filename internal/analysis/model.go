@@ -8,7 +8,12 @@ import (
 // Model analysis struct
 type Model struct {
 	gorm.Model
-	ID     uuid.UUID `json:"id" gorm:"primary_key;index;unique"`
+	ID     uuid.UUID `json:"id" gorm:"primarykey;index;unique"`
 	UserID uuid.UUID `json:"user_id" gorm:"index"`
 	Type   string    `json:"type" gorm:"index"`
+} //@name Analysis
+
+// TableName defines default table name
+func (m *Model) TableName() string {
+	return "analysis"
 }

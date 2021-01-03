@@ -24,6 +24,8 @@ func Routes(g *echo.Group) {
 // @Description get analysis for transaction by id
 // @Tags analysis
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //
@@ -75,6 +77,8 @@ func analysisID(c echo.Context) error {
 // @Summary Analysis blocks
 // @Description get analysis for a block range
 // @Tags analysis
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json

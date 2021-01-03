@@ -8,7 +8,7 @@ import (
 // Model of abuse struct with validation
 type Model struct {
 	gorm.Model
-	ID              uuid.UUID `json:"id" gorm:"primary_key;index;unique"`
+	ID              uuid.UUID `json:"id" gorm:"primarykey;index;unique"`
 	Address         string    `json:"address" validate:"required,btc_addr|btc_addr_bech32" gorm:"size:64;index;not null"`
 	AbuseTypeID     string    `json:"abuse_type_id"`
 	AbuseTypeOther  string    `json:"abuse_type_other"`
@@ -16,7 +16,7 @@ type Model struct {
 	Description     string    `json:"description"`
 	FromCountry     string    `json:"from_country"`
 	FromCountryCode string    `json:"from_country_code"`
-}
+} //@name Abuse
 
 // TableName defines default table name
 func (m Model) TableName() string {

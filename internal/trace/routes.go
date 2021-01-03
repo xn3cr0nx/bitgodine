@@ -22,6 +22,8 @@ func Routes(g *echo.Group) {
 // @Description get address tracing
 // @Tags trace
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //

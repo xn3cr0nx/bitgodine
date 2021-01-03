@@ -15,15 +15,15 @@ import (
 
 // Routes mounts all /block, /blocks and /block-height based routes on the main group
 func Routes(g *echo.Group) {
-	g.GET("/block-height/:height", blockHeight)
+	g.GET("/block-height/:height", blockHeight, validator.JWT())
 
-	r := g.Group("/block")
+	r := g.Group("/block", validator.JWT())
 	r.GET("/:hash", blockHash)
 	// r.GET("/:hash/status", blockStatus)
 	r.GET("/:hash/txs/:start_index", blockHashTxs)
 	r.GET("/:hash/txids", blockHashTxIDs)
 
-	s := g.Group("/blocks")
+	s := g.Group("/blocks", validator.JWT())
 	s.GET("/tip/height", tipHeight)
 	s.GET("/tip/hash", tipHash)
 	s.GET("/:start_height", blocksHeight)
@@ -36,6 +36,8 @@ func Routes(g *echo.Group) {
 // @Summary Block from height
 // @Description get block from height
 // @Tags block
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json
@@ -85,6 +87,8 @@ func blockHeight(c echo.Context) error {
 // @Description get block from hash
 // @Tags block
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //
@@ -110,6 +114,8 @@ func blockHash(c echo.Context) error {
 // @Summary Block transactions
 // @Description get block transactions from hash starting from index
 // @Tags block
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json
@@ -155,6 +161,8 @@ func blockHashTxs(c echo.Context) error {
 // @Description get block transaction ids from hash
 // @Tags block
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //
@@ -185,6 +193,8 @@ func blockHashTxIDs(c echo.Context) error {
 // @Summary Blocks from height
 // @Description get blocks starting from height (10 by default)
 // @Tags blocks
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json
@@ -222,6 +232,8 @@ func blocksHeight(c echo.Context) error {
 // @Description get tip block height
 // @Tags blocks
 //
+// @Security ApiKeyAuth
+//
 // @Accept  json
 // @Produce  json
 //
@@ -242,6 +254,8 @@ func tipHeight(c echo.Context) error {
 // @Summary Tip hash
 // @Description get tip block hash
 // @Tags blocks
+//
+// @Security ApiKeyAuth
 //
 // @Accept  json
 // @Produce  json

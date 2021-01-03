@@ -13,9 +13,6 @@ func Routes(g *echo.Group, s Service) {
 
 	g.POST("/signup", signup(s), validator.Recaptcha())
 
-	// g.GET("/restricted", restricted, middleware.JWTWithConfig(jwt.Config()))
-	g.GET("/restricted", restricted, validator.JWT())
-
 	// r.POST("/change-password", func(c echo.Context) error {
 	// 	type Body struct {
 	// 		NewPassword string `json:"newPassword" validate:"required,password,nefield=OldPassword,alphanum"`
@@ -204,21 +201,4 @@ func signup(s Service) func(echo.Context) error {
 
 		return c.JSON(http.StatusOK, resp)
 	}
-}
-
-// restricted godoc
-// @ID restricted
-//
-// @Router /restricted [get]
-// @Summary restricted
-// @Description Authenticate
-// @Tags auth
-//
-// @Accept  json
-// @Produce  json
-//
-//
-// @Success 500 {string} string
-func restricted(c echo.Context) error {
-	return c.JSON(http.StatusOK, "ok")
 }

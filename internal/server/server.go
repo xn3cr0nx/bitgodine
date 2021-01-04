@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/auth"
@@ -125,15 +126,23 @@ func (s *Server) Listen() {
 
 	api := s.router.Group("/api")
 
+	abuseService := abuse.NewService(s.pg, s.cache)
+	abuse.Routes(api, abuseService)
+	address.Routes(api)
+	analysisService := analysis.NewService(s.db, s.cache)
+	analysis.Routes(api, analysisService)
 	authService := auth.NewService(s.pg)
 	auth.Routes(api, authService)
-	tx.Routes(api)
-	block.Routes(api)
-	address.Routes(api)
-	analysis.Routes(api)
-	trace.Routes(api)
-	tag.Routes(api)
-	cluster.Routes(api)
+	blockService := block.NewService(s.db, s.cache)
+	block.Routes(api, blockService)
+	clusterService := cluster.NewService(s.pg, s.cache)
+	cluster.Routes(api, clusterService)
+	tagService := tag.NewService(s.pg, s.cache)
+	tag.Routes(api, tagService)
+	traceService := trace.NewService(s.pg, s.db, s.cache)
+	trace.Routes(api, traceService)
+	txService := tx.NewService(s.db, s.cache)
+	tx.Routes(api, txService)
 
 	fmt.Println("ROUTES:")
 	for _, route := range s.router.Routes() {

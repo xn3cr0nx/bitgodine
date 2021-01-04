@@ -28,8 +28,10 @@ func (c *Clusterizer) Clusterize() (err error) {
 	}
 	logger.Info("Clusterizer", fmt.Sprintf("Starting clusterizer from block height %d", height), logger.Params{})
 
+	blockService := block.NewService(c.db, c.cache)
+
 	for {
-		syncedHeight, e := block.ReadHeight(c.db)
+		syncedHeight, e := blockService.ReadHeight()
 		if e != nil {
 			return e
 		}
@@ -39,15 +41,16 @@ func (c *Clusterizer) Clusterize() (err error) {
 		}
 
 		for ; height < syncedHeight; height++ {
-			b, e := block.ReadFromHeight(c.db, c.cache, height)
+			b, e := blockService.ReadFromHeight(height)
 			if err != nil {
 				return e
 			}
 
 			logger.Info("Clusterizer", fmt.Sprintf("Clusterizing block %d", b.Height), logger.Params{"height": b.Height, "hash": b.ID})
 
+			txService := tx.NewService(c.db, c.cache)
 			for _, txID := range b.Transactions {
-				tx, e := tx.GetFromHash(c.db, c.cache, txID)
+				tx, e := txService.GetFromHash(txID)
 				if e != nil {
 					return e
 				}
@@ -58,7 +61,7 @@ func (c *Clusterizer) Clusterize() (err error) {
 
 				pool := task.New(runtime.NumCPU() * 3)
 				for _, in := range tx.Vin {
-					pool.Do(&InputParser{c, in, &txItem})
+					pool.Do(&InputParser{in, &txItem, txService})
 				}
 				if err = pool.Shutdown(); err != nil {
 					return
@@ -82,9 +85,9 @@ func (c *Clusterizer) Clusterize() (err error) {
 
 // InputParser worker wrapper for parsing inputs in sync pool
 type InputParser struct {
-	c      *Clusterizer
-	in     tx.Input
-	txItem *mapset.Set
+	in        tx.Input
+	txItem    *mapset.Set
+	txService tx.Service
 }
 
 // Work interface to execute input parser worker operations
@@ -92,7 +95,7 @@ func (w *InputParser) Work() (err error) {
 	if w.in.TxID == zeroHash {
 		return
 	}
-	spentTx, err := tx.GetFromHash(w.c.db, w.c.cache, w.in.TxID)
+	spentTx, err := w.txService.GetFromHash(w.in.TxID)
 	if err != nil {
 		return
 	}

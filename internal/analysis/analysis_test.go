@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/kv/badger"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
@@ -31,10 +30,8 @@ func BenchmarkAnalyzeBlocks(t *testing.B) {
 		os.Exit(-1)
 	}
 
+	service := NewService(db, nil)
 	for x := 0; x < t.N; x++ {
-		c := echo.New().AcquireContext()
-		c.Set("db", db)
-		c.Set("kv", bdg)
-		err = AnalyzeBlocks(&c, 0, 120000, heuristics.FromListToMask(heuristics.List()), "applicability", "", "", false)
+		err = service.AnalyzeBlocks(0, 120000, heuristics.FromListToMask(heuristics.List()), "applicability", "", "", false)
 	}
 }

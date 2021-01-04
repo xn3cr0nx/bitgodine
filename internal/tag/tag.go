@@ -5,7 +5,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/fatih/structs"
-	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
 
 	// "github.com/xn3cr0nx/bitgodine/internal/cluster"
@@ -14,6 +13,28 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
+
+// Service interface exports available methods for block service
+type Service interface {
+	GetTags(output bool) (tags []Model, err error)
+	CreateTag(t *Model) (err error)
+	GetTag(address string, output bool) (tags []Model, err error)
+	GetTaggedCluster(address string) (clusters []TaggedCluster, err error)
+	GetTaggedClusterSet(address string) (clusters []Model, err error)
+}
+
+type service struct {
+	Repository *postgres.Pg
+	Cache      *cache.Cache
+}
+
+// NewService instantiates a new Service layer for customer
+func NewService(r *postgres.Pg, c *cache.Cache) *service {
+	return &service{
+		Repository: r,
+		Cache:      c,
+	}
+}
 
 func printTagsTable(tags []Model) {
 	table := tablewriter.NewWriter(os.Stdout)
@@ -33,9 +54,8 @@ func printTagsTable(tags []Model) {
 }
 
 // GetTags retrieve whole tags list
-func GetTags(c *echo.Context, output bool) (tags []Model, err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Find(&tags).Error; err != nil {
+func (s *service) GetTags(output bool) (tags []Model, err error) {
+	if err = s.Repository.Find(&tags).Error; err != nil {
 		return
 	}
 
@@ -47,16 +67,14 @@ func GetTags(c *echo.Context, output bool) (tags []Model, err error) {
 }
 
 // CreateTag creates a new tag record
-func CreateTag(c *echo.Context, t *Model) (err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	err = (*pg).DB.Model(&Model{}).Create(t).Error
+func (s *service) CreateTag(t *Model) (err error) {
+	err = s.Repository.Model(&Model{}).Create(t).Error
 	return
 }
 
 // GetTag retrieve tags related to passed address
-func GetTag(c *echo.Context, address string, output bool) (tags []Model, err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Where("address = ?", address).Find(&tags).Error; err != nil {
+func (s *service) GetTag(address string, output bool) (tags []Model, err error) {
+	if err = s.Repository.Where("address = ?", address).Find(&tags).Error; err != nil {
 		return
 	}
 
@@ -73,9 +91,8 @@ type TaggedCluster struct {
 }
 
 // GetTaggedCluster retrieves crossed data between clusters and tags
-func GetTaggedCluster(c *echo.Context, address string) (clusters []TaggedCluster, err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	err = pg.DB.Raw(`SELECT *, c.cluster 
+func (s *service) GetTaggedCluster(address string) (clusters []TaggedCluster, err error) {
+	err = s.Repository.Raw(`SELECT *, c.cluster 
 		FROM tags t 
 		RIGHT JOIN clusters c 
 		ON t.address = c.address 
@@ -84,22 +101,20 @@ func GetTaggedCluster(c *echo.Context, address string) (clusters []TaggedCluster
 }
 
 // GetTaggedClusterSet retrieves crossed data between clusters and tags
-func GetTaggedClusterSet(c *echo.Context, address string) (clusters []Model, err error) {
-	ch := (*c).Get("cache").(*cache.Cache)
-	if cached, ok := ch.Get("ct_" + address); ok {
+func (s *service) GetTaggedClusterSet(address string) (clusters []Model, err error) {
+	if cached, ok := s.Cache.Get("ct_" + address); ok {
 		clusters = cached.([]Model)
 		return
 	}
 
-	pg := (*c).Get("pg").(*postgres.Pg)
-	err = pg.DB.Raw(`SELECT tags.message, tags.type FROM "tags" 
+	err = s.Repository.Raw(`SELECT tags.message, tags.type FROM "tags" 
 		LEFT JOIN "clusters" 
 		ON tags.address=clusters.address 
 		WHERE clusters.cluster=(
 			SELECT cluster FROM clusters WHERE address = ? LIMIT 1
 		) GROUP BY tags.message, tags.type`, address).Scan(&clusters).Error
 
-	if !ch.Set("ct_"+address, clusters, 1) {
+	if !s.Cache.Set("ct_"+address, clusters, 1) {
 		logger.Error("Cache", errorx.ErrCache, logger.Params{"address": address})
 	}
 	return

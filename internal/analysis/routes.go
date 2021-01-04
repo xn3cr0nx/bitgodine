@@ -10,10 +10,10 @@ import (
 )
 
 // Routes mounts /analysis based routes on the main group
-func Routes(g *echo.Group) {
-	r := g.Group("/analysis")
-	r.GET("/:txid", analysisID)
-	r.GET("/blocks", analysisBlocks)
+func Routes(g *echo.Group, s Service) {
+	r := g.Group("/analysis", validator.JWT())
+	r.GET("/:txid", analysisID(s))
+	r.GET("/blocks", analysisBlocks(s))
 }
 
 // analysisID godoc
@@ -35,39 +35,41 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {object} object
 // @Success 500 {string} string
-func analysisID(c echo.Context) error {
-	// TODO: check id is correct and not of a block
-	txid := c.Param("txid")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-		return err
-	}
+func analysisID(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		// TODO: check id is correct and not of a block
+		txid := c.Param("txid")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+			return err
+		}
 
-	type Query struct {
-		List []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-		Type string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+		type Query struct {
+			List []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
+			Type string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	var list []heuristics.Heuristic
-	for _, h := range q.List {
-		list = append(list, heuristics.Abbreviation(h))
-	}
-	if len(list) == 0 {
-		list = heuristics.List()
-	}
+		var list []heuristics.Heuristic
+		for _, h := range q.List {
+			list = append(list, heuristics.Abbreviation(h))
+		}
+		if len(list) == 0 {
+			list = heuristics.List()
+		}
 
-	if q.Type == "" {
-		q.Type = "applicability"
-	}
+		if q.Type == "" {
+			q.Type = "applicability"
+		}
 
-	vuln, err := AnalyzeTx(&c, txid, heuristics.FromListToMask(list), q.Type)
-	if err != nil {
-		return err
+		vuln, err := s.AnalyzeTx(txid, heuristics.FromListToMask(list), q.Type)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, vuln)
 	}
-	return c.JSON(http.StatusOK, vuln)
 }
 
 // analysisBlocks godoc
@@ -93,49 +95,51 @@ func analysisID(c echo.Context) error {
 //
 // @Success 200 {string} ok
 // @Success 500 {string} string
-func analysisBlocks(c echo.Context) error {
-	type Query struct {
-		From     int32    `query:"from" validate:"omitempty,gte=0"`
-		To       int32    `query:"to" validate:"omitempty,gtefield=From"`
-		List     []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
-		Plot     string   `query:"plot" validate:"omitempty,oneof=timeline percentage combination"`
-		Force    bool     `query:"force" validate:"omitempty"`
-		Analysis string   `query:"analysis" validate:"omitempty,oneof=offbyone securebasis fullmajorityvoting majorityvoting strictmajorityvoting fullmajorityanalysis reducingmajorityanalysis overlapping"`
-		Type     string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
-
-	var list []heuristics.Heuristic
-	for _, h := range q.List {
-		list = append(list, heuristics.Abbreviation(h))
-	}
-	if len(list) == 0 {
-		list = heuristics.List()
-	}
-
-	if q.Analysis == "offbyone" {
-		if q.From > 220250 || q.To > 220250 {
-			return echo.NewHTTPError(http.StatusBadRequest, "out of off by one bug range")
+func analysisBlocks(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		type Query struct {
+			From     int32    `query:"from" validate:"omitempty,gte=0"`
+			To       int32    `query:"to" validate:"omitempty,gtefield=From"`
+			List     []string `query:"heuristics" validate:"dive,oneof=locktime peeling power optimal exact type reuse shadow client forward backward"`
+			Plot     string   `query:"plot" validate:"omitempty,oneof=timeline percentage combination"`
+			Force    bool     `query:"force" validate:"omitempty"`
+			Analysis string   `query:"analysis" validate:"omitempty,oneof=offbyone securebasis fullmajorityvoting majorityvoting strictmajorityvoting fullmajorityanalysis reducingmajorityanalysis overlapping"`
+			Type     string   `query:"type" validate:"omitempty,oneof=applicability reliability"`
 		}
-		if q.From == 0 && q.To == 0 {
-			q.To = 600000
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
 		}
-	}
 
-	if q.Type == "" {
-		q.Type = "applicability"
-	}
+		var list []heuristics.Heuristic
+		for _, h := range q.List {
+			list = append(list, heuristics.Abbreviation(h))
+		}
+		if len(list) == 0 {
+			list = heuristics.List()
+		}
 
-	if err := AnalyzeBlocks(&c, q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Analysis, q.Plot, q.Force); err != nil {
-		return err
-	}
+		if q.Analysis == "offbyone" {
+			if q.From > 220250 || q.To > 220250 {
+				return echo.NewHTTPError(http.StatusBadRequest, "out of off by one bug range")
+			}
+			if q.From == 0 && q.To == 0 {
+				q.To = 600000
+			}
+		}
 
-	if q.Plot != "" {
-		return c.File(q.Plot + ".png")
-	}
+		if q.Type == "" {
+			q.Type = "applicability"
+		}
 
-	return c.JSON(http.StatusOK, "ok")
+		if err := s.AnalyzeBlocks(q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Analysis, q.Plot, q.Force); err != nil {
+			return err
+		}
+
+		if q.Plot != "" {
+			return c.File(q.Plot + ".png")
+		}
+
+		return c.JSON(http.StatusOK, "ok")
+	}
 }

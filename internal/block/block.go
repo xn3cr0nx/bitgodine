@@ -13,9 +13,42 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-func fetchBlockTxs(db kv.DB, c *cache.Cache, txs []string) (transactions []tx.Tx, err error) {
+// Service interface exports available methods for tx service
+type Service interface {
+	StoreBlock(b *Block, txs []tx.Tx) (err error)
+	ReadFromHeight(height int32) (block Block, err error)
+	ReadHeight() (height int32, err error)
+	GetFromHash(hash string) (Block, error)
+	GetFromHeight(height int32) (*BlockOut, error)
+	GetFromHashWithTxs(hash string) (*BlockOut, error)
+	GetLast() (*BlockOut, error)
+	GetFromHeightRange(height int32, first int) (blocks []BlockOut, err error)
+	GetStored() (blocks []Block, err error)
+	GetStoredList(from int32) (blocks map[string]interface{}, err error)
+	Remove(block *Block) error
+	RemoveLast() error
+	GetStoredTxs() (transactions []string, err error)
+	GetTxBlock(hash string) (block *BlockOut, err error)
+	GetTxBlockHeight(hash string) (height int32, err error)
+}
+
+type service struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
+// NewService instantiates a new Service layer for customer
+func NewService(k kv.DB, c *cache.Cache) *service {
+	return &service{
+		Kv:    k,
+		Cache: c,
+	}
+}
+
+func (s *service) fetchBlockTxs(txs []string) (transactions []tx.Tx, err error) {
+	txService := tx.NewService(s.Kv, s.Cache)
 	for _, hash := range txs {
-		transaction, e := tx.GetFromHash(db, c, hash)
+		transaction, e := txService.GetFromHash(hash)
 		if e != nil {
 			return nil, e
 		}
@@ -26,7 +59,7 @@ func fetchBlockTxs(db kv.DB, c *cache.Cache, txs []string) (transactions []tx.Tx
 
 // StoreBlock inserts in the db the block as []byte passed
 // for fast research purpose blocks have _ prefix, tx_ for txs prefix and h_ for height prefix
-func StoreBlock(db kv.DB, b *Block, txs []tx.Tx) (err error) {
+func (s *service) StoreBlock(b *Block, txs []tx.Tx) (err error) {
 	// b := v.(*Block)
 	// txs := t.([]tx.Tx)
 	blockHash := []byte(b.ID)
@@ -57,7 +90,7 @@ func StoreBlock(db kv.DB, b *Block, txs []tx.Tx) (err error) {
 		}
 	}
 
-	err = db.StoreQueueBatch(batch)
+	err = s.Kv.StoreQueueBatch(batch)
 	return
 }
 
@@ -74,12 +107,12 @@ func read(db kv.DB, hash string) (block Block, err error) {
 }
 
 // ReadFromHeight retrieves block by height
-func ReadFromHeight(db kv.DB, c *cache.Cache, height int32) (block Block, err error) {
-	hash, err := db.Read(strconv.Itoa(int(height)))
+func (s *service) ReadFromHeight(height int32) (block Block, err error) {
+	hash, err := s.Kv.Read(strconv.Itoa(int(height)))
 	if err != nil {
 		return
 	}
-	block, err = GetFromHash(db, c, string(hash))
+	block, err = s.GetFromHash(string(hash))
 	if err != nil {
 		return
 	}
@@ -87,8 +120,8 @@ func ReadFromHeight(db kv.DB, c *cache.Cache, height int32) (block Block, err er
 }
 
 // ReadHeight returnes the hash of the block retrieving it based on its height
-func ReadHeight(db kv.DB) (height int32, err error) {
-	h, err := db.Read("last")
+func (s *service) ReadHeight() (height int32, err error) {
+	h, err := s.Kv.Read("last")
 	if err != nil {
 		if errors.Is(err, errorx.ErrKeyNotFound) {
 			return 0, nil
@@ -104,8 +137,8 @@ func ReadHeight(db kv.DB) (height int32, err error) {
 }
 
 // GetFromHash return block structure based on block hash
-func GetFromHash(db kv.DB, c *cache.Cache, hash string) (Block, error) {
-	b, err := read(db, hash)
+func (s *service) GetFromHash(hash string) (Block, error) {
+	b, err := read(s.Kv, hash)
 	if err != nil {
 		return Block{}, err
 	}
@@ -114,13 +147,13 @@ func GetFromHash(db kv.DB, c *cache.Cache, hash string) (Block, error) {
 }
 
 // GetFromHeight return block structure based on block height
-func GetFromHeight(db kv.DB, c *cache.Cache, height int32) (*BlockOut, error) {
-	b, err := ReadFromHeight(db, c, height)
+func (s *service) GetFromHeight(height int32) (*BlockOut, error) {
+	b, err := s.ReadFromHeight(height)
 	if err != nil {
 		return nil, err
 	}
 
-	txs, err := fetchBlockTxs(db, c, b.Transactions)
+	txs, err := s.fetchBlockTxs(b.Transactions)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +162,13 @@ func GetFromHeight(db kv.DB, c *cache.Cache, height int32) (*BlockOut, error) {
 }
 
 // GetFromHashWithTxs return block structure based on block hash
-func GetFromHashWithTxs(db kv.DB, c *cache.Cache, hash string) (*BlockOut, error) {
-	b, err := GetFromHash(db, c, hash)
+func (s *service) GetFromHashWithTxs(hash string) (*BlockOut, error) {
+	b, err := s.GetFromHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	txs, err := fetchBlockTxs(db, c, b.Transactions)
+	txs, err := s.fetchBlockTxs(b.Transactions)
 	if err != nil {
 		return nil, err
 	}
@@ -144,17 +177,17 @@ func GetFromHashWithTxs(db kv.DB, c *cache.Cache, hash string) (*BlockOut, error
 }
 
 // GetLast return last synced block
-func GetLast(db kv.DB, c *cache.Cache) (*BlockOut, error) {
-	h, err := ReadHeight(db)
+func (s *service) GetLast() (*BlockOut, error) {
+	h, err := s.ReadHeight()
 	if err != nil {
 		return nil, err
 	}
-	b, err := ReadFromHeight(db, c, h)
+	b, err := s.ReadFromHeight(h)
 	if err != nil {
 		return nil, err
 	}
 
-	txs, err := fetchBlockTxs(db, c, b.Transactions)
+	txs, err := s.fetchBlockTxs(b.Transactions)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +196,9 @@ func GetLast(db kv.DB, c *cache.Cache) (*BlockOut, error) {
 }
 
 // GetFromHeightRange returnes the hash of the block retrieving it based on its height
-func GetFromHeightRange(db kv.DB, c *cache.Cache, height int32, first int) (blocks []BlockOut, err error) {
+func (s *service) GetFromHeightRange(height int32, first int) (blocks []BlockOut, err error) {
 	for i := height; i < (height + int32(first)); i++ {
-		b, e := GetFromHeight(db, c, i)
+		b, e := s.GetFromHeight(i)
 		if e != nil {
 			err = e
 			return
@@ -176,13 +209,13 @@ func GetFromHeightRange(db kv.DB, c *cache.Cache, height int32, first int) (bloc
 }
 
 // GetStored returnes list of all stored blocks
-func GetStored(db kv.DB) (blocks []Block, err error) {
-	h, err := ReadHeight(db)
+func (s *service) GetStored() (blocks []Block, err error) {
+	h, err := s.ReadHeight()
 	if err != nil {
 		return
 	}
 	for i := int32(0); i <= h; i++ {
-		hash, e := db.Read(strconv.Itoa(int(i)))
+		hash, e := s.Kv.Read(strconv.Itoa(int(i)))
 		if e != nil {
 			err = e
 			return
@@ -193,15 +226,15 @@ func GetStored(db kv.DB) (blocks []Block, err error) {
 }
 
 // GetStoredList returnes all the stored block ids
-func GetStoredList(db kv.DB, from int32) (blocks map[string]interface{}, err error) {
+func (s *service) GetStoredList(from int32) (blocks map[string]interface{}, err error) {
 	// blocks, err = db.ReadKeysWithPrefix("_0000")
-	h, err := ReadHeight(db)
+	h, err := s.ReadHeight()
 	if err != nil {
 		return
 	}
 	blocks = make(map[string]interface{}, h)
 	for i := from; i <= h; i++ {
-		hash, e := db.Read(strconv.Itoa(int(i)))
+		hash, e := s.Kv.Read(strconv.Itoa(int(i)))
 		if e != nil {
 			err = e
 			return
@@ -212,46 +245,26 @@ func GetStoredList(db kv.DB, from int32) (blocks map[string]interface{}, err err
 }
 
 // Remove removes the block specified by its height
-func Remove(db kv.DB, block *Block) error {
-	return db.Delete(block.ID)
+func (s *service) Remove(block *Block) error {
+	return s.Kv.Delete(block.ID)
 }
 
 // RemoveLast removes the last block stored
-func RemoveLast(db kv.DB, c *cache.Cache) error {
-	h, err := ReadHeight(db)
+func (s *service) RemoveLast() error {
+	h, err := s.ReadHeight()
 	if err != nil {
 		return err
 	}
-	block, err := GetFromHeight(db, c, h)
+	block, err := s.GetFromHeight(h)
 	if err != nil {
 		return err
 	}
-	return db.Delete(block.ID)
-}
-
-// StoreFileParsed set file stored so far
-func StoreFileParsed(db kv.DB, file int) (err error) {
-	f := strconv.Itoa(file)
-	err = db.Store("file", []byte(f))
-	return
-}
-
-// GetFileParsed returnes the file parsed so far
-func GetFileParsed(db kv.DB) (file int, err error) {
-	f, err := db.Read("file")
-	if err != nil {
-		if errors.Is(err, errorx.ErrKeyNotFound) {
-			return 0, nil
-		}
-		return
-	}
-	file, err = strconv.Atoi(string(f))
-	return
+	return s.Kv.Delete(block.ID)
 }
 
 // GetStoredTxs returnes all the stored transactions hashes
-func GetStoredTxs(db kv.DB) (transactions []string, err error) {
-	blocks, err := GetStored(db)
+func (s *service) GetStoredTxs() (transactions []string, err error) {
+	blocks, err := s.GetStored()
 	for _, block := range blocks {
 		for _, tx := range block.Transactions {
 			transactions = append(transactions, tx)
@@ -261,8 +274,8 @@ func GetStoredTxs(db kv.DB) (transactions []string, err error) {
 }
 
 // GetTxBlock returnes the block containing the transaction
-func GetTxBlock(db kv.DB, c *cache.Cache, hash string) (block *BlockOut, err error) {
-	h, err := db.Read("_" + hash)
+func (s *service) GetTxBlock(hash string) (block *BlockOut, err error) {
+	h, err := s.Kv.Read("_" + hash)
 	if err != nil {
 		return
 	}
@@ -271,18 +284,18 @@ func GetTxBlock(db kv.DB, c *cache.Cache, hash string) (block *BlockOut, err err
 		return
 	}
 	height := int32(inth)
-	block, err = GetFromHeight(db, c, height)
+	block, err = s.GetFromHeight(height)
 	return
 }
 
 // GetTxBlockHeight returnes the height of the block based on its hash
-func GetTxBlockHeight(db kv.DB, c *cache.Cache, hash string) (height int32, err error) {
-	if cached, ok := c.Get("h_" + hash); ok {
+func (s *service) GetTxBlockHeight(hash string) (height int32, err error) {
+	if cached, ok := s.Cache.Get("h_" + hash); ok {
 		height = cached.(int32)
 		return
 	}
 
-	h, err := db.Read("_" + hash)
+	h, err := s.Kv.Read("_" + hash)
 	if err != nil {
 		return
 	}
@@ -292,7 +305,7 @@ func GetTxBlockHeight(db kv.DB, c *cache.Cache, hash string) (height int32, err 
 	}
 	height = int32(inth)
 
-	if !c.Set("h_"+hash, height, 1) {
+	if !s.Cache.Set("h_"+hash, height, 1) {
 		logger.Error("Cache", errorx.ErrCache, logger.Params{"height": height})
 	}
 	return

@@ -11,15 +11,11 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/spf13/viper"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
-	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
-
-// FileKey key for kv stored parsed files counter
-const FileKey = "file"
 
 // Parser defines the objects involved in the parsing of Bitcoin blockchain
 // The involved objects include the parsed structure, the kind of parser, storage instances
@@ -68,17 +64,9 @@ func (p *Parser) InfinitelyParse() (err error) {
 	go handleInterrupt(ch, p.interrupt)
 
 	for {
-		var file int
-		v, e := p.db.Read(FileKey)
+		file, e := GetFileParsed(p.db)
 		if e != nil {
-			if !errors.Is(e, errorx.ErrKeyNotFound) {
-				return e
-			}
-		} else {
-			file, err = strconv.Atoi(string(v))
-			if err != nil {
-				return
-			}
+			return e
 		}
 
 		if err = p.blockchain.Read("", file); err != nil {
@@ -119,8 +107,7 @@ func (p *Parser) Parse() (err error) {
 			return
 		}
 
-		// keep track of parsed files
-		if err = p.db.Store(FileKey, []byte(strconv.Itoa(k))); err != nil {
+		if err = StoreFileParsed(p.db, k); err != nil {
 			return
 		}
 
@@ -277,7 +264,7 @@ func restoreFileState(p *Parser, chain [][]uint8, last *block.Block) (b *Block, 
 	if from < 0 {
 		from = 0
 	}
-	list, err := block.GetStoredList(p.db, from)
+	list, err := block.NewService(p.db, nil).GetStoredList(from)
 	if err != nil {
 		return
 	}

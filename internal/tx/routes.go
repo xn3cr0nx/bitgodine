@@ -5,18 +5,16 @@ import (
 	"net/http"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
-	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
 )
 
 // Routes mounts all /tx based routes on the main group
-func Routes(g *echo.Group) {
+func Routes(g *echo.Group, s Service) {
 	r := g.Group("/tx", validator.JWT())
-	r.GET("/:txid", txID)
-	r.GET("/:txid/status", txIDStatus)
+	r.GET("/:txid", txID(s))
+	r.GET("/:txid/status", txIDStatus(s))
 
 	// TODO: generate btcutil block and return hex conversion
 	// r.GET("/:txid/hex", func(c echo.Context) error {
@@ -101,19 +99,21 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {object} Tx
 // @Success 500 {string} string
-func txID(c echo.Context) error {
-	txid := c.Param("txid")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-		return err
-	}
-	t, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), txid)
-	if err != nil {
-		if errors.Is(err, errorx.ErrKeyNotFound) {
-			err = echo.NewHTTPError(http.StatusNotFound, err)
+func txID(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		txid := c.Param("txid")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+			return err
 		}
-		return err
+		t, err := s.GetFromHash(txid)
+		if err != nil {
+			if errors.Is(err, errorx.ErrKeyNotFound) {
+				err = echo.NewHTTPError(http.StatusNotFound, err)
+			}
+			return err
+		}
+		return c.JSON(http.StatusOK, t)
 	}
-	return c.JSON(http.StatusOK, t)
 }
 
 // txIDStatus godoc
@@ -133,17 +133,19 @@ func txID(c echo.Context) error {
 //
 // @Success 200 {object} Tx
 // @Success 500 {string} string
-func txIDStatus(c echo.Context) error {
-	txid := c.Param("txid")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
-		return err
-	}
-	t, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), txid)
-	if err != nil {
-		if errors.Is(err, errorx.ErrKeyNotFound) {
-			err = echo.NewHTTPError(http.StatusNotFound, err)
+func txIDStatus(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		txid := c.Param("txid")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(txid, "required"); err != nil {
+			return err
 		}
-		return err
+		t, err := s.GetFromHash(txid)
+		if err != nil {
+			if errors.Is(err, errorx.ErrKeyNotFound) {
+				err = echo.NewHTTPError(http.StatusNotFound, err)
+			}
+			return err
+		}
+		return c.JSON(http.StatusOK, t.Status)
 	}
-	return c.JSON(http.StatusOK, t.Status)
 }

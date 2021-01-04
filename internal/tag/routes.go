@@ -8,14 +8,14 @@ import (
 )
 
 // Routes mounts all /tags based routes on the main group
-func Routes(g *echo.Group) {
+func Routes(g *echo.Group, s Service) {
 	r := g.Group("/tags", validator.JWT())
 
-	r.GET("", getTags)
-	r.POST("", createTag)
-	r.GET("/:address", getTagByAddress)
-	r.GET("/cluster/:address", getTaggedClusterByAddress)
-	r.GET("/cluster/:address/set", getTaggedClusterSetByAddress)
+	r.GET("", getTags(s))
+	r.POST("", createTag(s))
+	r.GET("/:address", getTagByAddress(s))
+	r.GET("/cluster/:address", getTaggedClusterByAddress(s))
+	r.GET("/cluster/:address/set", getTaggedClusterSetByAddress(s))
 }
 
 // getTags godoc
@@ -35,21 +35,23 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getTags(c echo.Context) error {
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+func getTags(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	tags, err := GetTags(&c, q.Output)
-	if err != nil {
-		return err
-	}
+		tags, err := s.GetTags(q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, tags)
+		return c.JSON(http.StatusOK, tags)
+	}
 }
 
 // createTag godoc
@@ -69,17 +71,19 @@ func getTags(c echo.Context) error {
 //
 // @Success 200 {string} ok
 // @Success 500 {string} string
-func createTag(c echo.Context) error {
-	b := new(Model)
-	if err := validator.Struct(&c, b); err != nil {
-		return err
-	}
+func createTag(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b := new(Model)
+		if err := validator.Struct(&c, b); err != nil {
+			return err
+		}
 
-	if err := CreateTag(&c, b); err != nil {
-		return err
-	}
+		if err := s.CreateTag(b); err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, "")
+		return c.JSON(http.StatusOK, "")
+	}
 }
 
 // getTagsByAddress godoc
@@ -100,26 +104,28 @@ func createTag(c echo.Context) error {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getTagByAddress(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getTagByAddress(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	tags, err := GetTag(&c, address, q.Output)
-	if err != nil {
-		return err
-	}
+		tags, err := s.GetTag(address, q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, tags)
+		return c.JSON(http.StatusOK, tags)
+	}
 }
 
 // getTaggedClusterByAddress godoc
@@ -139,18 +145,20 @@ func getTagByAddress(c echo.Context) error {
 //
 // @Success 200 {array} TaggedCluster
 // @Success 500 {string} string
-func getTaggedClusterByAddress(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getTaggedClusterByAddress(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	clusters, err := GetTaggedCluster(&c, address)
-	if err != nil {
-		return err
-	}
+		clusters, err := s.GetTaggedCluster(address)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, clusters)
+		return c.JSON(http.StatusOK, clusters)
+	}
 }
 
 // getTaggedClusterSetByAddress godoc
@@ -170,16 +178,18 @@ func getTaggedClusterByAddress(c echo.Context) error {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getTaggedClusterSetByAddress(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getTaggedClusterSetByAddress(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	clusters, err := GetTaggedClusterSet(&c, address)
-	if err != nil {
-		return err
-	}
+		clusters, err := s.GetTaggedClusterSet(address)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, clusters)
+		return c.JSON(http.StatusOK, clusters)
+	}
 }

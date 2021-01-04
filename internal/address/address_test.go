@@ -47,7 +47,8 @@ var _ = Describe("Testing key value storage addresses methods", func() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blk)
-			err := block.StoreBlock(db, &model, txs)
+			blockService := block.NewService(db, nil)
+			err := blockService.StoreBlock(&model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})

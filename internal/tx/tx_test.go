@@ -48,7 +48,8 @@ var _ = Describe("Testing key value storage transactions methods", func() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blk)
-			err := block.StoreBlock(db, &model, txs)
+			blockService := block.NewService(db, nil)
+			err := blockService.StoreBlock(&model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -60,19 +61,23 @@ var _ = Describe("Testing key value storage transactions methods", func() {
 	})
 
 	Context("Testing retrieve transactions methods", func() {
+		blockService := block.NewService(db, nil)
+
 		// It("Should check block is already stored", func() {
 		// 	stored := db.IsStored(chaincfg.MainNetParams.GenesisHash.String())
 		// 	Expect(stored).To(BeTrue())
 		// })
 
 		It("Should correctly get transaction from hash", func() {
-			tx, err := tx.GetFromHash(db, nil, genesisTxHash)
+			service := tx.NewService(db, nil)
+			tx, err := service.GetFromHash(genesisTxHash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tx.TxID).To(Equal(genesisTxHash))
 		})
 
 		It("Should correctly get transaction outputs from hash", func() {
-			outputs, err := tx.GetOutputsFromHash(db, nil, genesisTxHash)
+			service := tx.NewService(db, nil)
+			outputs, err := service.GetOutputsFromHash(genesisTxHash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(outputs)).To(Equal(1))
 		})
@@ -82,19 +87,19 @@ var _ = Describe("Testing key value storage transactions methods", func() {
 		// TODO: GetFollowingTx
 
 		It("Should get the list of stored transactions", func() {
-			list, err := block.GetStoredTxs(db)
+			list, err := blockService.GetStoredTxs()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(list)).To(Equal(1))
 		})
 
 		It("Should get the height of the block containing transaction's hash", func() {
-			height, err := block.GetTxBlockHeight(db, nil, genesisTxHash)
+			height, err := blockService.GetTxBlockHeight(genesisTxHash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(height).To(Equal(int32(0)))
 		})
 
 		It("Should get the block containing transaction's hash", func() {
-			block, err := block.GetTxBlock(db, nil, genesisTxHash)
+			block, err := blockService.GetTxBlock(genesisTxHash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(block.ID).To(Equal(genesisHash))
 		})

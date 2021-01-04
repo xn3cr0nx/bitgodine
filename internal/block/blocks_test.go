@@ -47,7 +47,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blk)
-			err := block.StoreBlock(db, &model, txs)
+			service := block.NewService(db, nil)
+			err := service.StoreBlock(&model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -59,6 +60,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 	})
 
 	Context("Testing storing methods", func() {
+		service := block.NewService(db, nil)
+
 		It("Should check block is already stored", func() {
 			stored := db.IsStored(chaincfg.MainNetParams.GenesisHash.String())
 			Expect(stored).To(BeTrue())
@@ -71,7 +74,8 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 				txs = append(txs, test.TxToModel(tx, blk.Height(), blk.Hash().String(), blk.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blk)
-			err := block.StoreBlock(db, &model, txs)
+
+			err := service.StoreBlock(&model, txs)
 			Expect(err.Error()).To(Equal(fmt.Sprintf("block %s already exists", chaincfg.MainNetParams.GenesisHash)))
 		})
 
@@ -84,21 +88,23 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 				txs = append(txs, test.TxToModel(tx, blockExample.Height(), blockExample.Hash().String(), blockExample.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blockExample)
-			err = block.StoreBlock(db, &model, txs)
+			err = service.StoreBlock(&model, txs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
 	Context("Testing retrieve methods", func() {
+		service := block.NewService(db, nil)
+
 		It("Should correctly fetch genesis block by hash", func() {
-			block, err := block.GetFromHash(db, nil, chaincfg.MainNetParams.GenesisHash.String())
+			block, err := service.GetFromHash(chaincfg.MainNetParams.GenesisHash.String())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(block.ID).To(Equal(chaincfg.MainNetParams.GenesisHash.String()))
 			Expect(block.Height).To(Equal(int32(0)))
 		})
 
 		It("Should correctly fetch genesis block by height", func() {
-			block, err := block.GetFromHeight(db, nil, 0)
+			block, err := service.GetFromHeight(0)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(block.ID).To(Equal(chaincfg.MainNetParams.GenesisHash.String()))
 			Expect(block.Height).To(Equal(int32(0)))
@@ -115,23 +121,23 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 				txs = append(txs, test.TxToModel(tx, blockExample.Height(), blockExample.Hash().String(), blockExample.MsgBlock().Header.Timestamp))
 			}
 			model := test.BlockToModel(blockExample)
-			err = block.StoreBlock(db, &model, txs)
+			err = service.StoreBlock(&model, txs)
 			Expect(err).ToNot(HaveOccurred())
 
-			height, err := block.ReadHeight(db)
+			height, err := service.ReadHeight()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(height).To(Equal(int32(181)))
 		})
 
 		It("Should correctly fetch last block", func() {
-			block, err := block.GetLast(db, nil)
+			block, err := service.GetLast()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(block.ID).To(Equal(chaincfg.MainNetParams.GenesisHash.String()))
 			Expect(block.Height).To(Equal(int32(0)))
 		})
 
 		It("Should correctly fetch list of stored blocks", func() {
-			list, err := block.GetStored(db)
+			list, err := service.GetStored()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(list)).To(Equal(1))
 		})
@@ -140,15 +146,17 @@ var _ = Describe("Testing key value storage blocks methods", func() {
 	})
 
 	Context("Texting remove block", func() {
+		service := block.NewService(db, nil)
+
 		It("Should remove stored block by hash", func() {
-			err := block.Remove(db, &block.Block{ID: chaincfg.MainNetParams.GenesisHash.String()})
+			err := service.Remove(&block.Block{ID: chaincfg.MainNetParams.GenesisHash.String()})
 			Expect(err).ToNot(HaveOccurred())
 			stored := db.IsStored(chaincfg.MainNetParams.GenesisHash.String())
 			Expect(stored).To(BeFalse())
 		})
 
 		It("Should remove last stored block", func() {
-			err := block.RemoveLast(db, nil)
+			err := service.RemoveLast()
 			Expect(err).ToNot(HaveOccurred())
 			stored := db.IsStored(chaincfg.MainNetParams.GenesisHash.String())
 			Expect(stored).To(BeFalse())

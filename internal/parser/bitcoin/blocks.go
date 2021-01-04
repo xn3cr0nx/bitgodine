@@ -1,12 +1,14 @@
 package bitcoin
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/btcsuite/btcutil"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/buffer"
@@ -67,7 +69,7 @@ func (b *Block) Store(db kv.DB, height int32) (err error) {
 		Weight:            len(weight),
 		Previousblockhash: b.MsgBlock().Header.PrevBlock.String(),
 	}
-	err = block.StoreBlock(db, &blk, transactions)
+	err = block.NewService(db, nil).StoreBlock(&blk, transactions)
 	return
 }
 
@@ -122,4 +124,27 @@ func ExtractBlockFromFile(slice *[]uint8) (blk *Block, err error) {
 		err = ErrMagicBytesMatching
 		return
 	}
+}
+
+// FileKey key for kv stored parsed files counter
+const FileKey = "file"
+
+// StoreFileParsed set file stored so far
+func StoreFileParsed(db kv.DB, file int) (err error) {
+	f := strconv.Itoa(file)
+	err = db.Store(FileKey, []byte(f))
+	return
+}
+
+// GetFileParsed returnes the file parsed so far
+func GetFileParsed(db kv.DB) (file int, err error) {
+	f, err := db.Read(FileKey)
+	if err != nil {
+		if errors.Is(err, errorx.ErrKeyNotFound) {
+			return 0, nil
+		}
+		return
+	}
+	file, err = strconv.Atoi(string(f))
+	return
 }

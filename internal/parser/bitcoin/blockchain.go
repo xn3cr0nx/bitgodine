@@ -76,7 +76,7 @@ func (b *Blockchain) Read(path string, from int) error {
 
 // Height returns the height of the last block in the blockchain (currently synced)
 func (b *Blockchain) Height() (h int32, err error) {
-	h, err = block.ReadHeight(b.db)
+	h, err = block.NewService(b.db, nil).ReadHeight()
 	return
 }
 
@@ -87,6 +87,6 @@ func (b *Blockchain) Head() (last block.Block, err error) {
 		return
 	}
 
-	last, err = block.ReadFromHeight(b.db, nil, h)
+	last, err = block.NewService(b.db, nil).ReadFromHeight(h)
 	return
 }

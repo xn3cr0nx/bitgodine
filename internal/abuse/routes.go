@@ -8,14 +8,14 @@ import (
 )
 
 // Routes mounts all /abuse based routes on the main group
-func Routes(g *echo.Group) {
+func Routes(g *echo.Group, s Service) {
 	r := g.Group("/abuses", validator.JWT())
 
-	r.GET("", getAbuses)
-	r.POST("", createAbuse)
-	r.GET("/:address", getAbusesByAddress)
-	r.GET("/cluster/:address", getAbusedCluster)
-	r.GET("/cluster/:address/set", getAbusedClusterSet)
+	r.GET("", getAbuses(s))
+	r.POST("", createAbuse(s))
+	r.GET("/:address", getAbusesByAddress(s))
+	r.GET("/cluster/:address", getAbusedCluster(s))
+	r.GET("/cluster/:address/set", getAbusedClusterSet(s))
 }
 
 // getAbuses godoc
@@ -35,21 +35,23 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getAbuses(c echo.Context) error {
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+func getAbuses(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	abuses, err := GetAbuses(&c, q.Output)
-	if err != nil {
-		return err
-	}
+		abuses, err := s.GetAbuses(q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, abuses)
+		return c.JSON(http.StatusOK, abuses)
+	}
 }
 
 // createAbuse godoc
@@ -69,17 +71,19 @@ func getAbuses(c echo.Context) error {
 //
 // @Success 200 {string} ok
 // @Success 500 {string} string
-func createAbuse(c echo.Context) error {
-	b := new(Model)
-	if err := validator.Struct(&c, b); err != nil {
-		return err
-	}
+func createAbuse(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b := new(Model)
+		if err := validator.Struct(&c, b); err != nil {
+			return err
+		}
 
-	if err := CreateAbuse(&c, b); err != nil {
-		return err
-	}
+		if err := s.CreateAbuse(b); err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, "Ok")
+		return c.JSON(http.StatusOK, "Ok")
+	}
 }
 
 // getAbusesByAddress godoc
@@ -100,26 +104,28 @@ func createAbuse(c echo.Context) error {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getAbusesByAddress(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getAbusesByAddress(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	abuses, err := GetAbuse(&c, address, q.Output)
-	if err != nil {
-		return err
-	}
+		abuses, err := s.GetAbuse(address, q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, abuses)
+		return c.JSON(http.StatusOK, abuses)
+	}
 }
 
 // getAbusedCluster godoc
@@ -139,18 +145,20 @@ func getAbusesByAddress(c echo.Context) error {
 //
 // @Success 200 {array} AbusedCluster
 // @Success 500 {string} string
-func getAbusedCluster(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getAbusedCluster(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	clusters, err := GetAbusedCluster(&c, address)
-	if err != nil {
-		return err
-	}
+		clusters, err := s.GetAbusedCluster(address)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, clusters)
+		return c.JSON(http.StatusOK, clusters)
+	}
 }
 
 // getAbusedClusterSet godoc
@@ -170,16 +178,18 @@ func getAbusedCluster(c echo.Context) error {
 //
 // @Success 200 {array} cluster.Model
 // @Success 500 {string} string
-func getAbusedClusterSet(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getAbusedClusterSet(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	clusters, err := GetAbusedClusterSet(&c, address)
-	if err != nil {
-		return err
-	}
+		clusters, err := s.GetAbusedClusterSet(address)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, clusters)
+		return c.JSON(http.StatusOK, clusters)
+	}
 }

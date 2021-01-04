@@ -5,10 +5,30 @@ import (
 	"os"
 
 	"github.com/fatih/structs"
-	"github.com/labstack/echo/v4"
 	"github.com/olekukonko/tablewriter"
 	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
+
+// Service interface exports available methods for block service
+type Service interface {
+	GetClusters(output bool) (tags []Model, err error)
+	CreateCluster(t *Model) (err error)
+	GetCluster(address string, output bool) (tags []Model, err error)
+}
+
+type service struct {
+	Repository *postgres.Pg
+	Cache      *cache.Cache
+}
+
+// NewService instantiates a new Service layer for customer
+func NewService(r *postgres.Pg, c *cache.Cache) *service {
+	return &service{
+		Repository: r,
+		Cache:      c,
+	}
+}
 
 func printClustersTable(clusters []Model) {
 	table := tablewriter.NewWriter(os.Stdout)
@@ -21,9 +41,8 @@ func printClustersTable(clusters []Model) {
 }
 
 // GetClusters retrieve whole clusters list
-func GetClusters(c *echo.Context, output bool) (clusters []Model, err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Find(&clusters).Error; err != nil {
+func (s *service) GetClusters(output bool) (clusters []Model, err error) {
+	if err = s.Repository.Find(&clusters).Error; err != nil {
 		return
 	}
 
@@ -35,16 +54,14 @@ func GetClusters(c *echo.Context, output bool) (clusters []Model, err error) {
 }
 
 // CreateCluster creates a new cluster record
-func CreateCluster(c *echo.Context, t *Model) (err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	err = (*pg).DB.Model(&Model{}).Create(t).Error
+func (s *service) CreateCluster(t *Model) (err error) {
+	err = s.Repository.Model(&Model{}).Create(t).Error
 	return
 }
 
 // GetCluster retrieve clusters related to passed address
-func GetCluster(c *echo.Context, address string, output bool) (clusters []Model, err error) {
-	pg := (*c).Get("pg").(*postgres.Pg)
-	if err = pg.DB.Where("address = ?", address).Find(&clusters).Error; err != nil {
+func (s *service) GetCluster(address string, output bool) (clusters []Model, err error) {
+	if err = s.Repository.Where("address = ?", address).Find(&clusters).Error; err != nil {
 		return
 	}
 

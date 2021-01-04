@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/block"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 	task "github.com/xn3cr0nx/bitgodine/internal/errtask"
@@ -22,11 +21,29 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
+// Service interface exports available methods for analysis service
+type Service interface {
+	AnalyzeTx(txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error)
+	AnalyzeBlocks(from, to int32, heuristicsList heuristics.Mask, analysisType, criteria, chart string, force bool) (err error)
+}
+
+type service struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
+// NewService instantiates a new Service layer for customer
+func NewService(k kv.DB, c *cache.Cache) *service {
+	return &service{
+		Kv:    k,
+		Cache: c,
+	}
+}
+
 // AnalyzeTx applies all the heuristics to the transaction returning a byte mask representing bool condition on vulnerabilites
-func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error) {
-	db := (*c).Get("db").(kv.DB)
-	ca := (*c).Get("cache").(*cache.Cache)
-	transaction, err := tx.GetFromHash(db, ca, txid)
+func (s *service) AnalyzeTx(txid string, heuristicsList heuristics.Mask, analysisType string) (vuln interface{}, err error) {
+	txService := tx.NewService(s.Kv, s.Cache)
+	transaction, err := txService.GetFromHash(txid)
 	if err != nil {
 		return
 	}
@@ -34,14 +51,14 @@ func AnalyzeTx(c *echo.Context, txid string, heuristicsList heuristics.Mask, ana
 	if analysisType == "applicability" {
 		vuln = heuristics.FromListToMask(nil)
 		addr := vuln.(heuristics.Mask)
-		heuristics.ApplySet(db, ca, transaction, heuristicsList, &addr)
-		heuristics.ApplyConditionSet(db, transaction, &addr)
+		heuristics.ApplySet(s.Kv, s.Cache, transaction, heuristicsList, &addr)
+		heuristics.ApplyConditionSet(s.Kv, transaction, &addr)
 		vuln = addr
 	} else {
 		vuln = make(heuristics.Map)
 		addr := vuln.(heuristics.Map)
-		heuristics.ApplyChangeSet(db, ca, transaction, heuristicsList, &addr)
-		heuristics.ApplyChangeConditionSet(db, transaction, &addr)
+		heuristics.ApplyChangeSet(s.Kv, s.Cache, transaction, heuristicsList, &addr)
+		heuristics.ApplyChangeConditionSet(s.Kv, transaction, &addr)
 		vuln = addr
 	}
 
@@ -219,18 +236,12 @@ func (w *ReliabilityWorker) Work() (err error) {
 }
 
 // AnalyzeBlocks fetches stored block progressively and apply heuristics in contained transactions
-func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Mask, analysisType, criteria, chart string, force bool) (err error) {
-	db := (*c).Get("db").(kv.DB)
-	ca := (*c).Get("cache").(*cache.Cache)
-	if db == nil {
-		err = fmt.Errorf("%w: db not initialized", errorx.ErrConfig)
-		return
-	}
-
+func (s *service) AnalyzeBlocks(from, to int32, heuristicsList heuristics.Mask, analysisType, criteria, chart string, force bool) (err error) {
 	gob.Register(MaskGraph{})
 	gob.Register(OutputGraph{})
 
-	tip, err := block.GetLast(db, ca)
+	blockService := block.NewService(s.Kv, s.Cache)
+	tip, err := blockService.GetLast()
 	if err != nil {
 		return
 	}
@@ -239,7 +250,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	}
 	interval := int32(10000)
 	// analyzed := restorePreviousAnalysis(kv, from, to, interval, analysisType)
-	analyzed := restorePreviousAnalysis(db, from, to, interval, analysisType)
+	analyzed := restorePreviousAnalysis(s.Kv, from, to, interval, analysisType)
 	fmt.Println("prev analyzed chunks", len(analyzed))
 	ranges := updateRange(from, to, analyzed, force)
 	fmt.Println("updated ranges", ranges)
@@ -260,7 +271,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 
 	for _, r := range ranges {
 		for i := r.From; i <= r.To; i++ {
-			blk, e := block.ReadFromHeight(db, ca, i)
+			blk, e := blockService.ReadFromHeight(i)
 			if e != nil {
 				if errors.Is(err, errorx.ErrKeyNotFound) {
 					break
@@ -280,8 +291,9 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 			}
 			lock.Unlock()
 
+			txService := tx.NewService(s.Kv, s.Cache)
 			for _, txID := range blk.Transactions {
-				tx, e := tx.GetFromHash(db, ca, txID)
+				tx, e := txService.GetFromHash(txID)
 				if e != nil {
 					err = e
 					return
@@ -290,7 +302,7 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 				w := Worker{
 					height:         blk.Height,
 					tx:             tx,
-					db:             db,
+					db:             s.Kv,
 					lock:           &lock,
 					heuristicsList: heuristicsList,
 				}
@@ -316,16 +328,16 @@ func AnalyzeBlocks(c *echo.Context, from, to int32, heuristicsList heuristics.Ma
 	fmt.Println("storing ranges", ranges)
 	if force {
 		fmt.Println("updating ranges")
-		newVuln := vuln.updateStoredRanges(db, interval, analyzed)
+		newVuln := vuln.updateStoredRanges(s.Kv, interval, analyzed)
 		vuln = vuln.mergeGraphs(newVuln)
 		for _, r := range ranges {
-			if e := storeRange(db, r, interval, vuln, analysisType); e != nil {
+			if e := storeRange(s.Kv, r, interval, vuln, analysisType); e != nil {
 				logger.Error("Analysis", e, logger.Params{})
 			}
 		}
 	} else {
 		for _, r := range ranges {
-			if e := storeRange(db, r, interval, vuln, analysisType); e != nil {
+			if e := storeRange(s.Kv, r, interval, vuln, analysisType); e != nil {
 				logger.Error("Analysis", e, logger.Params{})
 			}
 		}

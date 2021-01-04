@@ -6,27 +6,25 @@ import (
 	"strconv"
 
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
-	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 
 	"github.com/labstack/echo/v4"
 )
 
 // Routes mounts all /block, /blocks and /block-height based routes on the main group
-func Routes(g *echo.Group) {
-	g.GET("/block-height/:height", blockHeight, validator.JWT())
+func Routes(g *echo.Group, s Service) {
+	g.GET("/block-height/:height", blockHeight(s), validator.JWT())
 
 	r := g.Group("/block", validator.JWT())
-	r.GET("/:hash", blockHash)
+	r.GET("/:hash", blockHash(s))
 	// r.GET("/:hash/status", blockStatus)
-	r.GET("/:hash/txs/:start_index", blockHashTxs)
-	r.GET("/:hash/txids", blockHashTxIDs)
+	r.GET("/:hash/txs/:start_index", blockHashTxs(s))
+	r.GET("/:hash/txids", blockHashTxIDs(s))
 
-	s := g.Group("/blocks", validator.JWT())
-	s.GET("/tip/height", tipHeight)
-	s.GET("/tip/hash", tipHash)
-	s.GET("/:start_height", blocksHeight)
+	b := g.Group("/blocks", validator.JWT())
+	b.GET("/tip/height", tipHeight(s))
+	b.GET("/tip/hash", tipHash(s))
+	b.GET("/:start_height", blocksHeight(s))
 }
 
 // blockHeight godoc
@@ -46,24 +44,27 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {object} BlockOut
 // @Success 500 {string} string
-func blockHeight(c echo.Context) error {
-	height, err := strconv.Atoi(c.Param("height"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest)
-	}
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(height, "numeric,gte=0"); err != nil {
-		return err
-	}
+func blockHeight(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		height, err := strconv.Atoi(c.Param("height"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest)
+		}
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(height, "numeric,gte=0"); err != nil {
+			return err
+		}
 
-	b, err := GetFromHeight(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), int32(height))
-	if err != nil {
-		return err
+		b, err := s.GetFromHeight(int32(height))
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, b)
 	}
-	return c.JSON(http.StatusOK, b)
 }
 
 // TODO: check if block in the best chain
-// func blockStatus(c echo.Context) error {
+// func blockStatus(s Service) func(echo.Context) error {
+// 	return func(c echo.Context) error {
 // hash := c.Param("hash")
 // 	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
 // 		return err
@@ -77,6 +78,7 @@ func blockHeight(c echo.Context) error {
 // 		return err
 // 	}
 // 	return c.JSON(http.StatusOK, b)
+// 	}
 // }
 
 // blockHash godoc
@@ -95,16 +97,18 @@ func blockHeight(c echo.Context) error {
 // @Param hash path string true "Block hash"
 // @Success 200 {object} BlockOut
 // @Success 500 {string} string
-func blockHash(c echo.Context) error {
-	hash := c.Param("hash")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
-		return err
+func blockHash(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		hash := c.Param("hash")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required,testing"); err != nil {
+			return err
+		}
+		b, err := s.GetFromHashWithTxs(hash)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, b)
 	}
-	b, err := GetFromHashWithTxs(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
-	if err != nil {
-		return err
-	}
-	return c.JSON(http.StatusOK, b)
 }
 
 // blockHashTxs godoc
@@ -124,33 +128,35 @@ func blockHash(c echo.Context) error {
 // @Param start_index path int false "Transactions starting index"
 // @Success 200 {array} string
 // @Success 500 {string} string
-func blockHashTxs(c echo.Context) error {
-	hash := c.Param("hash")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
-		return err
-	}
-	start, err := strconv.Atoi(c.Param("start_index"))
-	if err != nil {
-		return err
-	}
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
-		return err
-	}
-	b, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
-	if err != nil {
-		return err
-	}
-	// TODO: fetch txs
-	// var txs []models.Tx
-	var txs []string
-	for i := start; i < 25+start; i++ {
-		if i > len(b.Transactions)-1 {
-			break
+func blockHashTxs(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		hash := c.Param("hash")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
+			return err
 		}
-		// txs = append(txs, tx.TxToModel(b.Transactions[i], b.Height, b.ID, b.Timestamp))
-		txs = append(txs, b.Transactions[i])
+		start, err := strconv.Atoi(c.Param("start_index"))
+		if err != nil {
+			return err
+		}
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
+			return err
+		}
+		b, err := s.GetFromHash(hash)
+		if err != nil {
+			return err
+		}
+		// TODO: fetch txs
+		// var txs []models.Tx
+		var txs []string
+		for i := start; i < 25+start; i++ {
+			if i > len(b.Transactions)-1 {
+				break
+			}
+			// txs = append(txs, tx.TxToModel(b.Transactions[i], b.Height, b.ID, b.Timestamp))
+			txs = append(txs, b.Transactions[i])
+		}
+		return c.JSON(http.StatusOK, txs)
 	}
-	return c.JSON(http.StatusOK, txs)
 }
 
 // blockHashTxIDs godoc
@@ -169,21 +175,23 @@ func blockHashTxs(c echo.Context) error {
 // @Param hash path string true "Block hash"
 // @Success 200 {array} string
 // @Success 500 {string} string
-func blockHashTxIDs(c echo.Context) error {
-	hash := c.Param("hash")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
-		return err
-	}
-	b, err := GetFromHash(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), hash)
-	if err != nil {
-		return err
-	}
+func blockHashTxIDs(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		hash := c.Param("hash")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(hash, "required"); err != nil {
+			return err
+		}
+		b, err := s.GetFromHash(hash)
+		if err != nil {
+			return err
+		}
 
-	var txids []string
-	for _, tx := range b.Transactions {
-		txids = append(txids, tx)
+		var txids []string
+		for _, tx := range b.Transactions {
+			txids = append(txids, tx)
+		}
+		return c.JSON(http.StatusOK, txids)
 	}
-	return c.JSON(http.StatusOK, txids)
 }
 
 // blocksHeight godoc
@@ -202,26 +210,28 @@ func blockHashTxIDs(c echo.Context) error {
 // @Param start_height path int true "Starting height"
 // @Success 200 {array} BlockOut
 // @Success 500 {string} string
-func blocksHeight(c echo.Context) error {
-	start, err := strconv.Atoi(c.Param("start_height"))
-	if err != nil {
-		return err
-	}
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
-		return err
-	}
-	blocks, err := GetFromHeightRange(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache), int32(start), 10)
-	if err != nil {
-		if errors.Is(err, errorx.ErrKeyNotFound) {
-			return echo.NewHTTPError(http.StatusNotFound, err)
+func blocksHeight(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		start, err := strconv.Atoi(c.Param("start_height"))
+		if err != nil {
+			return err
 		}
-		return err
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(start, "omitempty,numeric,gte=0"); err != nil {
+			return err
+		}
+		blocks, err := s.GetFromHeightRange(int32(start), 10)
+		if err != nil {
+			if errors.Is(err, errorx.ErrKeyNotFound) {
+				return echo.NewHTTPError(http.StatusNotFound, err)
+			}
+			return err
+		}
+		var res []BlockOut
+		for _, b := range blocks {
+			res = append(res, b)
+		}
+		return c.JSON(http.StatusOK, res)
 	}
-	var res []BlockOut
-	for _, b := range blocks {
-		res = append(res, b)
-	}
-	return c.JSON(http.StatusOK, res)
 }
 
 // tipHeight godoc
@@ -239,12 +249,14 @@ func blocksHeight(c echo.Context) error {
 //
 // @Success 200 {number} int
 // @Success 500 {string} string
-func tipHeight(c echo.Context) error {
-	b, err := GetLast(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache))
-	if err != nil {
-		return err
+func tipHeight(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b, err := s.GetLast()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, b.Height)
 	}
-	return c.JSON(http.StatusOK, b.Height)
 }
 
 // tipHash godoc
@@ -262,10 +274,12 @@ func tipHeight(c echo.Context) error {
 //
 // @Success 200 {string} hash
 // @Success 500 {string} string
-func tipHash(c echo.Context) error {
-	b, err := GetLast(c.Get("db").(kv.DB), c.Get("cache").(*cache.Cache))
-	if err != nil {
-		return err
+func tipHash(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b, err := s.GetLast()
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, b.ID)
 	}
-	return c.JSON(http.StatusOK, b.ID)
 }

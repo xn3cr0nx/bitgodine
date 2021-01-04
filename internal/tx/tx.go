@@ -8,6 +8,28 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
+// Service interface exports available methods for tx service
+type Service interface {
+	GetFromHash(hash string) (transaction Tx, err error)
+	GetOutputsFromHash(hash string) (outputs []Output, err error)
+	GetSpentOutputFromHash(hash string, vout uint32) (output Output, err error)
+	GetSpendingFromHash(hash string, vout uint32) (transaction Tx, err error)
+	IsSpent(tx string, index uint32) bool
+}
+
+type service struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
+// NewService instantiates a new Service layer for customer
+func NewService(k kv.DB, c *cache.Cache) *service {
+	return &service{
+		Kv:    k,
+		Cache: c,
+	}
+}
+
 // read retrieves tx by hash
 func read(db kv.DB, hash string) (transaction Tx, err error) {
 	r, err := db.Read(hash)
@@ -31,26 +53,26 @@ func readFollowing(db kv.DB, hash string, vout uint32) (transaction string, err 
 }
 
 // GetFromHash return block structure based on block hash
-func GetFromHash(db kv.DB, c *cache.Cache, hash string) (transaction Tx, err error) {
-	if cached, ok := c.Get(hash); ok {
+func (s *service) GetFromHash(hash string) (transaction Tx, err error) {
+	if cached, ok := s.Cache.Get(hash); ok {
 		transaction = cached.(Tx)
 		return
 	}
 
-	tx, err := read(db, hash)
+	tx, err := read(s.Kv, hash)
 	if err != nil {
 		return Tx{}, err
 	}
 
-	if !c.Set(transaction.TxID, transaction, 1) {
+	if !s.Cache.Set(transaction.TxID, transaction, 1) {
 		logger.Error("Cache", errorx.ErrCache, logger.Params{"hash": transaction.TxID})
 	}
 	return tx, nil
 }
 
 // GetOutputsFromHash retrieves tx's outputs by hash
-func GetOutputsFromHash(db kv.DB, c *cache.Cache, hash string) (outputs []Output, err error) {
-	tx, err := GetFromHash(db, c, hash)
+func (s *service) GetOutputsFromHash(hash string) (outputs []Output, err error) {
+	tx, err := s.GetFromHash(hash)
 	if err != nil {
 		return
 	}
@@ -59,8 +81,8 @@ func GetOutputsFromHash(db kv.DB, c *cache.Cache, hash string) (outputs []Output
 }
 
 // GetSpentOutputFromHash retrieves spent tx output based on hash and index
-func GetSpentOutputFromHash(db kv.DB, c *cache.Cache, hash string, vout uint32) (output Output, err error) {
-	tx, err := GetFromHash(db, c, hash)
+func (s *service) GetSpentOutputFromHash(hash string, vout uint32) (output Output, err error) {
+	tx, err := s.GetFromHash(hash)
 	if err != nil {
 		return
 	}
@@ -69,18 +91,18 @@ func GetSpentOutputFromHash(db kv.DB, c *cache.Cache, hash string, vout uint32) 
 }
 
 // GetSpendingFromHash retrieves spending tx of the output based on hash and index
-func GetSpendingFromHash(db kv.DB, c *cache.Cache, hash string, vout uint32) (transaction Tx, err error) {
-	spendingHash, err := readFollowing(db, hash, vout)
+func (s *service) GetSpendingFromHash(hash string, vout uint32) (transaction Tx, err error) {
+	spendingHash, err := readFollowing(s.Kv, hash, vout)
 	if err != nil {
 		return
 	}
-	transaction, err = GetFromHash(db, c, spendingHash)
+	transaction, err = s.GetFromHash(spendingHash)
 	return
 }
 
 // IsSpent returnes true if exists a transaction that takes as input to the new tx
 // the output corresponding to the index passed to the function
-func IsSpent(db kv.DB, c *cache.Cache, tx string, index uint32) bool {
-	_, err := GetSpendingFromHash(db, c, tx, index)
+func (s *service) IsSpent(tx string, index uint32) bool {
+	_, err := s.GetSpendingFromHash(tx, index)
 	return err == nil
 }

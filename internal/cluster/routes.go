@@ -8,12 +8,12 @@ import (
 )
 
 // Routes mounts all /clusters based routes on the main group
-func Routes(g *echo.Group) {
+func Routes(g *echo.Group, s Service) {
 	r := g.Group("/clusters", validator.JWT())
 
-	r.GET("", getClusters)
-	r.POST("", createCluster)
-	r.GET("/:address", getClusterByAddress)
+	r.GET("", getClusters(s))
+	r.POST("", createCluster(s))
+	r.GET("/:address", getClusterByAddress(s))
 }
 
 // getClusters godoc
@@ -33,21 +33,23 @@ func Routes(g *echo.Group) {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getClusters(c echo.Context) error {
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+func getClusters(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	tags, err := GetClusters(&c, q.Output)
-	if err != nil {
-		return err
-	}
+		tags, err := s.GetClusters(q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, tags)
+		return c.JSON(http.StatusOK, tags)
+	}
 }
 
 // createCluster godoc
@@ -67,17 +69,19 @@ func getClusters(c echo.Context) error {
 //
 // @Success 200 {string} ok
 // @Success 500 {string} string
-func createCluster(c echo.Context) error {
-	b := new(Model)
-	if err := validator.Struct(&c, b); err != nil {
-		return err
-	}
+func createCluster(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b := new(Model)
+		if err := validator.Struct(&c, b); err != nil {
+			return err
+		}
 
-	if err := CreateCluster(&c, b); err != nil {
-		return err
-	}
+		if err := s.CreateCluster(b); err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, "Ok")
+		return c.JSON(http.StatusOK, "Ok")
+	}
 }
 
 // getClustersByAddress godoc
@@ -98,24 +102,26 @@ func createCluster(c echo.Context) error {
 //
 // @Success 200 {array} Model
 // @Success 500 {string} string
-func getClusterByAddress(c echo.Context) error {
-	address := c.Param("address")
-	if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
-		return err
-	}
+func getClusterByAddress(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		address := c.Param("address")
+		if err := c.Echo().Validator.(*validator.CustomValidator).Var(address, "required,btc_addr|btc_addr_bech32"); err != nil {
+			return err
+		}
 
-	type Query struct {
-		Output bool `query:"output" validate:"omitempty"`
-	}
-	q := new(Query)
-	if err := validator.Struct(&c, q); err != nil {
-		return err
-	}
+		type Query struct {
+			Output bool `query:"output" validate:"omitempty"`
+		}
+		q := new(Query)
+		if err := validator.Struct(&c, q); err != nil {
+			return err
+		}
 
-	clusters, err := GetCluster(&c, address, q.Output)
-	if err != nil {
-		return err
-	}
+		clusters, err := s.GetCluster(address, q.Output)
+		if err != nil {
+			return err
+		}
 
-	return c.JSON(http.StatusOK, clusters)
+		return c.JSON(http.StatusOK, clusters)
+	}
 }

@@ -7,57 +7,44 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/labstack/echo/v4"
 	"github.com/xn3cr0nx/bitgodine/internal/address"
 	"github.com/xn3cr0nx/bitgodine/internal/errorx"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/db/postgres"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tx"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 
 	"github.com/xn3cr0nx/bitgodine/internal/abuse"
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/heuristics"
-	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
 	"github.com/xn3cr0nx/bitgodine/internal/tag"
 	"golang.org/x/sync/errgroup"
 )
 
-// Cluster struct to classify the address in a certain cluster
-type Cluster struct {
-	Type     string `json:"type,omitempty"`
-	Message  string `json:"message,omitempty"`
-	Nickname string `json:"nickname,omitempty"`
-	Verified bool   `json:"verified,omitempty"`
+// Service interface exports available methods for block service
+type Service interface {
+	TraceAddress(address string, limit, skip int) (tracing *Flow, err error)
+	followFlow(flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error)
 }
 
-// Trace between ouput and spending tx for tracing
-type Trace struct {
-	TxID string `json:"txid"`
-	Next []Next `json:"next"`
+type service struct {
+	Repository *postgres.Pg
+	Kv         kv.DB
+	Cache      *cache.Cache
 }
 
-// Next spending tx info
-type Next struct {
-	TxID     string    `json:"txid"`
-	Receiver string    `json:"receiver"`
-	Vout     uint32    `json:"vout"`
-	Amount   float64   `json:"amount"`
-	Weight   float64   `json:"weight"`
-	Analysis string    `json:"analysis"`
-	Clusters []Cluster `json:"clusters"`
+// NewService instantiates a new Service layer for customer
+func NewService(r *postgres.Pg, k kv.DB, c *cache.Cache) *service {
+	return &service{
+		Repository: r,
+		Kv:         k,
+		Cache:      c,
+	}
 }
 
-// Flow list of maps creating monetary flow
-type Flow struct {
-	Traces     []map[string]Trace `json:"traces"`
-	Occurences []string           `json:"occurences"`
-}
-
-func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *Flow, err error) {
+func (s *service) TraceAddress(addr string, limit, skip int) (tracing *Flow, err error) {
 	fmt.Println("Tracing address", addr)
-
-	db := (*c).Get("db").(kv.DB)
-	ca := (*c).Get("cache").(*cache.Cache)
-	occurences, err := address.GetOccurences(db, ca, addr)
+	occurences, err := address.GetOccurences(s.Kv, s.Cache, addr)
 	if err != nil {
 		return
 	}
@@ -67,6 +54,7 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 	}
 
 	var g errgroup.Group
+	txService := tx.NewService(s.Kv, s.Cache)
 	for i, occurence := range occurences {
 		if i < limit*skip || i > skip*limit+(limit-1) {
 			continue
@@ -80,7 +68,7 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 
 		g.Go(func() error {
 			occ = strings.Replace(occ, addr+"_", "", 1)
-			transaction, err := tx.GetFromHash(db, ca, occ)
+			transaction, err := txService.GetFromHash(occ)
 			if err != nil {
 				return err
 			}
@@ -93,7 +81,7 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 				}
 			}
 
-			if err := followFlow(c, db, ca, flow, transaction, vout, 0, &lock); err != nil {
+			if err := s.followFlow(flow, transaction, vout, 0, &lock); err != nil {
 				return err
 			}
 			tracing.Traces[index%limit] = flow
@@ -107,8 +95,9 @@ func traceAddress(c *echo.Context, addr string, limit int, skip int) (tracing *F
 	return
 }
 
-func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
-	changes, err := analysis.AnalyzeTx(c, transaction.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
+func (s *service) followFlow(flow map[string]Trace, transaction tx.Tx, vout uint32, depth int, lock *sync.RWMutex) (err error) {
+	analysisService := analysis.NewService(s.Kv, s.Cache)
+	changes, err := analysisService.AnalyzeTx(transaction.TxID, heuristics.FromListToMask(heuristics.List()), "reliability")
 	if err != nil {
 		if errors.Is(err, analysis.ErrUnfeasibleTx) {
 			lock.Lock()
@@ -138,11 +127,12 @@ func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trac
 	var g errgroup.Group
 	var next []Next
 	nextLock := sync.RWMutex{}
+	txService := tx.NewService(s.Kv, s.Cache)
 	for out, perc := range likelihood {
 		output := out
 		percentages := perc
 		g.Go(func() error {
-			spending, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, output)
+			spending, e := txService.GetSpendingFromHash(transaction.TxID, output)
 			if e != nil {
 				if errors.Is(err, errorx.ErrKeyNotFound) {
 					return nil
@@ -150,12 +140,13 @@ func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trac
 				return e
 			}
 			var localNext []Next
+			tagService := tag.NewService(s.Repository, s.Cache)
 			for mask, percentage := range percentages {
 				clusters := []Cluster{}
 
 				var g errgroup.Group
 				g.Go(func() (err error) {
-					tags, err := tag.GetTaggedClusterSet(c, transaction.Vout[output].ScriptpubkeyAddress)
+					tags, err := tagService.GetTaggedClusterSet(transaction.Vout[output].ScriptpubkeyAddress)
 					if err != nil {
 						if !strings.Contains(err.Error(), "cluster not found") {
 							return err
@@ -172,7 +163,8 @@ func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trac
 					return
 				})
 				g.Go(func() (err error) {
-					abuses, err := abuse.GetAbusedClusterSet(c, transaction.Vout[output].ScriptpubkeyAddress)
+					abuseService := abuse.NewService(s.Repository, s.Cache)
+					abuses, err := abuseService.GetAbusedClusterSet(transaction.Vout[output].ScriptpubkeyAddress)
 					if err != nil {
 						if !strings.Contains(err.Error(), "cluster not found") {
 							return err
@@ -201,7 +193,7 @@ func followFlow(c *echo.Context, db kv.DB, ca *cache.Cache, flow map[string]Trac
 					Analysis: fmt.Sprintf("%b", mask[0]),
 					Clusters: clusters,
 				})
-				err = followFlow(c, db, ca, flow, spending, output, depth+1, lock)
+				err = s.followFlow(flow, spending, output, depth+1, lock)
 				if err != nil {
 					return err
 				}

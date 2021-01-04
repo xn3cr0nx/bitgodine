@@ -44,7 +44,7 @@ func NewService(r *postgres.Pg, k kv.DB, c *cache.Cache) *service {
 
 func (s *service) TraceAddress(addr string, limit, skip int) (tracing *Flow, err error) {
 	fmt.Println("Tracing address", addr)
-	occurences, err := address.GetOccurences(s.Kv, s.Cache, addr)
+	occurences, err := address.NewService(s.Kv, s.Cache).GetOccurences(addr)
 	if err != nil {
 		return
 	}

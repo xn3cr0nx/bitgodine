@@ -24,8 +24,7 @@ type ShadowAddress struct {
 
 // Worker struct implementing workers pool
 type Worker struct {
-	db          kv.DB
-	ca          *cache.Cache
+	service     address.Service
 	output      tx.Output
 	vout        int
 	candidates  []uint32
@@ -34,7 +33,7 @@ type Worker struct {
 
 // Work executed in the workers pool
 func (w *Worker) Work() (err error) {
-	firstOccurence, err := address.GetFirstOccurenceHeight(w.db, w.ca, w.output.ScriptpubkeyAddress)
+	firstOccurence, err := w.service.GetFirstOccurenceHeight(w.output.ScriptpubkeyAddress)
 	if err != nil {
 		return
 	}
@@ -54,11 +53,12 @@ func (h *ShadowAddress) ChangeOutput(transaction *tx.Tx) (c []uint32, err error)
 	}
 
 	pool := task.New(runtime.NumCPU())
+	addressService := address.NewService(h.Kv, h.Cache)
 	for vout, out := range transaction.Vout {
 		if out.ScriptpubkeyAddress == "" {
 			continue
 		}
-		pool.Do(&Worker{h.Kv, h.Cache, out, vout, candidates, blockHeight})
+		pool.Do(&Worker{addressService, out, vout, candidates, blockHeight})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return

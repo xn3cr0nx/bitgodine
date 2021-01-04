@@ -128,7 +128,8 @@ func (s *Server) Listen() {
 
 	abuseService := abuse.NewService(s.pg, s.cache)
 	abuse.Routes(api, abuseService)
-	address.Routes(api)
+	addressService := address.NewService(s.db, s.cache)
+	address.Routes(api, addressService)
 	analysisService := analysis.NewService(s.db, s.cache)
 	analysis.Routes(api, analysisService)
 	authService := auth.NewService(s.pg)

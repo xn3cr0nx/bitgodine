@@ -60,11 +60,13 @@ var _ = Describe("Testing key value storage addresses methods", func() {
 	})
 
 	Context("Testing retrieve transactions methods", func() {
+		service := address.NewService(db, nil)
+
 		It("Should get address height occurence", func() {
 			block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(block.Transactions()[0].MsgTx().TxOut[0].PkScript, &chaincfg.MainNetParams)
 			Expect(err).ToNot(HaveOccurred())
-			occurences, err := address.GetOccurences(db, nil, addr[0].String())
+			occurences, err := service.GetOccurences(addr[0].String())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(occurences)).To(Equal(1))
 		})
@@ -73,7 +75,7 @@ var _ = Describe("Testing key value storage addresses methods", func() {
 			block := btcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(block.Transactions()[0].MsgTx().TxOut[0].PkScript, &chaincfg.MainNetParams)
 			Expect(err).ToNot(HaveOccurred())
-			height, err := address.GetFirstOccurenceHeight(db, nil, addr[0].String())
+			height, err := service.GetFirstOccurenceHeight(addr[0].String())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(height).To(Equal(int32(0)))
 		})

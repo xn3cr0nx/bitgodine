@@ -9,13 +9,13 @@ import (
 
 	"github.com/xn3cr0nx/bitgodine/internal/analysis"
 	"github.com/xn3cr0nx/bitgodine/internal/password"
-	"github.com/xn3cr0nx/bitgodine/internal/preferences"
+	"github.com/xn3cr0nx/bitgodine/internal/user/preferences"
 )
 
 // Model user struct with validation
 type Model struct {
 	gorm.Model
-	ID        uuid.UUID `json:"id" gorm:"primary_key;index;unique"`
+	ID        uuid.UUID `json:"id" gorm:"primarykey;index;unique"`
 	Email     string    `json:"email" validate:"required,email" gorm:"index"`
 	Username  string    `json:"username" validate:"required" gorm:"index"`
 	Password  string    `json:"password" validate:"required,min=10"`
@@ -29,9 +29,9 @@ type Model struct {
 	IsBlocked bool           `json:"isBlocked" gorm:"default:false"`
 	APIKeys   pq.StringArray `json:"apiKeys,omitempty" gorm:"type:varchar(255)[]"`
 
-	Preferences preferences.Model `gorm:"constraint:OnDelete:CASCADE;"`
-	Analysis    []analysis.Model
-}
+	Preferences preferences.Model `gorm:"constraint:OnDelete:CASCADE;foreignKey:UserID"`
+	Analysis    []analysis.Model  `gorm:"constraint:OnDelete:CASCADE;foreignKey:UserID"`
+} //@name User
 
 // BeforeCreate encrypt the password before creating
 func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {

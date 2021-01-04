@@ -151,17 +151,17 @@ func Index(h string) Heuristic {
 // Implementation returns concrete implementation for the heuristic
 func (h Heuristic) Implementation(db kv.DB, ca *cache.Cache) HeuristicImpl {
 	impl := map[Heuristic](HeuristicImpl){
-		Locktime:        &locktime.Locktime{db, ca},
-		Peeling:         &peeling.PeelingChain{db, ca},
+		Locktime:        &locktime.Locktime{Kv: db, Cache: ca},
+		Peeling:         &peeling.PeelingChain{Kv: db, Cache: ca},
 		PowerOfTen:      &power.PowerOfTen{},
-		OptimalChange:   &optimal.Optimal{db, ca},
-		AddressType:     &class.AddressType{db, ca},
-		AddressReuse:    &reuse.AddressReuse{db, ca},
-		Shadow:          &shadow.ShadowAddress{db, ca},
-		ClientBehaviour: &behaviour.Behavior{db, ca},
+		OptimalChange:   &optimal.Optimal{Kv: db, Cache: ca},
+		AddressType:     &class.AddressType{Kv: db, Cache: ca},
+		AddressReuse:    &reuse.AddressReuse{Kv: db, Cache: ca},
+		Shadow:          &shadow.ShadowAddress{Kv: db, Cache: ca},
+		ClientBehaviour: &behaviour.Behavior{Kv: db, Cache: ca},
 		// "Exact Amount": 		self.Vulnerable,
-		Forward:  &forward.Forward{db, ca},
-		Backward: &backward.Backward{db, ca},
+		Forward:  &forward.Forward{Kv: db, Cache: ca},
+		Backward: &backward.Backward{Kv: db, Cache: ca},
 	}
 	return impl[h]
 }

@@ -22,7 +22,6 @@ func Config() middleware.JWTConfig {
 	return middleware.JWTConfig{
 		Claims:     &CustomClaims{},
 		SigningKey: []byte(viper.GetString("auth.secret")),
-		ContextKey: "token",
 	}
 }
 

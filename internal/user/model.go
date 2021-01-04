@@ -26,8 +26,8 @@ type Model struct {
 
 	IsActive  bool           `json:"is_active,omitempty" gorm:"default:false"`
 	Lang      string         `json:"lang,omitempty" gorm:"default:'en'"`
-	IsBlocked bool           `json:"isBlocked" gorm:"default:false"`
-	APIKeys   pq.StringArray `json:"apiKeys,omitempty" gorm:"type:varchar(255)[]"`
+	IsBlocked bool           `json:"is_blocked" gorm:"default:false"`
+	APIKeys   pq.StringArray `json:"api_keys,omitempty" gorm:"type:varchar(255)[]"`
 
 	Preferences preferences.Model `gorm:"constraint:OnDelete:CASCADE;foreignKey:UserID"`
 	Analysis    []analysis.Model  `gorm:"constraint:OnDelete:CASCADE;foreignKey:UserID"`
@@ -40,6 +40,8 @@ func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {
 		return
 	}
 	m.Password = hash
+
+	m.ID = uuid.New()
 	return
 }
 

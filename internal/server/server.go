@@ -145,10 +145,10 @@ func (s *Server) Listen() {
 	txService := tx.NewService(s.db, s.cache)
 	tx.Routes(api, txService)
 
-	fmt.Println("ROUTES:")
-	for _, route := range s.router.Routes() {
-		fmt.Println(route.Method, route.Path)
-	}
+	// fmt.Println("ROUTES:")
+	// for _, route := range s.router.Routes() {
+	// 	fmt.Println(route.Method, route.Path)
+	// }
 
 	go func() {
 		if err := s.router.Start(s.port); err != nil {

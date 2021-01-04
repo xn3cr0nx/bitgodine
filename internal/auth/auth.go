@@ -17,6 +17,7 @@ import (
 type Service interface {
 	Login(body *LoginBody) (*LoginResp, error)
 	Signup(body *SignupBody) (*SignupResp, error)
+	GenerateAPIKey(ID, email string) (string, error)
 }
 
 type service struct {
@@ -47,7 +48,7 @@ func (s *service) Login(body *LoginBody) (*LoginResp, error) {
 		return nil, echo.NewHTTPError(http.StatusInternalServerError, echo.ErrValidatorNotRegistered)
 	}
 
-	lastLogin, err := userService.NewLogin(user.ID)
+	lastLogin, err := userService.NewLogin(user.ID.String())
 	if err != nil {
 		return nil, echo.NewHTTPError(http.StatusInternalServerError, echo.ErrValidatorNotRegistered)
 	}
@@ -138,4 +139,19 @@ func (s *service) Signup(body *SignupBody) (*SignupResp, error) {
 	// 	"email_nonce": emailNonce,
 	// })
 	return &SignupResp{"Check your email"}, nil
+}
+
+// GenerateAPIKey saves a new long term api key for the user
+func (s *service) GenerateAPIKey(ID, email string) (token string, err error) {
+	token, err = jwt.NewToken(ID, email, 99999999)
+	if err != nil {
+		return
+	}
+
+	userService := user.NewService(s.Repository)
+	if err = userService.NewAPIKey(ID, token); err != nil {
+		return
+	}
+
+	return
 }

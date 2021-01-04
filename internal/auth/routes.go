@@ -4,14 +4,16 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/xn3cr0nx/bitgodine/internal/jwt"
 	"github.com/xn3cr0nx/bitgodine/pkg/validator"
 )
 
 // Routes mounts auth routes on the main group
 func Routes(g *echo.Group, s Service) {
 	g.POST("/login", login(s))
-
 	g.POST("/signup", signup(s), validator.Recaptcha())
+	// g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
+	g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
 
 	// r.POST("/change-password", func(c echo.Context) error {
 	// 	type Body struct {
@@ -83,18 +85,6 @@ func Routes(g *echo.Group, s Service) {
 
 	// r.GET("/email-api-key", func(c echo.Context) error {
 	// 	res, err := chttp.GET(c.Request().RequestURI, routes.ProxyAuth(&c))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	resp := new(models.Response)
-	// 	if err := json.Unmarshal([]byte(res), resp); err != nil {
-	// 		return err
-	// 	}
-	// 	return c.JSON(http.StatusOK, resp)
-	// })
-
-	// r.POST("/generate-api-key", func(c echo.Context) error {
-	// 	res, err := chttp.POST(c.Request().RequestURI, nil, routes.ProxyAuth(&c))
 	// 	if err != nil {
 	// 		return err
 	// 	}
@@ -195,6 +185,37 @@ func signup(s Service) func(echo.Context) error {
 		}
 
 		resp, err := s.Signup(b)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, resp)
+	}
+}
+
+// generateAPIKey godoc
+// @ID generateAPIKey
+//
+// @Router /generate-api-key [get]
+// @Summary Generate Api Key
+// @Description Generate and new api key for the user
+// @Tags auth
+//
+// @Security ApiKeyAuth
+//
+// @Accept  json
+// @Produce  json
+//
+// @Failure 200 {string} string
+// @Failure 500 {string} string
+func generateAPIKey(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		claims, err := jwt.Decode(c.Get("user"))
+		if err != nil {
+			return nil
+		}
+
+		resp, err := s.GenerateAPIKey(claims.ID, claims.Email)
 		if err != nil {
 			return err
 		}

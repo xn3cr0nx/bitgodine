@@ -18,6 +18,7 @@ type Service interface {
 	Login(body *LoginBody) (*LoginResp, error)
 	Signup(body *SignupBody) (*SignupResp, error)
 	GenerateAPIKey(ID, email string) (string, error)
+	ChangePassword(ID, oldPassword, newPassword string) error
 }
 
 type service struct {
@@ -152,6 +153,27 @@ func (s *service) GenerateAPIKey(ID, email string) (token string, err error) {
 	if err = userService.NewAPIKey(ID, token); err != nil {
 		return
 	}
+
+	return
+}
+
+// ChangePassword changes user password
+func (s *service) ChangePassword(ID, oldPassword, newPassword string) (err error) {
+	userService := user.NewService(s.Repository)
+	user, err := userService.GetUser(ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, echo.ErrNotFound)
+	}
+
+	if !password.Verify(user.Password, oldPassword) {
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.ErrUnauthorized)
+	}
+
+	user.Password, err = password.Hash(newPassword)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.ErrValidatorNotRegistered)
+	}
+	err = userService.UpdateUser(ID, user)
 
 	return
 }

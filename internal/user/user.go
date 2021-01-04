@@ -8,6 +8,7 @@ import (
 
 // Service interface exports available methods for user service
 type Service interface {
+	GetUser(ID string) (user *Model, err error)
 	GetUserByEmail(email string) (user *Model, err error)
 	CreateUser(user *Model) (err error)
 	NewLogin(ID string) (time.Time, error)
@@ -25,6 +26,15 @@ func NewService(r *postgres.Pg) *service {
 	}
 }
 
+// GetUser retrieves the user
+func (s *service) GetUser(ID string) (*Model, error) {
+	var user Model
+	if err := s.Repository.Preload("Preferences").Where("ID = ?", ID).Find(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // GetUserByEmail retrieves the user by email
 func (s *service) GetUserByEmail(email string) (*Model, error) {
 	var user Model
@@ -37,6 +47,11 @@ func (s *service) GetUserByEmail(email string) (*Model, error) {
 // CreateUser creates a new user
 func (s *service) CreateUser(user *Model) error {
 	return s.Repository.Model(&Model{}).Create(user).Error
+}
+
+// UpdateUser update user object
+func (s *service) UpdateUser(ID string, user *Model) error {
+	return s.Repository.Model(&Model{}).Where("id = ?", ID).Save(user).Error
 }
 
 // NewLogin updates last_login to a new tiemstamp

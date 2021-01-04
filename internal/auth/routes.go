@@ -14,22 +14,7 @@ func Routes(g *echo.Group, s Service) {
 	g.POST("/signup", signup(s), validator.Recaptcha())
 	// g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
 	g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
-
-	// r.POST("/change-password", func(c echo.Context) error {
-	// 	type Body struct {
-	// 		NewPassword string `json:"newPassword" validate:"required,password,nefield=OldPassword,alphanum"`
-	// 		OldPassword string `json:"oldPassword" validate:"required,password,nefield=NewPassword,alphanum"`
-	// 	}
-	// 	b := new(Body)
-	// 	if err := validator.Struct(&c, b); err != nil {
-	// 		return err
-	// 	}
-	// 	resp, err := ChangePassword(c, b)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	return c.JSON(http.StatusOK, resp)
-	// })
+	g.POST("/change-password", changePassword(s), validator.JWT())
 
 	// r.GET("/activate/:token", func(c echo.Context) error {
 	// 	token := c.Param("token")
@@ -144,7 +129,9 @@ func Routes(g *echo.Group, s Service) {
 // @Accept  json
 // @Produce  json
 //
+// @Param login body LoginBody true "login body"
 //
+// @Success 200 {object} LoginResp
 // @Failure 400 {string} string
 // @Failure 500 {string} string
 func login(s Service) func(echo.Context) error {
@@ -174,7 +161,9 @@ func login(s Service) func(echo.Context) error {
 // @Accept  json
 // @Produce  json
 //
+// @Param signup body SignupBody true "signup body"
 //
+// @Success 200 {object} SignupResp
 // @Failure 400 {string} string
 // @Failure 500 {string} string
 func signup(s Service) func(echo.Context) error {
@@ -206,7 +195,8 @@ func signup(s Service) func(echo.Context) error {
 // @Accept  json
 // @Produce  json
 //
-// @Failure 200 {string} string
+// @Success 200 {string} string
+// @Failure 400 {string} string
 // @Failure 500 {string} string
 func generateAPIKey(s Service) func(echo.Context) error {
 	return func(c echo.Context) error {
@@ -221,5 +211,40 @@ func generateAPIKey(s Service) func(echo.Context) error {
 		}
 
 		return c.JSON(http.StatusOK, resp)
+	}
+}
+
+// changePassword godoc
+// @ID changePassword
+//
+// @Router /chage-password [post]
+// @Summary Change Password
+// @Description Authenticate
+// @Tags auth
+//
+// @Accept  json
+// @Produce  json
+//
+// @Param changePassword body ChangePasswordBody true "change password body"
+//
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+func changePassword(s Service) func(echo.Context) error {
+	return func(c echo.Context) error {
+		b := new(ChangePasswordBody)
+		if err := validator.Struct(&c, b); err != nil {
+			return err
+		}
+
+		claims, err := jwt.Decode(c.Get("user"))
+		if err != nil {
+			return nil
+		}
+
+		if err := s.ChangePassword(claims.ID, b.OldPassword, b.NewPassword); err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, "ok")
 	}
 }

@@ -46,3 +46,9 @@ type SignupBody struct {
 type SignupResp struct {
 	Message string `json:"message"`
 }
+
+// ChangePasswordBody body request to change password
+type ChangePasswordBody struct {
+	NewPassword string `json:"new_password" validate:"required,password,nefield=OldPassword,alphanum"`
+	OldPassword string `json:"old_password" validate:"required,password,nefield=NewPassword,alphanum"`
+}

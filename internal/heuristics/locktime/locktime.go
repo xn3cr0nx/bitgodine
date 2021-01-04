@@ -15,21 +15,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Locktime heuristic
+type Locktime struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // ChangeOutput returns the index of the change output address based on locktime heuristic:
 // Bitcoin Core sets the locktime to the current block height to prevent fee sniping.
 // If all outputs have been spent, and there is only one output that has been spent
 // in a transaction that matches this transaction's locktime behavior, it is the change.
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *Locktime) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	if transaction.Locktime == 0 {
 		return
 	}
 
+	txService := tx.NewService(h.Kv, h.Cache)
 	var g errgroup.Group
 	lock := sync.RWMutex{}
 	for _, output := range transaction.Vout {
 		out := output
 		g.Go(func() (err error) {
-			spendingTx, err := tx.GetSpendingFromHash(db, ca, transaction.TxID, out.Index)
+			spendingTx, err := txService.GetSpendingFromHash(transaction.TxID, out.Index)
 			if err != nil {
 				return
 			}
@@ -49,7 +56,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	c, err := ChangeOutput(db, ca, transaction)
+func (h *Locktime) Vulnerable(transaction *tx.Tx) bool {
+	c, err := h.ChangeOutput(transaction)
 	return err == nil && len(c) > 0
 }

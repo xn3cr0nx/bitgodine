@@ -16,6 +16,12 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// ShadowAddress heuristic
+type ShadowAddress struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // Worker struct implementing workers pool
 type Worker struct {
 	db          kv.DB
@@ -40,9 +46,9 @@ func (w *Worker) Work() (err error) {
 
 // ChangeOutput returns the index of the output which appears for the first time in the chain based on client behaviour heuristic
 // TODO: violates DRY, just different evaluation in output change, but same operations
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *ShadowAddress) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	candidates := make([]uint32, len(transaction.Vout))
-	blockHeight, err := block.GetTxBlockHeight(db, ca, transaction.TxID)
+	blockHeight, err := block.NewService(h.Kv, h.Cache).GetTxBlockHeight(transaction.TxID)
 	if err != nil {
 		return
 	}
@@ -52,7 +58,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 		if out.ScriptpubkeyAddress == "" {
 			continue
 		}
-		pool.Do(&Worker{db, ca, out, vout, candidates, blockHeight})
+		pool.Do(&Worker{h.Kv, h.Cache, out, vout, candidates, blockHeight})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return
@@ -67,7 +73,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	c, err := ChangeOutput(db, ca, transaction)
+func (h *ShadowAddress) Vulnerable(transaction *tx.Tx) bool {
+	c, err := h.ChangeOutput(transaction)
 	return err == nil && len(c) > 0
 }

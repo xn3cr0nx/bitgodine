@@ -15,8 +15,9 @@ import (
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	db     kv.DB
-	target tx.Tx
+	db        kv.DB
+	target    tx.Tx
+	heuristic Locktime
 }
 
 func (suite *TestAddressReuseSuite) SetupSuite() {
@@ -25,6 +26,7 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 	db, err := test.InitTestDB()
 	require.Nil(suite.T(), err)
 	suite.db = db.(kv.DB)
+	suite.heuristic = Locktime{db, nil}
 
 	suite.Setup()
 }
@@ -62,26 +64,28 @@ func (suite *TestAddressReuseSuite) Setup() {
 	}
 	suite.target = transaction
 
+	blockService := block.NewService(suite.db, nil)
+
 	spentTx := tx.Tx{
 		TxID:     "30902fb75974281fe7081b540d08b7f149ee362f4fe4589600477d7491572338",
 		Locktime: 429991,
 	}
 	blk := block.Block{ID: "", Height: 0}
-	err := block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
+	err := blockService.StoreBlock(&blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = tx.Tx{
 		TxID:     "e724ed4ae72779fc7ad4a02789143b6c92c3276a38b592a60c51aa0433750aa0",
 		Locktime: 430003,
 	}
-	err = block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
+	err = blockService.StoreBlock(&blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 
 	spentTx = tx.Tx{
 		TxID:     "0664032cd4330937e9d28fe2cf614c76494db4d5a3208b37a4957adc3171069a",
 		Locktime: 0,
 	}
-	err = block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
+	err = blockService.StoreBlock(&blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 }
 
@@ -90,13 +94,13 @@ func (suite *TestAddressReuseSuite) TearDownSuite() {
 }
 
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
-	c, err := ChangeOutput(suite.db, nil, &suite.target)
+	c, err := suite.heuristic.ChangeOutput(&suite.target)
 	require.Nil(suite.T(), err)
 	assert.Equal(suite.T(), len(c), 2)
 }
 
 func (suite *TestAddressReuseSuite) TestVulnerable() {
-	v := Vulnerable(suite.db, nil, &suite.target)
+	v := suite.heuristic.Vulnerable(&suite.target)
 	assert.Equal(suite.T(), v, true)
 }
 

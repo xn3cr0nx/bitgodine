@@ -13,19 +13,24 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// Optimal heuristic
+type Optimal struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // Worker struct implementing workers pool
 type Worker struct {
-	db     kv.DB
-	ca     *cache.Cache
-	txid   string
-	vout   uint32
-	index  int
-	values []int64
+	service tx.Service
+	txid    string
+	vout    uint32
+	index   int
+	values  []int64
 }
 
 // Work executed in the workers pool
 func (w *Worker) Work() (err error) {
-	spentTx, err := tx.GetFromHash(w.db, w.ca, w.txid)
+	spentTx, err := w.service.GetFromHash(w.txid)
 	if err != nil {
 		return
 	}
@@ -34,14 +39,15 @@ func (w *Worker) Work() (err error) {
 }
 
 // ChangeOutput returns the index of the output which value is less than any inputs value, if there is any
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *Optimal) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	values := make([]int64, len(transaction.Vin))
 	pool := task.New(runtime.NumCPU() / 2)
+	txService := tx.NewService(h.Kv, h.Cache)
 	for i, in := range transaction.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		pool.Do(&Worker{db, ca, in.TxID, in.Vout, i, values})
+		pool.Do(&Worker{txService, in.TxID, in.Vout, i, values})
 	}
 	if err = pool.Shutdown(); err != nil {
 		return
@@ -64,7 +70,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	c, err := ChangeOutput(db, ca, transaction)
+func (h *Optimal) Vulnerable(transaction *tx.Tx) bool {
+	c, err := h.ChangeOutput(transaction)
 	return err == nil && len(c) > 0
 }

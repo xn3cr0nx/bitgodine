@@ -14,17 +14,25 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
+// Forward heuristic
+type Forward struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *Forward) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	var inputAddresses []string
 
 	logger.Debug("Forward Heuristic", "transaction "+transaction.TxID, logger.Params{})
+
+	txService := tx.NewService(h.Kv, h.Cache)
 
 	for _, in := range transaction.Vin {
 		if in.IsCoinbase {
 			continue
 		}
-		spentTx, e := tx.GetFromHash(db, ca, in.TxID)
+		spentTx, e := txService.GetFromHash(in.TxID)
 		if e != nil {
 			return nil, e
 		}
@@ -32,7 +40,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 	}
 
 	for _, out := range transaction.Vout {
-		spendingTx, e := tx.GetSpendingFromHash(db, ca, transaction.TxID, out.Index)
+		spendingTx, e := txService.GetSpendingFromHash(transaction.TxID, out.Index)
 		if e != nil {
 			// transaction not found => output not yet spent, but we can identify the change output anyway
 			if errors.Is(err, errorx.ErrKeyNotFound) {
@@ -46,7 +54,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 			if spendingIn.Vout == index {
 				continue
 			}
-			spentTx, e := tx.GetFromHash(db, ca, spendingIn.TxID)
+			spentTx, e := txService.GetFromHash(spendingIn.TxID)
 			if e != nil {
 				return nil, e
 			}
@@ -65,7 +73,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	_, err := ChangeOutput(db, ca, transaction)
+func (h *Forward) Vulnerable(transaction *tx.Tx) bool {
+	_, err := h.ChangeOutput(transaction)
 	return err == nil
 }

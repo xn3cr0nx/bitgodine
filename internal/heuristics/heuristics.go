@@ -16,6 +16,12 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// HeuristicImpl generic heuristic methods interface
+type HeuristicImpl interface {
+	ChangeOutput(transaction *tx.Tx) (c []uint32, err error)
+	Vulnerable(transaction *tx.Tx) bool
+}
+
 // Heuristic type define a enum on implemented heuristics
 type Heuristic int
 
@@ -142,40 +148,22 @@ func Index(h string) Heuristic {
 	return functions[h]
 }
 
-// VulnerableFunction returns vulnerable function to be applied to analysis
-func (h Heuristic) VulnerableFunction() func(kv.DB, *cache.Cache, *tx.Tx) bool {
-	functions := map[Heuristic](func(kv.DB, *cache.Cache, *tx.Tx) bool){
-		Locktime:        locktime.Vulnerable,
-		Peeling:         peeling.Vulnerable,
-		PowerOfTen:      power.Vulnerable,
-		OptimalChange:   optimal.Vulnerable,
-		AddressType:     class.Vulnerable,
-		AddressReuse:    reuse.Vulnerable,
-		Shadow:          shadow.Vulnerable,
-		ClientBehaviour: behaviour.Vulnerable,
+// Implementation returns concrete implementation for the heuristic
+func (h Heuristic) Implementation(db kv.DB, ca *cache.Cache) HeuristicImpl {
+	impl := map[Heuristic](HeuristicImpl){
+		Locktime:        &locktime.Locktime{db, ca},
+		Peeling:         &peeling.PeelingChain{db, ca},
+		PowerOfTen:      &power.PowerOfTen{},
+		OptimalChange:   &optimal.Optimal{db, ca},
+		AddressType:     &class.AddressType{db, ca},
+		AddressReuse:    &reuse.AddressReuse{db, ca},
+		Shadow:          &shadow.ShadowAddress{db, ca},
+		ClientBehaviour: &behaviour.Behavior{db, ca},
 		// "Exact Amount": 		self.Vulnerable,
-		Forward:  forward.Vulnerable,
-		Backward: backward.Vulnerable,
+		Forward:  &forward.Forward{db, ca},
+		Backward: &backward.Backward{db, ca},
 	}
-	return functions[h]
-}
-
-// ChangeFunction returns change output function to be applied to analysis
-func (h Heuristic) ChangeFunction() func(kv.DB, *cache.Cache, *tx.Tx) ([]uint32, error) {
-	functions := map[Heuristic](func(kv.DB, *cache.Cache, *tx.Tx) ([]uint32, error)){
-		Locktime:        locktime.ChangeOutput,
-		Peeling:         peeling.ChangeOutput,
-		PowerOfTen:      power.ChangeOutput,
-		OptimalChange:   optimal.ChangeOutput,
-		AddressType:     class.ChangeOutput,
-		AddressReuse:    reuse.ChangeOutput,
-		Shadow:          shadow.ChangeOutput,
-		ClientBehaviour: behaviour.ChangeOutput,
-		// "Exact Amount": 		self.ChangeOutput,
-		Forward:  forward.ChangeOutput,
-		Backward: backward.ChangeOutput,
-	}
-	return functions[h]
+	return impl[h]
 }
 
 // ConditionFunction returns change output function to be applied to analysis
@@ -191,7 +179,8 @@ func (h Heuristic) ConditionFunction() func(*tx.Tx) bool {
 
 // Apply applies the heuristic specified to the passed transaction
 func (h Heuristic) Apply(db kv.DB, c *cache.Cache, transaction tx.Tx, vuln *Mask) {
-	if h.VulnerableFunction()(db, c, &transaction) {
+	// if h.VulnerableFunction()(db, c, &transaction) {
+	if h.Implementation(db, c).Vulnerable(&transaction) {
 		vuln.Sum(MaskFromPower(h))
 	}
 }
@@ -212,7 +201,7 @@ func ApplySet(db kv.DB, c *cache.Cache, transaction tx.Tx, heuristicsList Mask, 
 
 // ApplyChange applies the heuristic specified to the passed transaction
 func (h Heuristic) ApplyChange(db kv.DB, ca *cache.Cache, transaction tx.Tx, vuln *Map) {
-	c, err := h.ChangeFunction()(db, ca, &transaction)
+	c, err := h.Implementation(db, ca).ChangeOutput(&transaction)
 	if err != nil {
 		return
 	}

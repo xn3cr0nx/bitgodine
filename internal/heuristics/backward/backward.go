@@ -14,14 +14,21 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// Backward heuristic
+type Backward struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // ChangeOutput returns the index of the output which appears both in inputs and in outputs based on address reuse heuristic
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *Backward) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	var outputAddresses,
 		inputAddresses,
 		inputTargets []string
 	var spentTxs []tx.Tx
 	var outputTargets []uint32
 
+	txService := tx.NewService(h.Kv, h.Cache)
 	var g errgroup.Group
 	g.Go(func() error {
 		for _, out := range transaction.Vout {
@@ -34,7 +41,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 			if in.IsCoinbase {
 				continue
 			}
-			spentTx, err := tx.GetFromHash(db, ca, in.TxID)
+			spentTx, err := txService.GetFromHash(in.TxID)
 			if err != nil {
 				return err
 			}
@@ -50,7 +57,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 
 	for _, spent := range spentTxs {
 		for _, in := range spent.Vin {
-			spentTx, e := tx.GetFromHash(db, ca, in.TxID)
+			spentTx, e := txService.GetFromHash(in.TxID)
 			if e != nil {
 				return nil, e
 			}
@@ -88,7 +95,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	_, err := ChangeOutput(db, ca, transaction)
+func (h *Backward) Vulnerable(transaction *tx.Tx) bool {
+	_, err := h.ChangeOutput(transaction)
 	return err == nil
 }

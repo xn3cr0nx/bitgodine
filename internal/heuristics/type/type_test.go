@@ -13,23 +13,25 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 )
 
-type TestAddressReuseSuite struct {
+type TestAddressTypeSuite struct {
 	suite.Suite
-	db     kv.DB
-	target tx.Tx
+	db        kv.DB
+	target    tx.Tx
+	heuristic AddressType
 }
 
-func (suite *TestAddressReuseSuite) SetupSuite() {
+func (suite *TestAddressTypeSuite) SetupSuite() {
 	logger.Setup()
 
 	db, err := test.InitTestDB()
 	require.Nil(suite.T(), err)
 	suite.db = db.(kv.DB)
+	suite.heuristic = AddressType{db, nil}
 
 	suite.Setup()
 }
 
-func (suite *TestAddressReuseSuite) Setup() {
+func (suite *TestAddressTypeSuite) Setup() {
 	transaction := tx.Tx{
 		TxID: test.VulnerableFunctions("Address Type"),
 		Vin: []tx.Input{
@@ -75,25 +77,25 @@ func (suite *TestAddressReuseSuite) Setup() {
 	}
 
 	blk := block.Block{ID: "", Height: 0}
-	err := block.StoreBlock(suite.db, &blk, []tx.Tx{transaction, spentTx})
+	err := block.NewService(suite.db, nil).StoreBlock(&blk, []tx.Tx{transaction, spentTx})
 	require.Nil(suite.T(), err)
 }
 
-func (suite *TestAddressReuseSuite) TearDownSuite() {
+func (suite *TestAddressTypeSuite) TearDownSuite() {
 	test.CleanTestDB(suite.db)
 }
 
-func (suite *TestAddressReuseSuite) TestChangeOutput() {
-	c, err := ChangeOutput(suite.db, nil, &suite.target)
+func (suite *TestAddressTypeSuite) TestChangeOutput() {
+	c, err := suite.heuristic.ChangeOutput(&suite.target)
 	require.Nil(suite.T(), err)
 	assert.Equal(suite.T(), c, []uint32{uint32(1)})
 }
 
-func (suite *TestAddressReuseSuite) TestVulnerable() {
-	v := Vulnerable(suite.db, nil, &suite.target)
+func (suite *TestAddressTypeSuite) TestVulnerable() {
+	v := suite.heuristic.Vulnerable(&suite.target)
 	assert.Equal(suite.T(), v, true)
 }
 
 func TestAddressReuse(t *testing.T) {
-	suite.Run(t, new(TestAddressReuseSuite))
+	suite.Run(t, new(TestAddressTypeSuite))
 }

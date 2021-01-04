@@ -15,8 +15,14 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// AddressType heuristic
+type AddressType struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // ChangeOutput returns the index of the output which address type corresponds to input addresses type
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
+func (h *AddressType) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
 	inputTypes := make([]string, len(transaction.Vin))
 	outputTypes := make([]string, len(transaction.Vout))
 
@@ -31,11 +37,12 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 		return nil
 	})
 	g.Go(func() error {
+		txService := tx.NewService(h.Kv, h.Cache)
 		for i, in := range transaction.Vin {
 			if in.IsCoinbase {
 				continue
 			}
-			spentTx, err := tx.GetFromHash(db, ca, in.TxID)
+			spentTx, err := txService.GetFromHash(in.TxID)
 			if err != nil {
 				return err
 			}
@@ -62,7 +69,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, ca *cache.Cache, transaction *tx.Tx) bool {
-	c, err := ChangeOutput(db, ca, transaction)
+func (h *AddressType) Vulnerable(transaction *tx.Tx) bool {
+	c, err := h.ChangeOutput(transaction)
 	return err == nil && len(c) > 0
 }

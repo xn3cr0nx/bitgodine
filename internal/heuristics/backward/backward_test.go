@@ -15,8 +15,9 @@ import (
 
 type TestAddressReuseSuite struct {
 	suite.Suite
-	db     kv.DB
-	target tx.Tx
+	db        kv.DB
+	target    tx.Tx
+	heuristic Backward
 }
 
 func (suite *TestAddressReuseSuite) SetupSuite() {
@@ -26,16 +27,20 @@ func (suite *TestAddressReuseSuite) SetupSuite() {
 	require.Nil(suite.T(), err)
 	suite.db = db.(kv.DB)
 
+	suite.heuristic = Backward{db, nil}
+
 	suite.Setup()
 }
 
 func (suite *TestAddressReuseSuite) Setup() {
 	// check blockchain is synced at least to block 1000
-	h, err := block.ReadHeight(suite.db)
+	blockService := block.NewService(suite.db, nil)
+	h, err := blockService.ReadHeight()
 	require.Nil(suite.T(), err)
 	require.GreaterOrEqual(suite.T(), h, int32(1000))
 
-	transaction, err := tx.GetFromHash(suite.db, nil, test.VulnerableFunctions(("Address Reuse")))
+	txService := tx.NewService(suite.db, nil)
+	transaction, err := txService.GetFromHash(test.VulnerableFunctions(("Address Reuse")))
 	require.Nil(suite.T(), err)
 	suite.target = transaction
 }
@@ -45,13 +50,13 @@ func (suite *TestAddressReuseSuite) TearDownSuite() {
 }
 
 func (suite *TestAddressReuseSuite) TestChangeOutput() {
-	c, err := ChangeOutput(suite.db, nil, &suite.target)
+	c, err := suite.heuristic.ChangeOutput(&suite.target)
 	require.Nil(suite.T(), err)
 	assert.Equal(suite.T(), c, []uint32{uint32(1)})
 }
 
 func (suite *TestAddressReuseSuite) TestVulnerable() {
-	v := Vulnerable(suite.db, nil, &suite.target)
+	v := suite.heuristic.Vulnerable(&suite.target)
 	assert.Equal(suite.T(), v, true)
 }
 

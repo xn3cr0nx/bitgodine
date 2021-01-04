@@ -16,19 +16,26 @@ import (
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 )
 
+// PeelingChain heuristic
+type PeelingChain struct {
+	Kv    kv.DB
+	Cache *cache.Cache
+}
+
 // PeelingLikeCondition check the basic condition of peeling chain (2 txout and 1 txin)
 func PeelingLikeCondition(transaction *tx.Tx) bool {
 	return len(transaction.Vout) == 2 && len(transaction.Vin) == 1
 }
 
 // IsPeelingChain returns true id the transaction is part of a peeling chain
-func IsPeelingChain(db kv.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err error) {
+func (h *PeelingChain) IsPeelingChain(transaction *tx.Tx) (is bool, err error) {
 	if !PeelingLikeCondition(transaction) {
 		return
 	}
 
+	txService := tx.NewService(h.Kv, h.Cache)
 	// Check if past transaction is peeling chain
-	spentTx, err := tx.GetFromHash(db, c, transaction.Vin[0].TxID)
+	spentTx, err := txService.GetFromHash(transaction.Vin[0].TxID)
 	if err != nil {
 		return
 	}
@@ -37,7 +44,7 @@ func IsPeelingChain(db kv.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err 
 	}
 	// Check if future transaction is peeling chain
 	for _, out := range transaction.Vout {
-		spendingTx, e := tx.GetSpendingFromHash(db, c, transaction.TxID, out.Index)
+		spendingTx, e := txService.GetSpendingFromHash(transaction.TxID, out.Index)
 		if e != nil {
 			err = e
 			return
@@ -50,8 +57,8 @@ func IsPeelingChain(db kv.DB, c *cache.Cache, transaction *tx.Tx) (is bool, err 
 }
 
 // ChangeOutput returns the vout of the change address output based on peeling chain heuristic
-func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, err error) {
-	is, err := IsPeelingChain(db, ca, transaction)
+func (h *PeelingChain) ChangeOutput(transaction *tx.Tx) (c []uint32, err error) {
+	is, err := h.IsPeelingChain(transaction)
 	if err != nil {
 		return
 	}
@@ -68,7 +75,7 @@ func ChangeOutput(db kv.DB, ca *cache.Cache, transaction *tx.Tx) (c []uint32, er
 }
 
 // Vulnerable returns true if the transaction has a privacy vulnerability due to optimal change heuristic
-func Vulnerable(db kv.DB, c *cache.Cache, transaction *tx.Tx) bool {
-	_, err := ChangeOutput(db, c, transaction)
+func (h *PeelingChain) Vulnerable(transaction *tx.Tx) bool {
+	_, err := h.ChangeOutput(transaction)
 	return err == nil
 }

@@ -103,7 +103,7 @@ func (p *Parser) Parse() (err error) {
 		}
 		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(check.height), "lastBlock": check.goalPrevHash.String()})
 		// if check, err = ParseFile(p, &file, check); err != nil {
-		if err = ParseFile(p, check, &file); err != nil {
+		if check, err = ParseFile(p, check, &file); err != nil {
 			return
 		}
 
@@ -120,7 +120,9 @@ func (p *Parser) Parse() (err error) {
 }
 
 // ParseFile walks through the raw file and extract blocks
-func ParseFile(p *Parser, check *CheckPoint, file *[]uint8) (err error) {
+func ParseFile(p *Parser, c CheckPoint, file *[]uint8) (check CheckPoint, err error) {
+	// performance improvement to reduce pointers allocation
+	check = c
 	for len(*file) > 0 {
 		select {
 		case x, ok := <-p.interrupt:
@@ -228,8 +230,8 @@ func ParseFile(p *Parser, check *CheckPoint, file *[]uint8) (err error) {
 }
 
 // FindCheckPoint restores the parsed files' state from last parsing and return a CheckPoint instance the keep parsing
-func (p *Parser) FindCheckPoint(rawChain [][]uint8) (check *CheckPoint, err error) {
-	check = &CheckPoint{}
+func (p *Parser) FindCheckPoint(rawChain [][]uint8) (check CheckPoint, err error) {
+	check = CheckPoint{}
 	check.goalPrevHash, _ = chainhash.NewHash(make([]byte, 32))
 
 	check.height, err = p.blockchain.Height()

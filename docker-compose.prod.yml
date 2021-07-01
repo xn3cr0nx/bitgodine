@@ -103,11 +103,18 @@ volumes:
   analysis:
   bolt:
   utxoset:
+  disjoint:
   postgresql:
     driver: local
     driver_opts:
       type: ext4
       device: /mnt/sdc1
+      o: bind
+  redis:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /mnt/sdb1
       o: bind
   bitcoind-data:
     driver: local

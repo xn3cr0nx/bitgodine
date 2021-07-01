@@ -54,10 +54,6 @@ data representation to analyze the blockchain.`,
 
 		skippedBlocksStorage := bitcoin.NewSkipped()
 		chain := bitcoin.NewBlockchain(db, network)
-		// if err := chain.Read(""); err != nil {
-		// 	logger.Error("Bitgodine", err, logger.Params{})
-		// 	os.Exit(-1)
-		// }
 
 		var client *rpcclient.Client
 		if viper.GetBool("parser.realtime") {
@@ -79,5 +75,8 @@ data representation to analyze the blockchain.`,
 			logger.Error("Bitgodine", err, logger.Params{})
 			os.Exit(-1)
 		}
+
+		logger.Info("Bitgodine", "Parsing completed", logger.Params{})
+		os.Exit(0)
 	},
 }

@@ -17,9 +17,9 @@ x-network: &network
 
 x-fluentd: &fluentd
   logging:
-      driver: fluentd
-      options:
-        fluentd-address: FLUENT_BIT_ADDRESS:24224
+    driver: fluentd
+    options:
+      fluentd-address: FLUENT_BIT_ADDRESS:24224
 
 services:
   bitcoind:
@@ -222,6 +222,25 @@ services:
       - "24224:24224/udp"
     <<: *network
 
+  ##########################################
+  # Kafka
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    <<: *network
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    <<: *network
+
 volumes:
   dgraph:
   badger:
@@ -242,3 +261,4 @@ volumes:
 
 networks:
   bitgodine:
+    name: bitgodine

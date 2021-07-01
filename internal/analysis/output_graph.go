@@ -353,6 +353,7 @@ func majorityOutput(m heuristics.Map, reducing ...heuristics.Heuristic) (r heuri
 		delete(majority, r)
 	}
 
+	// group the number of applicable heuristics by change output in order to measure the bigger group
 	clusters := make(map[uint32][]heuristics.Heuristic)
 	for heuristic, change := range majority {
 		clusters[change] = append(clusters[change], heuristic)

@@ -12,9 +12,25 @@ import (
 func Routes(g *echo.Group, s Service) {
 	g.POST("/login", login(s))
 	g.POST("/signup", signup(s), validator.Recaptcha())
-	// g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
 	g.GET("/generate-api-key", generateAPIKey(s), validator.JWT())
 	g.POST("/change-password", changePassword(s), validator.JWT())
+
+	// r.POST("/forgot", func(c echo.Context) error {
+	// 	b := new(Login)
+	// 	if err := validator.Struct(&c, b); err != nil {
+	// 		return err
+	// 	}
+
+	// 	res, err := chttp.POST(c.Request().RequestURI, b, routes.ProxyAuth(&c))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	resp := new(models.Response)
+	// 	if err := json.Unmarshal([]byte(res), resp); err != nil {
+	// 		return err
+	// 	}
+	// 	return c.JSON(http.StatusOK, resp)
+	// })
 
 	// r.GET("/activate/:token", func(c echo.Context) error {
 	// 	token := c.Param("token")
@@ -85,23 +101,6 @@ func Routes(g *echo.Group, s Service) {
 	// 		APIKeyIndex uint32 `json:"apiKeyIndex" validate:"required,numeric,gte=0"`
 	// 	}
 	// 	b := new(Body)
-	// 	if err := validator.Struct(&c, b); err != nil {
-	// 		return err
-	// 	}
-
-	// 	res, err := chttp.POST(c.Request().RequestURI, b, routes.ProxyAuth(&c))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	resp := new(models.Response)
-	// 	if err := json.Unmarshal([]byte(res), resp); err != nil {
-	// 		return err
-	// 	}
-	// 	return c.JSON(http.StatusOK, resp)
-	// })
-
-	// r.POST("/forgot", func(c echo.Context) error {
-	// 	b := new(Login)
 	// 	if err := validator.Struct(&c, b); err != nil {
 	// 		return err
 	// 	}

@@ -83,16 +83,16 @@ func CoinbaseValue(height int32) int64 {
 	return int64(5000000000 / math.Pow(2, float64(height/int32(210000))))
 }
 
-// ExtractBlockFromFile reads and remove magic bytes and size from slice and returns Block through btcutil.NewBlockFromBytes
-func ExtractBlockFromFile(slice *[]uint8) (blk *Block, err error) {
-	for len(*slice) > 0 && (*slice)[0] == 0 {
-		*slice = (*slice)[1:]
+// ExtractBlockFromFile reads and remove magic bytes and size from file and returns Block through btcutil.NewBlockFromBytes
+func ExtractBlockFromFile(file *[]uint8) (blk *Block, err error) {
+	for len(*file) > 0 && (*file)[0] == 0 {
+		*file = (*file)[1:]
 	}
-	if len(*slice) == 0 {
+	if len(*file) == 0 {
 		err = ErrEmptySliceParse
 		return
 	}
-	blockMagic, err := buffer.ReadUint32(slice)
+	blockMagic, err := buffer.ReadUint32(file)
 	if err != nil {
 		return
 	}
@@ -101,7 +101,7 @@ func ExtractBlockFromFile(slice *[]uint8) (blk *Block, err error) {
 		err = ErrIncompleteBlockParse
 		return
 	case 0xd9b4bef9:
-		size, e := buffer.ReadUint32(slice)
+		size, e := buffer.ReadUint32(file)
 		if e != nil {
 			return nil, e
 		}
@@ -109,7 +109,7 @@ func ExtractBlockFromFile(slice *[]uint8) (blk *Block, err error) {
 			err = ErrBlockParse
 			return
 		}
-		block, e := buffer.ReadSlice(slice, uint(size))
+		block, e := buffer.ReadSlice(file, uint(size))
 		if e != nil {
 			return nil, e
 		}

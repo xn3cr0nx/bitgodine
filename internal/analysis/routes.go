@@ -132,6 +132,11 @@ func analysisBlocks(s Service) func(echo.Context) error {
 			q.Type = "applicability"
 		}
 
+		// TODO: if offloading true
+		// gorm transaction to save new analysis and store it to kafka
+
+		// TODO: implement consumer to perform offloaded analysis
+
 		if err := s.AnalyzeBlocks(q.From, q.To, heuristics.FromListToMask(list), q.Type, q.Analysis, q.Plot, q.Force); err != nil {
 			return err
 		}

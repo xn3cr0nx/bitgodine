@@ -38,16 +38,14 @@ services:
       - postgresql:/var/lib/postgresql
     <<: *network
 
-  pgadmin:
-    image: dpage/pgadmin4
+  redis:
+    image: redis
+    container_name: redis
     ports:
-      - 9876:80
-    environment:
-      <<: *pgadmin-env
-    links:
-      - postgres
-    logging:
-      driver: none
+      - 6379:6379
+    volumes:
+      - redis:/redis-data/data
+    restart: always
     <<: *network
 
   bitgodine_parser:
@@ -58,6 +56,7 @@ services:
       - bitcoind-data:/bitcoin
       - bolt:/bolt
       - badger:/badger
+      - ./config:/root/config
     <<: *network
     restart: always
 
@@ -69,6 +68,7 @@ services:
     volumes:
       - badger:/badger
       - analysis:/analysis
+      - ./config:/root/config
     <<: *network
 
   bitgodine_clusterizer:
@@ -80,6 +80,7 @@ services:
       - utxoset:/utxoset
       - badger:/badger
       - disjoint:/disjoint
+      - ./config:/root/config
     <<: *network
 
   bitgodine_spider:
@@ -117,3 +118,4 @@ volumes:
 
 networks:
   bitgodine:
+    name: bitgodine

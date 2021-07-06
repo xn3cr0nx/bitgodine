@@ -3,7 +3,7 @@ SPIDER_BINARY=spider
 
 .PHONY: spider
 spider:
-	$(GORUN) $(SPIDER) crawl --cron=false
+	$(GORUN) $(SPIDER) --cron=false
 
 .PHONY: build_spider
 build_spider: 

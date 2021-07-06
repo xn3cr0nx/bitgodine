@@ -25,4 +25,4 @@ FROM golang:alpine
 WORKDIR /root/
 RUN mkdir /root/.bitgodine
 COPY --from=builder /bitgodine/build/bitgodine .
-# CMD ["./bitgodine", "start", "--debug", "-r=false","--dgHost", "dgraph_server"]
+# CMD ["./bitgodine", "--debug", "-r=false","--dgHost", "dgraph_server"]

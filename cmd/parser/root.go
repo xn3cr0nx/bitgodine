@@ -7,9 +7,14 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/rpcclient"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
+	"github.com/xn3cr0nx/bitgodine/internal/parser/bitcoin"
+	"github.com/xn3cr0nx/bitgodine/internal/storage/kv"
+	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
 
 	_ "net/http/pprof"
@@ -23,12 +28,70 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "parser",
-	Short: "Go implementation of Bitiodine",
-	Long: `Go implementation of Bitcoin forensic analysis tool to	investigate blockchain and Bitcoin malicious flows.`,
+	Short: "Parses the blockchain to sync blocks",
+	Long: `Parses the blockchain, from the last point,
+	if the synced is being previously performed.
+	The parsing stores blocks and transaction and creates clusters to provide
+	data representation to analyze the blockchain.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// trace.Start(os.Stdout)
 		// defer trace.Stop()
 		logger.Setup()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		// defer profile.Start().Stop()
+		// defer profile.Start(profile.MemProfile).Stop()
+
+		logger.Info("Start", "Start called", logger.Params{})
+
+		net, _ := cmd.Flags().GetString("network")
+		var network chaincfg.Params
+		switch net {
+		case "mainnet":
+			network = chaincfg.MainNetParams
+		case "testnet3":
+			network = chaincfg.TestNet3Params
+		case "regtest":
+			network = chaincfg.RegressionNetParams
+		default:
+			logger.Panic("Initializing network", errorx.ErrInvalidArgument, logger.Params{"provided": net})
+		}
+
+		c, err := cache.NewCache(nil)
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+
+		db, err := kv.NewDB()
+		defer db.Close()
+
+		skippedBlocksStorage := bitcoin.NewSkipped()
+		chain := bitcoin.NewBlockchain(db, network)
+
+		var client *rpcclient.Client
+		if viper.GetBool("parser.realtime") {
+			client, err = bitcoin.NewClient()
+			if err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+			if err := client.NotifyBlocks(); err != nil {
+				logger.Error("Bitgodine", err, logger.Params{})
+				os.Exit(-1)
+			}
+		}
+
+		interrupt := make(chan int)
+		bp := bitcoin.NewParser(chain, client, db, skippedBlocksStorage, nil, c, interrupt)
+
+		if err := bp.InfinitelyParse(); err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
+
+		logger.Info("Bitgodine", "Parsing completed", logger.Params{})
+		os.Exit(0)
 	},
 }
 
@@ -43,8 +106,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	rootCmd.AddCommand(startCmd)
 
 	// Adds root flags and persistent flags
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Sets logging level to Debug")

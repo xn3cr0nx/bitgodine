@@ -80,7 +80,7 @@ services:
       dockerfile: ./docker/parser.Dockerfile
       args:
         <<: *git-args
-    command: ./bitgodine start --debug -r=false --blocksDir /bitcoin
+    command: ./bitgodine --debug -r=false --blocksDir /bitcoin
     volumes:
       - bitcoind-data:/bitcoin
       - badger:/badger
@@ -116,7 +116,7 @@ services:
       dockerfile: ./docker/clusterizer.Dockerfile
       args:
         <<: *git-args
-    command: ./bitgodine start --debug
+    command: ./bitgodine --debug
     volumes:
       - utxoset:/utxoset
       - badger:/badger

@@ -51,7 +51,7 @@ services:
   bitgodine_parser:
     container_name: parser
     image: xn3cr0nx/bitgodine_parser
-    command: ./bitgodine start --debug -r=false --db /badger --blocksDir /bitcoin --skipped 300000 --file 1000 --restored 20000000
+    command: ./bitgodine --debug -r=false --db /badger --blocksDir /bitcoin --skipped 300000 --file 1000 --restored 20000000
     volumes:
       - bitcoind-data:/bitcoin
       - bolt:/bolt
@@ -74,7 +74,7 @@ services:
   bitgodine_clusterizer:
     container_name: clusterizer
     image: xn3cr0nx/bitgodine_clusterizer
-    command: ./bitgodine start --debug -r=false --utxo /utxoset/utxoset.db -o /utxoset
+    command: ./bitgodine --debug -r=false --utxo /utxoset/utxoset.db -o /utxoset
     #command: ./bitgodine cluster export --dgHost dgraph_server -o /utxoset
     volumes:
       - utxoset:/utxoset
@@ -98,30 +98,30 @@ volumes:
     driver: local
     driver_opts:
       type: ext4
-      device: /mnt/sdd1
+      device: /mnt/sdbq
       o: bind
   analysis:
   bolt:
   utxoset:
   disjoint:
   postgresql:
-    driver: local
-    driver_opts:
-      type: ext4
-      device: /mnt/sdc1
-      o: bind
+    # driver: local
+    # driver_opts:
+    #   type: ext4
+    #   device: /mnt/sdc1
+    #   o: bind
   redis:
     driver: local
     driver_opts:
       type: ext4
-      device: /mnt/sdb1
+      device: /mnt/sdb
       o: bind
   bitcoind-data:
-    driver: local
-    driver_opts:
-      type: ext4
-      device: /mnt/sdb1
-      o: bind
+    # driver: local
+    # driver_opts:
+    #   type: ext4
+    #   device: /mnt/sdb1
+    #   o: bind
 
 networks:
   bitgodine:

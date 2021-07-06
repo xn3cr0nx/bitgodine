@@ -17,7 +17,7 @@ server-docs:
 
 .PHONY: server
 server: server-docs
-	reflex -r '\.go$$' -R './docs/*.go' -s -- sh -c 'config="./config/local.json" $(GORUN) $(SERVER) serve --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis'
+	reflex -r '\.go$$' -R './docs/*.go' -s -- sh -c 'config="./config/local.json" $(GORUN) $(SERVER) --badger ~/.bitgodine/badger --analysis ~/.bitgodine/analysis'
 
 docker-server:
 	$(DC) $(DCUP) bitgodine_server

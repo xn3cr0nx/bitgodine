@@ -3,7 +3,7 @@ CLUSTERIZER_BINARY=clusterizer
 
 .PHONY: clusterizer
 clusterizer:
-	$(GORUN) $(CLUSTERIZER) start
+	$(GORUN) $(CLUSTERIZER)
 
 .PHONY: build_clusterizer
 build_clusterizer: 

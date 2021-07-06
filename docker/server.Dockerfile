@@ -25,6 +25,5 @@ FROM golang:alpine
 WORKDIR /root/
 RUN mkdir /root/.bitgodine
 COPY --from=builder /bitgodine/build/bitgodine .
-RUN ls
-CMD ["./bitgodine", "serve"]
+CMD ["./bitgodine"]
 

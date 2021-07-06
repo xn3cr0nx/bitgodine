@@ -26,5 +26,5 @@ WORKDIR /root/
 RUN mkdir /root/.bitgodine
 COPY --from=builder /spider/config ./config
 COPY --from=builder /spider/build/spider .
-# CMD ["./spider", "crawl"]
+# CMD ["./spider"]
 

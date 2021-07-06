@@ -3,7 +3,7 @@ PARSER_BINARY=parser
 
 .PHONY: parser
 parser:
-	$(GORUN) $(PARSER) start --debug
+	$(GORUN) $(PARSER) --debug
 
 .PHONY: build_parser
 build_parser: 

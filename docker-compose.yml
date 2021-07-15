@@ -15,12 +15,6 @@ x-network: &network
   networks:
     - bitgodine
 
-x-fluentd: &fluentd
-  logging:
-    driver: fluentd
-    options:
-      fluentd-address: FLUENT_BIT_ADDRESS:24224
-
 services:
   bitcoind:
     image: kylemanna/bitcoind
@@ -41,24 +35,8 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - postgres/:/var/lib/postgresql
+      - postgresql:/var/lib/postgresql
     <<: *network
-
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   ports:
-  #     - 9876:80
-  #   environment:
-  #     <<: *pgadmin-env
-  #   links:
-  #     - postgres
-  #   logging:
-  #     driver: none
-  #   networks:
-  #     - bitgodine
-
-  ##########################################
-  # Redis setup
 
   redis:
     image: redis
@@ -70,195 +48,80 @@ services:
     restart: always
     <<: *network
 
-  ##########################################
-  # Services
-
   parser:
     container_name: parser
-    build:
-      context: .
-      dockerfile: ./docker/parser.Dockerfile
-      args:
-        <<: *git-args
+    image: xn3cr0nx/bitgodine_parser
     command: ./bitgodine --debug -r=false --blocksDir /bitcoin
     volumes:
-      # - bitcoind-data:/bitcoin
-      - /home/xn3cr0nx/.bitcoin:/bitcoin
+      - bitcoind-data:/bitcoin
+      - bolt:/bolt
       - badger:/badger
       - ./config:/root/config
     <<: *network
+    restart: always
 
   server:
     container_name: server
-    build:
-      context: .
-      dockerfile: ./docker/server.Dockerfile
-      args:
-        <<: *git-args
+    image: xn3cr0nx/bitgodine_server
     ports:
-      - 3001:3001
-      - 9464:9464
+      - 3000:3000
     volumes:
       - badger:/badger
       - analysis:/analysis
       - ./config:/root/config
-    depends_on:
-      - postgres
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: FLUENT_BIT_ADDRESS:24224
-    <<: [*network, *fluentd]
+    <<: *network
 
   clusterizer:
     container_name: clusterizer
-    build:
-      context: .
-      dockerfile: ./docker/clusterizer.Dockerfile
-      args:
-        <<: *git-args
-    command: ./bitgodine --debug
+    image: xn3cr0nx/bitgodine_clusterizer
+    command: ./bitgodine --debug -r=false --utxo /utxoset/utxoset.db -o /utxoset
+    #command: ./bitgodine cluster export --dgHost dgraph_server -o /utxoset
     volumes:
       - utxoset:/utxoset
       - badger:/badger
+      - disjoint:/disjoint
       - ./config:/root/config
-    depends_on:
-      - postgres
     <<: *network
 
   spider:
     container_name: spider
-    build:
-      context: .
-      dockerfile: ./docker/spider.Dockerfile
-      args:
-        <<: *git-args
+    image: xn3cr0nx/bitgodine_spider
     volumes:
-      - ./spider/config:/root/config
+      - ./config:/root/config
     depends_on:
       - postgres
-    <<: *network
-
-  # plotter:
-  #   container_name: plotter
-  #   build:
-  #     context: ./plotter
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 5000:5000
-  #   networks:
-  #    - bitgodine
-
-  ##########################################
-  # OpenTelemetry
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger
-    ports:
-      - 5775:5775/udp
-      - 6831:6831/udp
-      - 6832:6832/udp
-      - 5778:5778
-      - 16686:16686
-      - 14268:14268
-      - 9411:9411
-    <<: *network
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: always
-    ports:
-      - 9090:9090
-    volumes:
-      - prometheus_data:/prometheus
-      - prometheus_config:/fragments/
-      - ${PWD}/config/otel/prometheus/targets/prometheus.json:/etc/prometheus/targets/prometheus.json
-      - ${PWD}/config/otel/prometheus/targets/grafana.json:/etc/prometheus/targets/grafana.json
-      - ${PWD}/config/otel/prometheus/targets/app.json:/etc/prometheus/targets/app.json
-    command:
-      - "--config.file=/fragments/complete/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-    depends_on:
-      - config-concat
-    <<: *network
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: always
-    ports:
-      - "4000:3000"
-    volumes:
-      - grafana_lib:/var/lib/grafana
-      - ${PWD}/config/otel/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=secret
-    <<: *network
-
-  config-concat:
-    image: deanwilson/promconf-concat:0.1.0
-    container_name: config-concat
-    restart: always
-    volumes:
-      - prometheus_config:/fragments/
-      - ${PWD}/config/otel/prometheus/base_prometheus.yml:/base_prometheus.yml
-
-  loki:
-    image: grafana/loki:latest
-    container_name: loki
-    ports:
-      - 3100:3100
-    <<: *network
-
-  fluent-bit:
-    image: grafana/fluent-bit-plugin-loki:latest
-    container_name: fluent-bit
-    environment:
-      - LOKI_URL=http://loki:3100/loki/api/v1/push
-    volumes:
-      - ./config/otel/grafana/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-    ports:
-      - "24224:24224"
-      - "24224:24224/udp"
-    <<: *network
-
-  ##########################################
-  # Kafka
-  zookeeper:
-    image: wurstmeister/zookeeper
-    container_name: zookeeper
-    ports:
-      - 2181:2181
-    <<: *network
-
-  kafka:
-    image: wurstmeister/kafka
-    container_name: kafka
-    ports:
-      - 9092:9092
-    environment:
-      KAFKA_ADVERTISED_HOST_NAME: localhost
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     <<: *network
 
 volumes:
   dgraph:
   badger:
-  redis:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /mnt/sdb
+      o: bind
   analysis:
-  disjoint:
   bolt:
   utxoset:
-  bitcoind-data:
-  postgres:
-
-  grafana_lib:
-  prometheus_data:
-  prometheus_config:
+  disjoint:
+  postgresql:
+    # driver: local
+    # driver_opts:
+    #   type: ext4
+    #   device: /mnt/sdc1
+    #   o: bind
+  redis:
+    driver: local
     driver_opts:
-      type: tmpfs
-      device: tmpfs
+      type: ext4
+      device: /mnt/sdb
+      o: bind
+  bitcoind-data:
+    # driver: local
+    # driver_opts:
+    #   type: ext4
+    #   device: /mnt/sdb1
+    #   o: bind
 
 networks:
   bitgodine:

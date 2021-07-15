@@ -26,7 +26,7 @@ services:
     image: kylemanna/bitcoind
     container_name: bitcoind
     volumes:
-      - bitcoind-data:/bitcoin
+      - bitcoind-data:/bitcoin/.bitcoin
     ports:
       - 8333:8333
       - 127.0.0.1:8332:8332
@@ -73,7 +73,7 @@ services:
   ##########################################
   # Services
 
-  bitgodine_parser:
+  parser:
     container_name: parser
     build:
       context: .
@@ -82,12 +82,13 @@ services:
         <<: *git-args
     command: ./bitgodine --debug -r=false --blocksDir /bitcoin
     volumes:
-      - bitcoind-data:/bitcoin
+      # - bitcoind-data:/bitcoin
+      - /home/xn3cr0nx/.bitcoin:/bitcoin
       - badger:/badger
       - ./config:/root/config
     <<: *network
 
-  bitgodine_server:
+  server:
     container_name: server
     build:
       context: .
@@ -109,7 +110,7 @@ services:
         fluentd-address: FLUENT_BIT_ADDRESS:24224
     <<: [*network, *fluentd]
 
-  bitgodine_clusterizer:
+  clusterizer:
     container_name: clusterizer
     build:
       context: .
@@ -125,7 +126,7 @@ services:
       - postgres
     <<: *network
 
-  bitgodine_spider:
+  spider:
     container_name: spider
     build:
       context: .
@@ -133,15 +134,15 @@ services:
       args:
         <<: *git-args
     volumes:
-      - ./bitgodine_spider/config:/root/config
+      - ./spider/config:/root/config
     depends_on:
       - postgres
     <<: *network
 
-  # bitgodine_plotter:
+  # plotter:
   #   container_name: plotter
   #   build:
-  #     context: ./bitgodine_plotter
+  #     context: ./plotter
   #     dockerfile: Dockerfile
   #   ports:
   #     - 5000:5000

@@ -55,7 +55,7 @@ func (b *Blockchain) Read(path string, from int) error {
 		}
 		path = hd
 	}
-	path = filepath.Join(path, ".bitcoin", netPath, "blocks")
+	path = filepath.Join(path, netPath, "blocks")
 
 	for n := from; ; n++ {
 		f, err := os.OpenFile(filepath.Join(path, fmt.Sprintf("blk%05d.dat", n)), os.O_RDWR, 0644)

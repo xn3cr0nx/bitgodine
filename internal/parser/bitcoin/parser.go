@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -77,6 +78,11 @@ func (p *Parser) InfinitelyParse() (err error) {
 			if errors.Is(err, ErrInterrupt) {
 				break
 			}
+			if errors.Is(err, ErrNoBitcoinData) {
+				logger.Info("Parser", "no bitcoin data. retrying in 5 seconds", logger.Params{})
+				time.Sleep(5 * time.Second)
+				continue
+			}
 			return err
 		}
 	}
@@ -90,6 +96,9 @@ func (p *Parser) Parse() (err error) {
 		rawChain = append(rawChain, []uint8(ref))
 	}
 	logger.Debug("Blockchain", "Files converted to be parsed: "+fmt.Sprintf("%v", len(rawChain)), logger.Params{})
+	if len(rawChain) == 0 {
+		return ErrNoBitcoinData
+	}
 
 	check, err := p.FindCheckPoint(rawChain)
 	if err != nil {
@@ -98,6 +107,7 @@ func (p *Parser) Parse() (err error) {
 	logger.Info("Blockchain", "Start syncing from block "+Itoa(check.height), logger.Params{})
 
 	for k, file := range rawChain {
+		fmt.Println("FILE LENGTH", len(file))
 		if len(file) == 0 {
 			continue
 		}

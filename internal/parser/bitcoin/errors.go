@@ -38,4 +38,7 @@ var (
 
 	// ErrCheckpointNotFound checkpoint not found error
 	ErrCheckpointNotFound = fmt.Errorf("checkpoint %w", errorx.ErrNotFound)
+
+	// ErrNoBitcoinData returned if no bitcoin data to read from
+	ErrNoBitcoinData = errors.New("missing bitcoin data")
 )

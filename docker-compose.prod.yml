@@ -20,7 +20,7 @@ services:
     image: kylemanna/bitcoind
     container_name: bitcoind
     volumes:
-      - bitcoind-data:/bitcoin
+      - bitcoind-data:/bitcoin/.bitcoin
     ports:
       - 8333:8333
       - 127.0.0.1:8332:8332
@@ -48,7 +48,7 @@ services:
     restart: always
     <<: *network
 
-  bitgodine_parser:
+  parser:
     container_name: parser
     image: xn3cr0nx/bitgodine_parser
     command: ./bitgodine --debug -r=false --db /badger --blocksDir /bitcoin --skipped 300000 --file 1000 --restored 20000000
@@ -60,7 +60,7 @@ services:
     <<: *network
     restart: always
 
-  bitgodine_server:
+  server:
     container_name: server
     image: xn3cr0nx/bitgodine_server
     ports:
@@ -71,7 +71,7 @@ services:
       - ./config:/root/config
     <<: *network
 
-  bitgodine_clusterizer:
+  clusterizer:
     container_name: clusterizer
     image: xn3cr0nx/bitgodine_clusterizer
     command: ./bitgodine --debug -r=false --utxo /utxoset/utxoset.db -o /utxoset
@@ -83,7 +83,7 @@ services:
       - ./config:/root/config
     <<: *network
 
-  bitgodine_spider:
+  spider:
     container_name: spider
     image: xn3cr0nx/bitgodine_spider
     volumes:
@@ -98,7 +98,7 @@ volumes:
     driver: local
     driver_opts:
       type: ext4
-      device: /mnt/sdbq
+      device: /mnt/sdb
       o: bind
   analysis:
   bolt:

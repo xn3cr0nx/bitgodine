@@ -20,7 +20,7 @@ services:
     image: kylemanna/bitcoind
     container_name: bitcoind
     volumes:
-      - bitcoind-data:/bitcoin/.bitcoin
+      - $PWD/.bitcoin:/bitcoin/.bitcoin
     ports:
       - 8333:8333
       - 127.0.0.1:8332:8332
@@ -53,7 +53,7 @@ services:
     image: xn3cr0nx/bitgodine_parser
     command: ./bitgodine --debug -r=false --blocksDir /bitcoin
     volumes:
-      - bitcoind-data:/bitcoin
+      - $PWD/.bitcoin:/bitcoin
       - bolt:/bolt
       - badger:/badger
       - ./config:/root/config
@@ -116,12 +116,6 @@ volumes:
       type: ext4
       device: /mnt/sdb
       o: bind
-  bitcoind-data:
-    # driver: local
-    # driver_opts:
-    #   type: ext4
-    #   device: /mnt/sdb1
-    #   o: bind
 
 networks:
   bitgodine:

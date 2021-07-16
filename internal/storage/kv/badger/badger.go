@@ -1,13 +1,15 @@
 package badger
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
 	"github.com/spf13/viper"
+	"github.com/xn3cr0nx/bitgodine/internal/errorx"
 )
 
 // Badger client wrapper
@@ -37,7 +39,7 @@ func NewBadger(conf *Config, readonly bool) (*Badger, error) {
 	opts := badger.DefaultOptions(conf.Dir)
 	opts.Logger = nil
 	// opts.NumVersionsToKeep = 1
-	opts.Truncate = true
+	// opts.Truncate = true
 	opts.ReadOnly = readonly
 	opts.ValueLogFileSize = 2000000000
 	// opts.EventLogging = false
@@ -100,15 +102,16 @@ func (b *Badger) Read(key string) (value []byte, err error) {
 	err = b.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				return errorx.ErrKeyNotFound
+			}
 			return err
 		}
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-		value = make([]byte, len(val))
-		copy(value, val)
-		return nil
+		err = item.Value(func(val []byte) error {
+			value = append([]byte{}, val...)
+			return nil
+		})
+		return err
 	})
 	if err != nil {
 		return

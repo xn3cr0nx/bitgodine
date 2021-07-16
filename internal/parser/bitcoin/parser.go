@@ -16,6 +16,7 @@ import (
 	"github.com/xn3cr0nx/bitgodine/internal/utxoset"
 	"github.com/xn3cr0nx/bitgodine/pkg/cache"
 	"github.com/xn3cr0nx/bitgodine/pkg/logger"
+	"golang.org/x/sys/unix"
 )
 
 // Parser defines the objects involved in the parsing of Bitcoin blockchain
@@ -60,33 +61,42 @@ func handleInterrupt(c chan os.Signal, interrupt chan int) {
 
 // InfinitelyParse parses the blockchain starting from scratch when it reaches the end in order to implement a real time mechanism
 func (p *Parser) InfinitelyParse() (err error) {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	go handleInterrupt(ch, p.interrupt)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, unix.SIGTERM, unix.SIGINT)
+	go handleInterrupt(interrupt, p.interrupt)
 
 	for {
-		file, e := GetFileParsed(p.db)
-		if e != nil {
-			return e
-		}
-
-		if err = p.blockchain.Read("", file); err != nil {
+		select {
+		case x, ok := <-p.interrupt:
+			if !ok {
+				err = ErrInterruptUnknown
+			}
+			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
+			err = ErrInterrupt
 			return
-		}
+		default:
+			file, e := GetFileParsed(p.db)
+			if e != nil {
+				return e
+			}
 
-		if err := p.Parse(); err != nil {
-			if errors.Is(err, ErrInterrupt) {
-				break
+			if err = p.blockchain.Read("", file); err != nil {
+				return
 			}
-			if errors.Is(err, ErrNoBitcoinData) {
-				logger.Info("Parser", "no bitcoin data. retrying in 5 seconds", logger.Params{})
-				time.Sleep(5 * time.Second)
-				continue
+
+			if err := p.Parse(); err != nil {
+				if errors.Is(err, ErrInterrupt) {
+					break
+				}
+				if errors.Is(err, ErrNoBitcoinData) {
+					logger.Info("Parser", "no bitcoin data. retrying in 5 seconds", logger.Params{})
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				return err
 			}
-			return err
 		}
 	}
-	return
 }
 
 // Parse goes through the blockchain block by block
@@ -107,22 +117,31 @@ func (p *Parser) Parse() (err error) {
 	logger.Info("Blockchain", "Start syncing from block "+Itoa(check.height), logger.Params{})
 
 	for k, file := range rawChain {
-		fmt.Println("FILE LENGTH", len(file))
-		if len(file) == 0 {
-			continue
-		}
-		logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(check.height), "lastBlock": check.goalPrevHash.String()})
-		// if check, err = ParseFile(p, &file, check); err != nil {
-		if check, err = ParseFile(p, check, &file); err != nil {
+		select {
+		case x, ok := <-p.interrupt:
+			if !ok {
+				err = ErrInterruptUnknown
+			}
+			logger.Info("Blockchain", "Received interrupt signal", logger.Params{"signal": x})
+			err = ErrInterrupt
 			return
-		}
+		default:
+			if len(file) == 0 {
+				continue
+			}
+			logger.Info("Blockchain", "Parsing the blockchain", logger.Params{"file": Itoa(int32(k)) + "/" + Itoa(int32(len(p.blockchain.Maps)-1)), "height": Itoa(check.height), "lastBlock": check.goalPrevHash.String()})
+			// if check, err = ParseFile(p, &file, check); err != nil {
+			if check, err = ParseFile(p, check, &file); err != nil {
+				return
+			}
 
-		if err = StoreFileParsed(p.db, k); err != nil {
-			return
-		}
+			if err = StoreFileParsed(p.db, k); err != nil {
+				return
+			}
 
-		if err = p.blockchain.Maps[k].Unmap(); err != nil {
-			return
+			if err = p.blockchain.Maps[k].Unmap(); err != nil {
+				return
+			}
 		}
 	}
 

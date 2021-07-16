@@ -64,6 +64,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		db, err := kv.NewDB()
+		if err != nil {
+			logger.Error("Bitgodine", err, logger.Params{})
+			os.Exit(-1)
+		}
 		defer db.Close()
 
 		skippedBlocksStorage := bitcoin.NewSkipped()

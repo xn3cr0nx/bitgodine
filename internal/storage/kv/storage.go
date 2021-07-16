@@ -38,11 +38,13 @@ func NewDB() (db DB, err error) {
 		if err != nil {
 			return
 		}
+		break
 	case "redis":
 		db, err = redis.NewRedis(redis.Conf(viper.GetString("redis")))
 		if err != nil {
 			return
 		}
+		break
 	}
 	return
 }

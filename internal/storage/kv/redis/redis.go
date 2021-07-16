@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/imdario/mergo"
@@ -47,7 +48,10 @@ func NewRedis(conf *Config) (*Redis, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: conf.URL,
 		// Password: "", // no password set
-		DB: 0, // use default DB
+		DB:          0, // use default DB
+		DialTimeout: 15 * time.Second,
+		ReadTimeout: 15 * time.Second,
+		PoolSize:    25,
 	})
 
 	_, err := rdb.Ping(ctx.Background()).Result()

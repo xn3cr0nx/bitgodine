@@ -271,7 +271,7 @@ func (p *Parser) FindCheckPoint(rawChain [][]uint8) (check CheckPoint, err error
 }
 
 func restoreFileState(p *Parser, chain [][]uint8, last *block.Block) (b *Block, err error) {
-	step := int32(viper.GetInt("restoredBlocks"))
+	step := int32(viper.GetInt("restored"))
 	from := last.Height - step
 	if from < 0 {
 		from = 0

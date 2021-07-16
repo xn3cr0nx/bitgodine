@@ -153,7 +153,6 @@ func initConfig() {
 	viper.SetDefault("btcUser", "bitcoinrpc")
 	viper.SetDefault("btcPass", "pass")
 	viper.SetDefault("btcCerts", "~/.bitcoin/rpc.cert")
-	viper.SetDefault("skipped", 50000)
 	viper.SetDefault("restored", 50000)
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
@@ -168,7 +167,6 @@ func initConfig() {
 	viper.BindPFlag("bitcoin.client.btcUser", rootCmd.PersistentFlags().Lookup("btcUser"))
 	viper.BindPFlag("bitcoin.client.btcPass", rootCmd.PersistentFlags().Lookup("btcPass"))
 	viper.BindPFlag("bitcoin.client.btcCerts", rootCmd.PersistentFlags().Lookup("btcCerts"))
-	viper.BindPFlag("skipped", rootCmd.PersistentFlags().Lookup("skipped"))
 	viper.BindPFlag("restored", rootCmd.PersistentFlags().Lookup("restored"))
 
 	viper.SetEnvPrefix("parser")

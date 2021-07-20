@@ -27,6 +27,11 @@ type DB interface {
 
 // NewDB returns a new DB instance based on the environment
 func NewDB() (db DB, err error) {
+	storage := viper.GetString("db")
+	if storage == "" {
+		storage = "badger"
+	}
+
 	switch viper.GetString("db") {
 	// case "tikv":
 	// 	db, err = tikv.NewTiKV(tikv.Conf(viper.GetString("tikv")))

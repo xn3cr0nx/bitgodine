@@ -14,6 +14,18 @@ Clusterizer generates persistent clusters of addresses, exploiting the common in
 
 Server exposes a REST API proving both endpoints about chain exploring and analysis. [bitgodine_dashboard](https://github.com/xn3cr0nx/bitgodine_dashboard) is the most convenient way to use bitgodine explorer and tracing service.
 
+Signup:
+
+> curl -XPOST localhost:3000/api/signup -H 'Content-Type: application/json' -d '{ "email": "patrick.jusic@pm.me", "password": "Testing1", "first_name": "Patrick", "last_name": "Jusic", "username": "xn3cr0nx" }'
+
+Login:
+
+> curl -XPOST localhost:3000/api/login -H 'Content-Type: application/json' -d '{ "email": "patrick.jusic@pm.me", "password": "Testing1" }'
+
+Block height:
+
+> curl localhost:3000/api/blocks/tip/height -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU3NGUxNzRiLTZmOTQtNGM2YS1iODE0LTVjY2MwZjlhNmY3ZiIsImVtYWlsIjoicGF0cmljay5qdXNpY0BwbS5tZSIsImV4cCI6MTYyNjkwNjk0M30.TWfyMUa57w_1OBQg329AoGykAaVSzYu3tZQrZSFHKYk'
+
 ### Spider
 
 Spider is a web crawler scraping different websites to build a sematinc tags database in order to cross tags and clusters adding info on tracing flows.

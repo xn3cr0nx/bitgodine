@@ -15,12 +15,6 @@
   </a>
 </p>
 
-<p align="center">
-  <a aria-label="try expo" href="https://app.bitgodine.com"><b>Try the platform</b></a>
- |
-  <a aria-label="bitgodine documentation" href="https://docs.bitgodine.com">Read the Documentation</a>
-</p>
-
 Chain analysis is the attempt to deanonymize pseudo confidential transactions in Bitcoin’s blockchain. This work is usually made by companies working with big institutions, and their techniques are largely unknown. Chain analysis should be open in order to help the technology to establish the best practices and mitigate these techniques.
 
 [**bitgodine**](https://github.com/xn3cr0nx/bitgodine) is a new open source Bitcoin chain analysis platform, inspired from previous Politecnico di Milano's work, [Bitiodine](https://github.com/mikispag/bitiodine).
@@ -31,7 +25,7 @@ In this way we provide a convenient platform to trace Bitcoin's flows specifying
   Project Status
 </h2>
 
-This project is under active development. Breaking changes can be introduced and we don't guarantee expected behavior in production.
+This project is not under development. I worked massively on this project as part of my master thesis, but it was interrupted due to my dropout.
 
 
 <h2 align="center">
